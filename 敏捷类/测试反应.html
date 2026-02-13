@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反应测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+            user-select: none;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 20px; }
+
+        .game-area {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .game-area.wait {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .game-area.ready {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+
+        .game-area.click {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin: 25px 0;
+        }
+
+        .stat {
+            text-align: center;
+            color: white;
+        }
+
+        .stat .value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat .label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>⚡ 反应测试</h1>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="value" id="best">--</div>
+            <div class="label">最佳(ms)</div>
+        </div>
+        <div class="stat">
+            <div class="value" id="last">--</div>
+            <div class="label">上次(ms)</div>
+        </div>
+        <div class="stat">
+            <div class="value" id="avg">--</div>
+            <div class="label">平均(ms)</div>
+        </div>
+    </div>
+
+    <div class="game-area wait" id="gameArea" onclick="handleClick()">
+        <div id="text">点击开始</div>
+    </div>
+
+    <button class="btn" onclick="resetStats()">重置记录</button>
+
+    <script>
+        const states = {
+            WAIT: 'wait',
+            READY: 'ready',
+            CLICK: 'click'
+        };
+
+        let currentState = states.WAIT;
+        let startTime = 0;
+        let timeoutId = null;
+        let results = [];
+
+        const gameArea = document.getElementById('gameArea');
+        const text = document.getElementById('text');
+
+        function handleClick() {
+            if (currentState === states.WAIT) {
+                startGame();
+            } else if (currentState === states.READY) {
+                // 太快了
+                clearTimeout(timeoutId);
+                showTooEarly();
+            } else if (currentState === states.CLICK) {
+                // 点击成功
+                const reactionTime = Date.now() - startTime;
+                showResult(reactionTime);
+            }
+        }
+
+        function startGame() {
+            currentState = states.READY;
+            gameArea.className = 'game-area ready';
+            text.textContent = '等待绿色...';
+
+            // 随机延迟 1-3秒
+            const delay = 1000 + Math.random() * 2000;
+            timeoutId = setTimeout(() => {
+                showGreen();
+            }, delay);
+        }
+
+        function showGreen() {
+            currentState = states.CLICK;
+            gameArea.className = 'game-area ready';
+            gameArea.style.background = 'linear-gradient(145deg, #2ecc71, #27ae60)';
+            text.textContent = '点击!';
+            startTime = Date.now();
+        }
+
+        function showTooEarly() {
+            currentState = states.WAIT;
+            gameArea.className = 'game-area click';
+            gameArea.style.background = 'linear-gradient(145deg, #e74c3c, #c0392b)';
+            text.textContent = '太早了!\n点击重试';
+
+            timeoutId = setTimeout(() => {
+                resetToWait();
+            }, 1000);
+        }
+
+        function showResult(time) {
+            currentState = states.WAIT;
+            gameArea.className = 'game-area';
+            text.textContent = time + ' ms\n点击继续';
+
+            results.push(time);
+            updateStats();
+        }
+
+        function updateStats() {
+            const last = results[results.length - 1];
+            const best = Math.min(...results);
+            const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
+
+            document.getElementById('last').textContent = last;
+            document.getElementById('best').textContent = best;
+            document.getElementById('avg').textContent = avg;
+        }
+
+        function resetToWait() {
+            currentState = states.WAIT;
+            gameArea.className = 'game-area wait';
+            gameArea.style.background = '';
+            text.textContent = '点击开始';
+        }
+
+        function resetStats() {
+            results = [];
+            document.getElementById('last').textContent = '--';
+            document.getElementById('best').textContent = '--';
+            document.getElementById('avg').textContent = '--';
+            resetToWait();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24点</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .target {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #8e44ad;
+            margin: 20px 0;
+        }
+
+        .cards {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            width: 70px;
+            height: 100px;
+            background: linear-gradient(145deg, #fff, #f0f0f0);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 3px solid transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.selected {
+            border-color: #8e44ad;
+            background: linear-gradient(145deg, #e8d4f0, #d4b8e0);
+            transform: translateY(-10px);
+        }
+
+        .card.used {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .operators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .operator {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .operator:hover {
+            transform: scale(1.1);
+        }
+
+        .operator.selected {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+
+        .result {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #27ae60;
+            margin: 20px 0;
+            min-height: 50px;
+        }
+
+        .expression {
+            font-size: 1.3rem;
+            color: #7f8c8d;
+            margin: 15px 0;
+            min-height: 30px;
+            word-break: break-all;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            margin: 5px;
+        }
+
+        .btn-check {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+
+        .btn-clear {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .btn-next {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 40px;
+        }
+
+        .message.success {
+            color: #27ae60;
+        }
+
+        .message.error {
+            color: #e74c3c;
+        }
+
+        .hint {
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #27ae60;
+        }
+
+        .win-content h2 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧮 24点</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">成功: <span id="success">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <p style="color: #7f8c8d;">用下面的数字和运算符号得到24</p>
+
+        <div class="target">= 24</div>
+
+        <div class="cards" id="cards"></div>
+
+        <div class="operators" id="operators">
+            <button class="operator" onclick="selectOperator('+')">+</button>
+            <button class="operator" onclick="selectOperator('-')">−</button>
+            <button class="operator" onclick="selectOperator('×')">×</button>
+            <button class="operator" onclick="selectOperator('÷')">÷</button>
+        </div>
+
+        <div class="expression" id="expression"></div>
+
+        <div class="result" id="result"></div>
+
+        <div class="message" id="message"></div>
+
+        <div>
+            <button class="btn btn-clear" onclick="clearSelection()">清除</button>
+            <button class="btn btn-check" onclick="checkAnswer()">检查</button>
+            <button class="btn btn-next" onclick="newGame()">新题目</button>
+        </div>
+
+        <p class="hint">选择2个数字和1个运算符进行计算</p>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 正确!</h2>
+            <p id="winExpression"></p>
+            <button class="btn btn-next" onclick="closeWinAndNew()">下一题</button>
+        </div>
+    </div>
+
+    <script>
+        let cards = [];
+        let selectedCards = [];
+        let selectedOperator = null;
+        let currentResult = null;
+        let score = 0;
+        let successCount = 0;
+
+        // 生成4个随机数字
+        function generateCards() {
+            cards = [];
+            while (cards.length < 4) {
+                const num = Math.floor(Math.random() * 13) + 1;
+                cards.push(num);
+            }
+
+            // 检查是否有解，如果没有就重新生成
+            if (!hasSolution(cards)) {
+                generateCards();
+            }
+        }
+
+        // 检查是否有解
+        function hasSolution(nums) {
+            // 尝试所有可能的组合
+            const results = new Set();
+
+            function permute(arr) {
+                if (arr.length === 0) return [[]];
+                const first = arr[0];
+                const rest = arr.slice(1);
+                const permsWithoutFirst = permute(rest);
+                const allPerms = [];
+
+                permsWithoutFirst.forEach(perm => {
+                    for (let i = 0; i <= perm.length; i++) {
+                        const permWithFirst = [...perm.slice(0, i), first, ...perm.slice(i)];
+                        allPerms.push(permWithFirst);
+                    }
+                });
+                return allPerms;
+            }
+
+            const ops = ['+', '-', '*', '/'];
+
+            function compute(a, b, op) {
+                switch (op) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '*': return a * b;
+                    case '/': return b !== 0 ? a / b : null;
+                }
+            }
+
+            // 尝试所有排列
+            const perms = permute([...nums]);
+
+            for (const perm of perms) {
+                // 尝试所有运算顺序
+                for (let i = 0; i < ops.length; i++) {
+                    for (let j = 0; j < ops.length; j++) {
+                        if (i === j) continue;
+
+                        // (a op1 b) op2 c
+                        let r1 = compute(perm[0], perm[1], ops[i]);
+                        if (r1 === null) continue;
+                        let r2 = compute(r1, perm[2], ops[j]);
+                        if (r2 === null) continue;
+
+                        if (Math.abs(r2 - 24) < 0.001) return true;
+
+                        // ((a op1 b) op2 c) op3 d
+                        for (let k = 0; k < ops.length; k++) {
+                            if (k === i || k === j) continue;
+                            let r3 = compute(r2, perm[3], ops[k]);
+                            if (r3 !== null && Math.abs(r3 - 24) < 0.001) return true;
+                        }
+                    }
+                }
+
+                // 其他运算顺序
+                // a op1 (b op2 c)
+                for (let i = 0; i < ops.length; i++) {
+                    for (let j = 0; j < ops.length; j++) {
+                        if (i === j) continue;
+                        let r1 = compute(perm[1], perm[2], ops[j]);
+                        if (r1 === null) continue;
+                        let r2 = compute(perm[0], r1, ops[i]);
+                        if (r2 !== null && Math.abs(r2 - 24) < 0.001) return true;
+                    }
+                }
+            }
+
+            return results.has(24);
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cards');
+            container.innerHTML = '';
+
+            cards.forEach((num, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.textContent = getCardDisplay(num);
+                card.onclick = () => selectCard(index);
+
+                if (selectedCards.includes(index)) {
+                    card.classList.add('selected');
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+        function getCardDisplay(num) {
+            const symbols = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
+            return symbols[num] || num;
+        }
+
+        function selectCard(index) {
+            if (selectedCards.includes(index)) {
+                // 取消选择
+                selectedCards = selectedCards.filter(i => i !== index);
+            } else if (selectedCards.length < 2) {
+                selectedCards.push(index);
+            }
+
+            renderCards();
+            updateExpression();
+        }
+
+        function selectOperator(op) {
+            selectedOperator = op;
+
+            document.querySelectorAll('.operator').forEach(btn => {
+                btn.classList.toggle('selected', btn.textContent === op);
+            });
+
+            updateExpression();
+        }
+
+        function updateExpression() {
+            if (selectedCards.length === 2 && selectedOperator) {
+                const num1 = cards[selectedCards[0]];
+                const num2 = cards[selectedCards[1]];
+
+                currentResult = compute(num1, num2, selectedOperator);
+                document.getElementById('expression').textContent =
+                    `${getCardDisplay(num1)} ${selectedOperator} ${getCardDisplay(num2)} = ${formatResult(currentResult)}`;
+                document.getElementById('result').textContent = formatResult(currentResult);
+            } else {
+                currentResult = null;
+                document.getElementById('expression').textContent = '';
+                document.getElementById('result').textContent = '';
+            }
+        }
+
+        function compute(a, b, op) {
+            switch (op) {
+                case '+': return a + b;
+                case '-': return a - b;
+                case '×': return a * b;
+                case '÷': return b !== 0 ? a / b : null;
+            }
+        }
+
+        function formatResult(n) {
+            if (n === null) return '无效';
+            if (Number.isInteger(n)) return n;
+            return n.toFixed(2);
+        }
+
+        function clearSelection() {
+            selectedCards = [];
+            selectedOperator = null;
+            currentResult = null;
+
+            document.querySelectorAll('.operator').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            document.getElementById('message').textContent = '';
+            renderCards();
+            updateExpression();
+        }
+
+        function checkAnswer() {
+            if (currentResult === null) {
+                showMessage('请选择2个数字和1个运算符', 'error');
+                return;
+            }
+
+            if (Math.abs(currentResult - 24) < 0.001) {
+                score += 100;
+                successCount++;
+                document.getElementById('score').textContent = score;
+                document.getElementById('success').textContent = successCount;
+
+                const expr = document.getElementById('expression').textContent;
+                document.getElementById('winExpression').textContent = expr;
+                document.getElementById('winOverlay').style.display = 'flex';
+
+                showMessage('🎉 正确!', 'success');
+            } else {
+                showMessage(`结果是 ${formatResult(currentResult)}，不是24`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+        }
+
+        function closeWinAndNew() {
+            document.getElementById('winOverlay').style.display = 'none';
+            newGame();
+        }
+
+        function newGame() {
+            clearSelection();
+            generateCards();
+            renderCards();
+            document.getElementById('message').textContent = '';
+        }
+
+        // 初始化
+        newGame();
+    </script>
+</body>
+</html>

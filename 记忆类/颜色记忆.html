@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颜色记忆</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 150px);
+            gap: 15px;
+        }
+
+        .color-btn {
+            width: 150px;
+            height: 150px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .color-btn:active {
+            transform: scale(0.95);
+        }
+
+        .color-btn.dim {
+            opacity: 0.3;
+        }
+
+        .message {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 25px 0;
+            min-height: 40px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            margin: 5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+
+        .btn-next {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            animation: pop 0.5s ease;
+        }
+
+        .win-content h2 {
+            font-size: 2.5rem;
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 颜色记忆</h1>
+
+    <div class="info-bar">
+        <div class="info-item">等级: <span id="level">1</span></div>
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="message" id="message">准备好了吗？</div>
+
+        <div class="grid" id="grid">
+            <button class="color-btn" style="background: #e74c3c;" data-color="red"></button>
+            <button class="color-btn" style="background: #3498db;" data-color="blue"></button>
+            <button class="color-btn" style="background: #2ecc71;" data-color="green"></button>
+            <button class="color-btn" style="background: #f39c12;" data-color="yellow"></button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button class="btn btn-start" id="startBtn" onclick="startGame()">开始游戏</button>
+            <button class="btn btn-next" id="nextBtn" onclick="nextLevel()" style="display: none;">下一关</button>
+        </div>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 错误!</h2>
+            <p>游戏结束</p>
+            <p>最终得分: <span id="finalScore">0</span></p>
+            <button class="btn btn-start" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        const colors = ['red', 'blue', 'green', 'yellow'];
+        const colorMap = {
+            red: '#e74c3c',
+            blue: '#3498db',
+            green: '#2ecc71',
+            yellow: '#f39c12'
+        };
+
+        let sequence = [];
+        let playerSequence = [];
+        let level = 1;
+        let score = 0;
+        let gameStarted = false;
+        let isShowingSequence = false;
+
+        function startGame() {
+            sequence = [];
+            playerSequence = [];
+            level = 1;
+            score = 0;
+            gameStarted = true;
+
+            document.getElementById('level').textContent = level;
+            document.getElementById('score').textContent = score;
+            document.getElementById('message').textContent = '记住顺序...';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+
+            addToSequence();
+        }
+
+        function addToSequence() {
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            sequence.push(randomColor);
+            playerSequence = [];
+
+            showSequence();
+        }
+
+        function showSequence() {
+            isShowingSequence = true;
+            disableButtons(true);
+
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    isShowingSequence = false;
+                    disableButtons(false);
+                    document.getElementById('message').textContent = '轮到你了！';
+                    return;
+                }
+
+                flashColor(sequence[i]);
+                i++;
+            }, 800);
+        }
+
+        function flashColor(color) {
+            const btn = document.querySelector(`[data-color="${color}"]`);
+            btn.style.opacity = '0.3';
+            setTimeout(() => {
+                btn.style.opacity = '1';
+            }, 400);
+        }
+
+        function disableButtons(disable) {
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.disabled = disable;
+                btn.classList.toggle('dim', disable);
+            });
+        }
+
+        function handleColorClick(color) {
+            if (isShowingSequence || !gameStarted) return;
+
+            flashColor(color);
+            playerSequence.push(color);
+
+            const currentIndex = playerSequence.length - 1;
+
+            // 检查当前点击是否正确
+            if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+                gameOver();
+                return;
+            }
+
+            // 检查是否完成这一关
+            if (playerSequence.length === sequence.length) {
+                score += level * 10;
+                level++;
+                document.getElementById('score').textContent = score;
+                document.getElementById('level').textContent = level;
+                document.getElementById('message').textContent = '✅ 正确!';
+                disableButtons(true);
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('message').textContent = '记住顺序...';
+            document.getElementById('nextBtn').style.display = 'none';
+            addToSequence();
+        }
+
+        function gameOver() {
+            gameStarted = false;
+            document.getElementById('message').textContent = '❌ 错误!';
+            disableButtons(true);
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function restartGame() {
+            document.getElementById('winOverlay').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('message').textContent = '准备好了吗？';
+            disableButtons(true);
+        }
+
+        // 添加点击事件
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                handleColorClick(btn.dataset.color);
+            });
+        });
+
+        disableButtons(true);
+    </script>
+</body>
+</html>

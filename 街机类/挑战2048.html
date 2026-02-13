@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>堆塔</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            width: 300px;
+            height: 400px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .block {
+            position: absolute;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border-radius: 5px;
+            transition: left 0.1s ease;
+        }
+
+        .block.perfect {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+        }
+
+        .current-block {
+            position: absolute;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20px;
+            background: #27ae60;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            display: none;
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>🧱 堆塔游戏</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="ground"></div>
+        <div class="score-display" id="scoreDisplay">0</div>
+        <div class="message" id="message">点击开始</div>
+    </div>
+
+    <button class="btn" id="startBtn" onclick="startGame()">开始游戏</button>
+
+    <script>
+        const container = document.getElementById('gameContainer');
+        const WIDTH = 300;
+        const HEIGHT = 400;
+        const BLOCK_HEIGHT = 30;
+
+        let blocks = [];
+        let currentBlock = null;
+        let score = 0;
+        let gameRunning = false;
+        let direction = 1;
+        let baseX = WIDTH / 2;
+        let baseWidth = 100;
+        let speed = 3;
+
+        function initGame() {
+            blocks = [];
+            score = 0;
+            baseX = WIDTH / 2;
+            baseWidth = 100;
+            speed = 3;
+            direction = 1;
+
+            document.querySelectorAll('.block, .current-block').forEach(b => b.remove());
+            document.getElementById('scoreDisplay').textContent = '0';
+            document.getElementById('message').style.display = 'none';
+
+            // 初始底座
+            addBlock(baseX, HEIGHT - BLOCK_HEIGHT - 20, baseWidth, true);
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            document.getElementById('startBtn').textContent = '游戏中...';
+            initGame();
+            spawnBlock();
+            gameLoop();
+        }
+
+        function spawnBlock() {
+            const block = document.createElement('div');
+            block.className = 'current-block';
+            block.style.width = baseWidth + 'px';
+            block.style.height = BLOCK_HEIGHT + 'px';
+            block.style.left = '0px';
+            block.style.top = (HEIGHT - BLOCK_HEIGHT - 20 - blocks.length * BLOCK_HEIGHT) + 'px';
+            container.appendChild(block);
+            currentBlock = block;
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            if (!currentBlock) return;
+
+            let x = parseFloat(currentBlock.style.left);
+            x += speed * direction;
+
+            if (x + baseWidth >= WIDTH) direction = -1;
+            if (x <= 0) direction = 1;
+
+            currentBlock.style.left = x + 'px';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        container.onclick = () => {
+            if (!gameRunning || !currentBlock) return;
+
+            const x = parseFloat(currentBlock.style.left);
+            const overlap = getOverlap(x, baseX, baseWidth);
+
+            if (overlap > 0) {
+                // 成功堆叠
+                const newWidth = overlap;
+                const newX = baseX + (x - baseX) * (overlap / baseWidth);
+
+                currentBlock.remove();
+
+                const perfect = Math.abs(overlap - baseWidth) < 5;
+                addBlock(newX, HEIGHT - BLOCK_HEIGHT - 20 - blocks.length * BLOCK_HEIGHT, newWidth, perfect);
+
+                if (perfect) {
+                    score += 2;
+                } else {
+                    score += 1;
+                }
+                document.getElementById('scoreDisplay').textContent = score;
+
+                baseWidth = newWidth;
+                baseX = newX;
+
+                // 加速
+                if (score % 5 === 0) speed += 0.5;
+
+                // 检查游戏结束
+                if (baseWidth < 10) {
+                    gameOver();
+                } else {
+                    spawnBlock();
+                }
+            } else {
+                // 没堆中
+                currentBlock.style.opacity = '0.5';
+                setTimeout(() => currentBlock.remove(), 500);
+                gameOver();
+            }
+        };
+
+        function getOverlap(x1, x2, width) {
+            const left = Math.max(x1, x2);
+            const right = Math.min(x1 + width, x2 + width);
+            return Math.max(0, right - left);
+        }
+
+        function addBlock(x, y, width, isBase) {
+            const block = document.createElement('div');
+            block.className = 'block' + (isBase ? '' : '');
+            block.style.left = x + 'px';
+            block.style.top = y + 'px';
+            block.style.width = width + 'px';
+            block.style.height = BLOCK_HEIGHT + 'px';
+
+            if (!isBase) {
+                const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'];
+                block.style.background = `linear-gradient(145deg, ${colors[blocks.length % colors.length]}, ${colors[(blocks.length+1) % colors.length]})`;
+            }
+
+            container.appendChild(block);
+            blocks.push(block);
+
+            // 移除太高的
+            if (blocks.length > 10) {
+                blocks[0].remove();
+                blocks.shift();
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('message').textContent = `游戏结束!\n得分: ${score}`;
+            document.getElementById('message').style.display = 'block';
+            document.getElementById('startBtn').textContent = '重新开始';
+        }
+
+        document.getElementById('message').style.display = 'block';
+    </script>
+</body>
+</html>

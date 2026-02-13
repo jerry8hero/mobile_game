@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>emoji填空</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 15px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; }
+        .game-container { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 500px; }
+        .question { font-size: 3rem; margin: 30px 0; }
+        .options { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+        .option { padding: 15px 25px; font-size: 1.5rem; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; border-radius: 15px; cursor: pointer; transition: all 0.2s; }
+        .option:hover { transform: scale(1.1); }
+        .option.correct { background: #27ae60; }
+        .option.wrong { background: #e74c3c; }
+        .message { font-size: 1.3rem; margin: 15px 0; min-height: 30px; color: #333; }
+        .btn { padding: 12px 30px; font-size: 1rem; background: #e74c3c; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧩 emoji猜谜</h1>
+    <div class="info-bar"><div class="info-item">得分: <span id="score">0</span></div><div class="info-item">关卡: <span id="level">1</span></div></div>
+    <div class="game-container">
+        <div class="message" id="message">猜猜这是什么?</div>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+    </div>
+    <button class="btn" onclick="nextQuestion()">下一题</button>
+    <script>
+        const quizzes = [
+            { q: '🍎', options: ['苹果', '香蕉', '橙子', '葡萄'], a: 0 },
+            { q: '🐶', options: ['猫', '狗', '老鼠', '兔子'], a: 1 },
+            { q: '🚗', options: ['飞机', '火车', '汽车', '轮船'], a: 2 },
+            { q: '☀️', options: ['月亮', '太阳', '星星', '云'], a: 1 },
+            { q: '🏀', options: ['足球', '篮球', '网球', '排球'], a: 1 },
+            { q: '🎸', options: ['钢琴', '吉他', '小提琴', '鼓'], a: 1 },
+            { q: '🍕', options: ['汉堡', '披萨', '寿司', '面条'], a: 1 },
+            { q: '🏠', options: ['学校', '医院', '房子', '商场'], a: 2 },
+            { q: '💻', options: ['电视', '电脑', '手机', '收音机'], a: 1 },
+            { q: '🎂', options: ['生日', '圣诞', '新年', '万圣'], a: 0 }
+        ];
+        let current = 0, score = 0;
+        function nextQuestion() {
+            if (current >= quizzes.length) current = 0;
+            const q = quizzes[current];
+            document.getElementById('question').textContent = q.q;
+            document.getElementById('options').innerHTML = '';
+            q.options.forEach((o,i) => { const btn=document.createElement('button'); btn.className='option'; btn.textContent=o; btn.onclick=()=>check(i,btn); document.getElementById('options').appendChild(btn); });
+            document.getElementById('level').textContent = current + 1;
+            current++;
+        }
+        function check(idx, btn) {
+            const correct = quizzes[current-1].a;
+            if (idx === correct) { score += 10; btn.classList.add('correct'); document.getElementById('score').textContent = score; document.getElementById('message').textContent = '✅ 正确!'; }
+            else { btn.classList.add('wrong'); document.getElementById('message').textContent = '❌ 错误!'; }
+            setTimeout(() => { document.getElementById('message').textContent = '猜猜是什么?'; }, 1000);
+        }
+        nextQuestion();
+    </script>
+</body>
+</html>

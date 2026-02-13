@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华容道</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: #8B4513;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(4, 70px);
+            grid-template-rows: repeat(5, 70px);
+            gap: 5px;
+            background: #654321;
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .tile:hover:not(.empty) {
+            transform: scale(1.05);
+        }
+
+        .tile.empty {
+            background: #4a3728;
+            cursor: default;
+        }
+
+        .tile.horizontal {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            grid-column: span 2;
+        }
+
+        .tile.vertical {
+            background: linear-gradient(145deg, #e67e22, #d35400);
+            grid-row: span 2;
+        }
+
+        .tile.big {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .tile.normal {
+            background: linear-gradient(145deg, #f1c40f, #f39c12);
+        }
+
+        .tile曹操 {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .message {
+            font-size: 1.3rem;
+            color: white;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: white;
+            color: #c0392b;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .win-content h2 {
+            color: #27ae60;
+            font-size: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 华容道</h1>
+
+    <div class="info-bar">
+        <div class="info-item">步数: <span id="moves">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div id="board"></div>
+    </div>
+
+    <div class="message" id="message">移动方块，让曹操逃出去!</div>
+
+    <button class="btn" onclick="initGame()">🔄 重新开始</button>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 胜利!</h2>
+            <p>曹操成功逃脱!</p>
+            <p>共用 <span id="finalMoves">0</span> 步</p>
+            <button class="btn" onclick="closeWin()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 布局定义: 类型和位置
+        // 0 = 空, 1 = 曹操(大方块), 2 = 横条, 3 = 竖条, 4 = 小方块
+        const WIN_STATE = [
+            [0, 0, 1, 1],
+            [0, 0, 1, 1],
+            [2, 2, 3, 3],
+            [4, 4, 4, 4],
+            [4, 4, 4, 4]
+        ];
+
+        // 初始布局 (经典开局)
+        const INIT_STATE = [
+            [1, 1, 1, 1],
+            [3, 4, 4, 3],
+            [2, 4, 4, 2],
+            [3, 4, 4, 3],
+            [2, 2, 2, 2]
+        ];
+
+        let board = [];
+        let moves = 0;
+        let selectedTile = null;
+
+        function initGame() {
+            board = JSON.parse(JSON.stringify(INIT_STATE));
+            moves = 0;
+            selectedTile = null;
+            document.getElementById('moves').textContent = '0';
+            document.getElementById('message').textContent = '移动方块，让曹操逃出去!';
+            document.getElementById('winOverlay').style.display = 'none';
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (board[r][c] === 0) {
+                        const empty = document.createElement('div');
+                        empty.className = 'tile empty';
+                        empty.dataset.r = r;
+                        empty.dataset.c = c;
+                        empty.onclick = () => handleClick(r, c);
+                        boardEl.appendChild(empty);
+                    } else if (!isPlaced(r, c)) {
+                        // 检查是否已放置
+                        continue;
+                    } else {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        const type = board[r][c];
+
+                        if (type === 1) {
+                            tile.classList.add('曹操');
+                            tile.textContent = '曹操';
+                        } else if (type === 2) {
+                            tile.classList.add('horizontal');
+                            tile.textContent = '兵';
+                        } else if (type === 3) {
+                            tile.classList.add('vertical');
+                            tile.textContent = '将';
+                        } else {
+                            tile.classList.add('normal');
+                            tile.textContent = '兵';
+                        }
+
+                        tile.dataset.r = r;
+                        tile.dataset.c = c;
+                        tile.onclick = () => handleClick(r, c);
+
+                        // 选中状态
+                        if (selectedTile && selectedTile.r === r && selectedTile.c === c) {
+                            tile.style.boxShadow = '0 0 15px yellow';
+                        }
+
+                        boardEl.appendChild(tile);
+                    }
+                }
+            }
+        }
+
+        function isPlaced(r, c) {
+            const type = board[r][c];
+            if (type === 0) return false;
+            if (type === 2) return c === 0 || board[r][c-1] !== type;
+            if (type === 3) return r === 0 || board[r-1][c] !== type;
+            return true;
+        }
+
+        function handleClick(r, c) {
+            const type = board[r][c];
+            if (type === 0) {
+                // 点击空白处，如果有选中则尝试移动
+                if (selectedTile) {
+                    if (canMove(selectedTile.r, selectedTile.c, r, c)) {
+                        moveTile(selectedTile.r, selectedTile.c, r, c);
+                        selectedTile = null;
+                        checkWin();
+                    }
+                }
+            } else {
+                // 选中方块
+                if (selectedTile && selectedTile.r === r && selectedTile.c === c) {
+                    selectedTile = null;
+                } else {
+                    selectedTile = { r, c };
+                }
+            }
+            renderBoard();
+        }
+
+        function canMove(fromR, fromC, toR, toC) {
+            const type = board[fromR][fromC];
+            const dR = toR - fromR;
+            const dC = toC - fromC;
+
+            // 检查移动方向
+            if (type === 1) { // 曹操 - 2x2
+                if (dC === 0 && dR === -2) return canMoveTo(fromR, fromC, 2, 2, toR, toC);
+                if (dC === 0 && dR === 2) return canMoveTo(fromR + 1, fromC, 2, 2, toR + 1, toC);
+                if (dR === 0 && dC === -2) return canMoveTo(fromR, fromC, 2, 2, toR, toC);
+                if (dR === 0 && dC === 2) return canMoveTo(fromR, fromC + 1, 2, 2, toR, toC + 1);
+            } else if (type === 2) { // 横条 - 1x2
+                if (dR === 0 && Math.abs(dC) === 2) {
+                    return canMoveTo(fromR, fromC + (dC > 0 ? 0 : 1), 1, 2, toR, toC + (dC > 0 ? 0 : 1));
+                }
+                if (dC === 0 && Math.abs(dR) === 1) {
+                    return canMoveTo(fromR + (dR > 0 ? 0 : 1), fromC, 1, 2, toR + (dR > 0 ? 0 : 1), toC);
+                }
+            } else if (type === 3) { // 竖条 - 2x1
+                if (dC === 0 && Math.abs(dR) === 2) {
+                    return canMoveTo(fromR + (dR > 0 ? 0 : 1), fromC, 2, 1, toR + (dR > 0 ? 0 : 1), toC);
+                }
+                if (dR === 0 && Math.abs(dC) === 1) {
+                    return canMoveTo(fromR, fromC + (dC > 0 ? 0 : 1), 2, 1, toR, toC + (dC > 0 ? 0 : 1));
+                }
+            } else { // 小方块 - 1x1
+                if ((Math.abs(dR) === 1 && dC === 0) || (Math.abs(dC) === 1 && dR === 0)) {
+                    return canMoveTo(fromR, fromC, 1, 1, toR, toC);
+                }
+            }
+            return false;
+        }
+
+        function canMoveTo(fromR, fromC, h, w, toR, toC) {
+            // 检查目标位置是否为空
+            for (let r = toR; r < toR + h; r++) {
+                for (let c = toC; c < toC + w; c++) {
+                    if (r < 0 || r >= 5 || c < 0 || c >= 4 || board[r][c] !== 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function moveTile(fromR, fromC, toR, toC) {
+            const type = board[fromR][fromC];
+
+            // 清除原位置
+            if (type === 1) {
+                board[fromR][fromC] = 0;
+                board[fromR][fromC+1] = 0;
+                board[fromR+1][fromC] = 0;
+                board[fromR+1][fromC+1] = 0;
+                board[toR][toC] = 1;
+                board[toR][toC+1] = 1;
+                board[toR+1][toC] = 1;
+                board[toR+1][toC+1] = 1;
+            } else if (type === 2) {
+                board[fromR][fromC] = 0;
+                board[fromR][fromC+1] = 0;
+                board[toR][toC] = 2;
+                board[toR][toC+1] = 2;
+            } else if (type === 3) {
+                board[fromR][fromC] = 0;
+                board[fromR+1][fromC] = 0;
+                board[toR][toC] = 3;
+                board[toR+1][toC] = 3;
+            } else {
+                board[fromR][fromC] = 0;
+                board[toR][toC] = 4;
+            }
+
+            moves++;
+            document.getElementById('moves').textContent = moves;
+        }
+
+        function checkWin() {
+            // 曹操到达底部中间位置
+            if (board[3][1] === 1 && board[3][2] === 1) {
+                document.getElementById('finalMoves').textContent = moves;
+                document.getElementById('winOverlay').style.display = 'flex';
+            }
+        }
+
+        function closeWin() {
+            document.getElementById('winOverlay').style.display = 'none';
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

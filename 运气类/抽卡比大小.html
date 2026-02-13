@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>抽卡游戏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 20px; }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; }
+        .game-container { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+        .cards { display: flex; gap: 20px; justify-content: center; margin: 30px 0; min-height: 150px; align-items: center; }
+        .card { width: 100px; height: 140px; background: linear-gradient(145deg, #3498db, #2980b9); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .card:hover { transform: translateY(-10px); }
+        .card.hidden { background: linear-gradient(145deg, #2c3e50, #1a252f); }
+        .card.revealed { animation: reveal 0.5s ease; }
+        @keyframes reveal { from { transform: rotateY(180deg); } to { transform: rotateY(0); } }
+        .result { font-size: 1.5rem; margin: 20px 0; min-height: 40px; font-weight: bold; }
+        .btn { padding: 12px 30px; font-size: 1rem; background: #e74c3c; color: white; border: none; border-radius: 25px; cursor: pointer; margin: 5px; }
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>🎴 抽卡比大小</h1>
+    <div class="info-bar"><div class="info-item">玩家得分: <span id="playerScore">0</span></div><div class="info-item">电脑得分: <span id="computerScore">0</span></div></div>
+    <div class="game-container">
+        <div class="cards">
+            <div class="card hidden" id="playerCard" onclick="draw()">?</div>
+            <div style="font-size:2rem;color:#7f8c8d;">VS</div>
+            <div class="card hidden" id="computerCard">🤖</div>
+        </div>
+        <div class="result" id="result">点击抽卡</div>
+        <button class="btn" onclick="reset()">重新开始</button>
+    </div>
+    <script>
+        const cardValues = ['🃏','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','J','Q','K','A'];
+        const cardNums = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+        let playerScore = 0, computerScore = 0;
+        function draw() {
+            const playerIdx = Math.floor(Math.random() * 14);
+            const computerIdx = Math.floor(Math.random() * 14);
+            const playerCard = document.getElementById('playerCard');
+            const computerCard = document.getElementById('computerCard');
+            playerCard.className = 'card revealed';
+            computerCard.className = 'card revealed';
+            playerCard.textContent = cardValues[playerIdx];
+            computerCard.textContent = cardValues[computerIdx];
+            const result = document.getElementById('result');
+            if (cardNums[playerIdx] > cardNums[computerIdx]) {
+                playerScore += 10;
+                result.textContent = '🎉 你赢了! +10分';
+                result.style.color = '#27ae60';
+            } else if (cardNums[playerIdx] < cardNums[computerIdx]) {
+                computerScore += 10;
+                result.textContent = '💀 电脑赢了! +10分';
+                result.style.color = '#e74c3c';
+            } else {
+                result.textContent = '🤝 平局!';
+                result.style.color = '#f39c12';
+            }
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('computerScore').textContent = computerScore;
+        }
+        function reset() {
+            playerScore = 0; computerScore = 0;
+            document.getElementById('playerScore').textContent = '0';
+            document.getElementById('computerScore').textContent = '0';
+            document.getElementById('playerCard').className = 'card hidden';
+            document.getElementById('playerCard').textContent = '?';
+            document.getElementById('computerCard').className = 'card hidden';
+            document.getElementById('computerCard').textContent = '🤖';
+            document.getElementById('result').textContent = '点击抽卡';
+            document.getElementById('result').style.color = '#333';
+        }
+    </script>
+</body>
+</html>

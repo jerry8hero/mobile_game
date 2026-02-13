@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打地鼠</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: linear-gradient(145deg, #8B4513, #654321);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .holes {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 20px;
+        }
+
+        .hole {
+            width: 100px;
+            height: 80px;
+            background: #3d2914;
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mole {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            transition: bottoms ease;
+            cursor: pointer;
+ 0.2        }
+
+        .mole.up {
+            bottom: 0;
+        }
+
+        .mole.hit {
+            animation: hit 0.2s ease;
+        }
+
+        @keyframes hit {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(0.8); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>🐹 打地鼠</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">时间: <span id="time">30</span>秒</div>
+    </div>
+
+    <div class="game-container">
+        <div class="holes" id="holes"></div>
+    </div>
+
+    <button class="btn" id="startBtn" onclick="startGame()">开始游戏</button>
+
+    <script>
+        const holesEl = document.getElementById('holes');
+        const moles = [];
+        let score = 0;
+        let timeLeft = 30;
+        let gameRunning = false;
+        let moleTimer = null;
+        let gameTimer = null;
+
+        // 创建洞
+        for (let i = 0; i < 9; i++) {
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+            const mole = document.createElement('div');
+            mole.className = 'mole';
+            mole.textContent = '🐹';
+            mole.onclick = () => hitMole(mole);
+            hole.appendChild(mole);
+            holesEl.appendChild(hole);
+            moles.push(mole);
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+
+            score = 0;
+            timeLeft = 30;
+            gameRunning = true;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('time').textContent = '30';
+            document.getElementById('startBtn').textContent = '游戏中...';
+
+            moleTimer = setInterval(showMole, 600);
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('time').textContent = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function showMole() {
+            if (!gameRunning) return;
+
+            // 随机隐藏之前的
+            moles.forEach(m => m.classList.remove('up'));
+
+            // 随机显示一个
+            const idx = Math.floor(Math.random() * 9);
+            moles[idx].classList.add('up');
+
+            // 随机时间后隐藏
+            setTimeout(() => {
+                if (moles[idx].classList.contains('up')) {
+                    moles[idx].classList.remove('up');
+                }
+            }, 800 + Math.random() * 400);
+        }
+
+        function hitMole(mole) {
+            if (!gameRunning || !mole.classList.contains('up')) return;
+
+            score += 10;
+            document.getElementById('score').textContent = score;
+            mole.classList.remove('up');
+            mole.classList.add('hit');
+            setTimeout(() => mole.classList.remove('hit'), 200);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(moleTimer);
+            clearInterval(gameTimer);
+            moles.forEach(m => m.classList.remove('up'));
+            document.getElementById('startBtn').textContent = '开始游戏';
+            alert(`游戏结束!\n得分: ${score}`);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝石迷阵</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 45px);
+            gap: 5px;
+        }
+
+        .cell {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover { transform: scale(1.1); }
+        .cell.selected { background: rgba(255,255,255,0.4); transform: scale(1.1); }
+        .cell.matched { animation: match 0.3s ease forwards; }
+
+        @keyframes match {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>💎 宝石迷阵</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div id="board"></div>
+    </div>
+
+    <button class="btn" onclick="initGame()">🔄 重新开始</button>
+
+    <script>
+        const gems = ['💎', '💍', '🔮', '🌟', '❤️', '🌙'];
+        const ROWS = 8;
+        const COLS = 8;
+
+        let board = [];
+        let selected = null;
+        let score = 0;
+        let isMatching = false;
+
+        function initGame() {
+            board = [];
+            selected = null;
+            score = 0;
+            isMatching = false;
+            document.getElementById('score').textContent = '0';
+
+            // 生成棋盘
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = getRandomGem(r, c);
+                }
+            }
+
+            renderBoard();
+        }
+
+        function getRandomGem(row, col) {
+            let gem;
+            let attempts = 0;
+            do {
+                gem = gems[Math.floor(Math.random() * gems.length)];
+                attempts++;
+            } while (attempts < 50 && wouldMatch(row, col, gem));
+            return gem;
+        }
+
+        function wouldMatch(row, col, gem) {
+            // 检查横向
+            if (col >= 2 && board[row][col-1] === gem && board[row][col-2] === gem) return true;
+            // 检查纵向
+            if (row >= 2 && board[row-1][col] === gem && board[row-2][col] === gem) return true;
+            return false;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.textContent = board[r][c];
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    cell.onclick = () => handleClick(r, c);
+
+                    if (selected && selected.r === r && selected.c === c) {
+                        cell.classList.add('selected');
+                    }
+
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function handleClick(r, c) {
+            if (isMatching) return;
+
+            if (!selected) {
+                selected = { r, c };
+            } else if (selected.r === r && selected.c === c) {
+                selected = null;
+            } else {
+                // 检查是否相邻
+                const dr = Math.abs(selected.r - r);
+                const dc = Math.abs(selected.c - c);
+
+                if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
+                    // 交换
+                    swap(selected.r, selected.c, r, c);
+                    selected = null;
+                } else {
+                    selected = { r, c };
+                }
+            }
+            renderBoard();
+        }
+
+        function swap(r1, c1, r2, c2) {
+            [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+
+            // 检查匹配
+            const matches = findMatches();
+
+            if (matches.length > 0) {
+                isMatching = true;
+                removeMatches(matches);
+            } else {
+                // 换回去
+                [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+            }
+        }
+
+        function findMatches() {
+            const matches = new Set();
+
+            // 检查横向
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 2; c++) {
+                    if (board[r][c] && board[r][c] === board[r][c+1] && board[r][c] === board[r][c+2]) {
+                        matches.add(`${r},${c}`);
+                        matches.add(`${r},${c+1}`);
+                        matches.add(`${r},${c+2}`);
+                    }
+                }
+            }
+
+            // 检查纵向
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS - 2; r++) {
+                    if (board[r][c] && board[r][c] === board[r+1][c] && board[r][c] === board[r+2][c]) {
+                        matches.add(`${r},${c}`);
+                        matches.add(`${r+1},${c}`);
+                        matches.add(`${r+2},${c}`);
+                    }
+                }
+            }
+
+            return Array.from(matches).map(s => {
+                const [r, c] = s.split(',').map(Number);
+                return { r, c };
+            });
+        }
+
+        function removeMatches(matches) {
+            // 添加分数
+            score += matches.length * 10;
+            document.getElementById('score').textContent = score;
+
+            // 标记动画
+            matches.forEach(({ r, c }) => {
+                const cell = document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+                if (cell) cell.classList.add('matched');
+            });
+
+            // 移除并下落
+            setTimeout(() => {
+                matches.forEach(({ r, c }) => {
+                    board[r][c] = null;
+                });
+
+                // 下落
+                for (let c = 0; c < COLS; c++) {
+                    let empty = 0;
+                    for (let r = ROWS - 1; r >= 0; r--) {
+                        if (board[r][c] === null) {
+                            empty++;
+                        } else if (empty > 0) {
+                            board[r + empty][c] = board[r][c];
+                            board[r][c] = null;
+                        }
+                    }
+
+                    // 填充新宝石
+                    for (let r = 0; r < empty; r++) {
+                        board[r][c] = gems[Math.floor(Math.random() * gems.length)];
+                    }
+                }
+
+                renderBoard();
+
+                // 检查连锁
+                setTimeout(() => {
+                    const newMatches = findMatches();
+                    if (newMatches.length > 0) {
+                        removeMatches(newMatches);
+                    } else {
+                        isMatching = false;
+                    }
+                }, 300);
+            }, 300);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

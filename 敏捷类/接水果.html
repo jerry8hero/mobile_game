@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接水果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .control-hint {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .btn-restart {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+        }
+
+        .game-over-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #e74c3c;
+        }
+
+        .game-over-content p {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .start-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: #333;
+            background: rgba(255,255,255,0.9);
+            padding: 20px 40px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍎 接水果</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">生命: <span id="lives">❤️❤️❤️</span></div>
+    </div>
+
+    <div class="game-container" style="position: relative;">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+        <div class="start-hint" id="startHint" onclick="startGame()">点击开始游戏</div>
+    </div>
+
+    <div class="controls">
+        <p class="control-hint">← → 或 鼠标 左右移动篮子接住水果</p>
+        <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-content">
+            <h2>💀 游戏结束</h2>
+            <p>最终得分: <span id="finalScore">0</span></p>
+            <button class="btn-restart" onclick="closeAndRestart()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const FRUITS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑'];
+        const BOMB = '💣';
+
+        let basket = { x: 0, y: 0, width: 80, height: 50 };
+        let fallingItems = [];
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let spawnTimer = null;
+        let gameLoop = null;
+        let speed = 3;
+        let spawnRate = 1500;
+
+        function initGame() {
+            basket.x = canvas.width / 2 - basket.width / 2;
+            basket.y = canvas.height - 70;
+            fallingItems = [];
+            score = 0;
+            lives = 3;
+            speed = 3;
+            spawnRate = 1500;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('lives').textContent = '❤️❤️❤️';
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('startHint').style.display = 'block';
+
+            draw();
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            document.getElementById('startHint').style.display = 'none';
+
+            spawnTimer = setInterval(spawnItem, spawnRate);
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function restartGame() {
+            gameRunning = false;
+            clearInterval(spawnTimer);
+            cancelAnimationFrame(gameLoop);
+            initGame();
+        }
+
+        function spawnItem() {
+            if (!gameRunning) return;
+
+            const isBomb = Math.random() < 0.15; // 15%概率是炸弹
+            const item = {
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: -30,
+                type: isBomb ? BOMB : FRUITS[Math.floor(Math.random() * FRUITS.length)],
+                speed: speed + Math.random() * 2,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.1
+            };
+            fallingItems.push(item);
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // 更新速度
+            speed = 3 + Math.floor(score / 50) * 0.5;
+            spawnRate = Math.max(500, 1500 - Math.floor(score / 30) * 100);
+
+            // 移动物品
+            fallingItems.forEach(item => {
+                item.y += item.speed;
+                item.rotation += item.rotationSpeed;
+            });
+
+            // 检测碰撞
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+
+                // 接住了
+                if (item.y + 20 > basket.y &&
+                    item.y - 20 < basket.y + basket.height &&
+                    item.x > basket.x &&
+                    item.x < basket.x + basket.width) {
+
+                    if (item.type === BOMB) {
+                        lives--;
+                        updateLivesDisplay();
+                        if (lives <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    } else {
+                        score += 10;
+                        document.getElementById('score').textContent = score;
+                    }
+
+                    fallingItems.splice(i, 1);
+                    continue;
+                }
+
+                // 掉出屏幕
+                if (item.y > canvas.height + 30) {
+                    fallingItems.splice(i, 1);
+                }
+            }
+
+            draw();
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制背景
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制草地
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+
+            // 绘制篮子
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.moveTo(basket.x, basket.y);
+            ctx.lineTo(basket.x + basket.width, basket.y);
+            ctx.lineTo(basket.x + basket.width - 10, basket.y + basket.height);
+            ctx.lineTo(basket.x + 10, basket.y + basket.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // 篮子纹理
+            ctx.strokeStyle = '#A0522D';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(basket.x + 15 + i * 20, basket.y + 5);
+                ctx.lineTo(basket.x + 10 + i * 20, basket.y + basket.height - 5);
+                ctx.stroke();
+            }
+
+            // 绘制水果和炸弹
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            fallingItems.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rotation);
+                ctx.fillText(item.type, 0, 10);
+                ctx.restore();
+            });
+        }
+
+        function updateLivesDisplay() {
+            let hearts = '';
+            for (let i = 0; i < lives; i++) hearts += '❤️';
+            for (let i = lives; i < 3; i++) hearts += '🖤';
+            document.getElementById('lives').textContent = hearts;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(spawnTimer);
+            cancelAnimationFrame(gameLoop);
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverOverlay').style.display = 'flex';
+        }
+
+        function closeAndRestart() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            restartGame();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+
+            const moveSpeed = 20;
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    basket.x = Math.max(0, basket.x - moveSpeed);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    basket.x = Math.min(canvas.width - basket.width, basket.x + moveSpeed);
+                    break;
+            }
+            draw();
+        });
+
+        // 鼠标控制
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameRunning) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            basket.x = mouseX - basket.width / 2;
+            basket.x = Math.max(0, Math.min(canvas.width - basket.width, basket.x));
+            draw();
+        });
+
+        // 触摸控制
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            basket.x = touchX - basket.width / 2;
+            basket.x = Math.max(0, Math.min(canvas.width - basket.width, basket.x));
+            draw();
+        }, { passive: false });
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>

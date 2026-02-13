@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宫探险</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        #maze {
+            display: grid;
+            gap: 0;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.1s ease;
+        }
+
+        .wall {
+            background: #34495e;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .path {
+            background: #ecf0f1;
+        }
+
+        .player {
+            background: #3498db;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #3498db;
+            animation: playerGlow 1s ease infinite;
+        }
+
+        .player::after {
+            content: '😃';
+            font-size: 1rem;
+        }
+
+        @keyframes playerGlow {
+            0%, 100% { box-shadow: 0 0 5px #3498db; }
+            50% { box-shadow: 0 0 15px #3498db; }
+        }
+
+        .exit {
+            background: #27ae60;
+            border-radius: 5px;
+        }
+
+        .exit::after {
+            content: '🚪';
+            font-size: 1rem;
+        }
+
+        .collected {
+            background: #f39c12;
+            border-radius: 50%;
+        }
+
+        .collected::after {
+            content: '⭐';
+            font-size: 0.8rem;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .control-hint {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .keys {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .key {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .key-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-restart {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+        }
+
+        .level-select {
+            margin-bottom: 15px;
+        }
+
+        .level-btn {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            margin: 0 5px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .level-btn.active {
+            background: #f39c12;
+            color: white;
+        }
+
+        .level-btn:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #27ae60;
+        }
+
+        .win-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .treasure-hint {
+            color: #f39c12;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 迷宫探险</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">步数: <span id="steps">0</span></div>
+    </div>
+
+    <div class="level-select">
+        <button class="level-btn active" onclick="setLevel(1)">简单</button>
+        <button class="level-btn" onclick="setLevel(2)">中等</button>
+        <button class="level-btn" onclick="setLevel(3)">困难</button>
+    </div>
+
+    <div class="game-container">
+        <div id="maze"></div>
+    </div>
+
+    <p class="treasure-hint" id="treasureHint">收集所有⭐到达出口🚪</p>
+
+    <div class="controls">
+        <p class="control-hint">使用方向键或WASD移动</p>
+        <div class="keys">
+            <div>
+                <div class="key-row">
+                    <div class="key">↑</div>
+                </div>
+                <div class="key-row">
+                    <div class="key">←</div>
+                    <div class="key">↓</div>
+                    <div class="key">→</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-restart" onclick="initGame()">🔄 重新开始</button>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 过关啦!</h2>
+            <p>你走了 <span id="finalSteps">0</span> 步</p>
+            <button class="btn-restart" onclick="nextLevel()">下一关 ➡️</button>
+        </div>
+    </div>
+
+    <script>
+        // 迷宫数据：1=墙，0=路径
+        const mazes = {
+            1: [  // 简单 - 9x9
+                [1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,1],
+                [1,0,1,0,1,0,1,0,1],
+                [1,0,1,0,0,0,1,0,1],
+                [1,0,1,1,1,1,1,0,1],
+                [1,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,0,1,1,1],
+                [1,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1]
+            ],
+            2: [  // 中等 - 11x11
+                [1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,0,0,1],
+                [1,0,1,0,1,0,1,1,1,0,1],
+                [1,0,1,0,0,0,0,0,1,0,1],
+                [1,0,1,1,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,1],
+                [1,1,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,0,0,1,0,1],
+                [1,0,1,1,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            3: [  // 困难 - 15x15
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,0,1,0,1,1,1,0,1,0,1,0,1],
+                [1,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
+                [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,0,1,1,1,1,1,0,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
+                [1,1,1,1,1,0,1,0,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1,1,1,0,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ]
+        };
+
+        let currentLevel = 1;
+        let playerPos = { x: 1, y: 1 };
+        let exitPos = { x: 0, y: 0 };
+        let treasures = [];
+        let steps = 0;
+        let maze = [];
+
+        function setLevel(l) {
+            currentLevel = l;
+            document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === l);
+            });
+            initGame();
+        }
+
+        function initGame() {
+            // 复制迷宫
+            maze = mazes[currentLevel].map(row => [...row]);
+            const size = maze.length;
+
+            // 起点和终点
+            playerPos = { x: 1, y: 1 };
+            exitPos = { x: size - 2, y: size - 2 };
+
+            // 确保终点是路径
+            maze[exitPos.y][exitPos.x] = 0;
+
+            // 放置宝藏
+            treasures = [];
+            const treasureCount = currentLevel + 2;
+            let placed = 0;
+            while (placed < treasureCount) {
+                const x = Math.floor(Math.random() * (size - 2)) + 1;
+                const y = Math.floor(Math.random() * (size - 2)) + 1;
+                if (maze[y][x] === 0 && !(x === playerPos.x && y === playerPos.y) && !(x === exitPos.x && y === exitPos.y)) {
+                    if (!treasures.some(t => t.x === x && t.y === y)) {
+                        treasures.push({ x, y, collected: false });
+                        placed++;
+                    }
+                }
+            }
+
+            steps = 0;
+            document.getElementById('steps').textContent = '0';
+            document.getElementById('level').textContent = currentLevel;
+            document.getElementById('winOverlay').style.display = 'none';
+
+            renderMaze();
+        }
+
+        function renderMaze() {
+            const mazeEl = document.getElementById('maze');
+            mazeEl.innerHTML = '';
+            const size = maze.length;
+
+            mazeEl.style.gridTemplateColumns = `repeat(${size}, 30px)`;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    if (maze[y][x] === 1) {
+                        cell.classList.add('wall');
+                    } else {
+                        cell.classList.add('path');
+                    }
+
+                    // 宝藏
+                    const treasure = treasures.find(t => t.x === x && t.y === y && !t.collected);
+                    if (treasure) {
+                        cell.innerHTML = '⭐';
+                        cell.classList.add('treasure');
+                    }
+
+                    // 出口
+                    if (x === exitPos.x && y === exitPos.y) {
+                        cell.classList.add('exit');
+                    }
+
+                    // 玩家
+                    if (x === playerPos.x && y === playerPos.y) {
+                        cell.classList.add('player');
+                        cell.innerHTML = '';
+                    }
+
+                    mazeEl.appendChild(cell);
+                }
+            }
+
+            updateTreasureHint();
+        }
+
+        function updateTreasureHint() {
+            const remaining = treasures.filter(t => !t.collected).length;
+            const hint = document.getElementById('treasureHint');
+            if (remaining > 0) {
+                hint.textContent = `还有 ${remaining} 个⭐未收集`;
+            } else {
+                hint.textContent = '找到出口🚪离开！';
+            }
+        }
+
+        function move(dx, dy) {
+            const newX = playerPos.x + dx;
+            const newY = playerPos.y + dy;
+
+            // 检查是否撞墙
+            if (maze[newY][newX] === 1) return;
+
+            // 移动玩家
+            playerPos.x = newX;
+            playerPos.y = newY;
+            steps++;
+            document.getElementById('steps').textContent = steps;
+
+            // 检查是否收集宝藏
+            const treasure = treasures.find(t => t.x === newX && t.y === newY && !t.collected);
+            if (treasure) {
+                treasure.collected = true;
+            }
+
+            // 检查是否到达出口
+            if (newX === exitPos.x && newY === exitPos.y) {
+                const remaining = treasures.filter(t => !t.collected).length;
+                if (remaining === 0) {
+                    showWin();
+                } else {
+                    // 还有宝藏没收集，给提示
+                }
+            }
+
+            renderMaze();
+        }
+
+        function showWin() {
+            document.getElementById('finalSteps').textContent = steps;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function nextLevel() {
+            if (currentLevel < 3) {
+                currentLevel++;
+                document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i + 1 === currentLevel);
+                });
+            }
+            initGame();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    move(0, -1);
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    move(0, 1);
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    move(-1, 0);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    move(1, 0);
+                    break;
+            }
+        });
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>

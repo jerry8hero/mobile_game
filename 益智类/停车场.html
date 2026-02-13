@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>停车场</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 15px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; }
+        .game-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .parking { display: grid; grid-template-columns: repeat(4, 70px); gap: 10px; }
+        .spot { width: 70px; height: 100px; background: #ecf0f1; border: 2px dashed #bdc3c7; border-radius: 10px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .spot.occupied { border-color: #e74c3c; background: #fadbd8; }
+        .car { width: 60px; height: 90px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: grab; transition: transform 0.2s; }
+        .car:hover { transform: scale(1.05); }
+        .car.red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+        .car.blue { background: linear-gradient(145deg, #3498db, #2980b9); }
+        .car.green { background: linear-gradient(145deg, #2ecc71, #27ae60); }
+        .car.yellow { background: linear-gradient(145deg, #f1c40f, #f39c12); }
+        .target { position: absolute; top: -10px; right: -10px; width: 25px; height: 25px; background: #e74c3c; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 0.8rem; color: white; }
+        .spot.occupied .target { display: flex; }
+        .message { text-align: center; margin-top: 15px; font-size: 1.2rem; color: #333; min-height: 30px; }
+        .btn { margin-top: 15px; padding: 12px 30px; font-size: 1rem; background: #3498db; color: white; border: none; border-radius: 25px; cursor: pointer; }
+        .btn:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <h1>🚗 停车场</h1>
+    <div class="info-bar"><div class="info-item">关卡: <span id="level">1</span></div></div>
+    <div class="game-container">
+        <div class="parking" id="parking"></div>
+        <div class="message" id="message">拖动汽车到对应位置</div>
+    </div>
+    <button class="btn" onclick="initGame()">🔄 重新开始</button>
+    <script>
+        const levels = [
+            { cars: ['🚗', '🚙', '🚕'], spots: 3 },
+            { cars: ['🚗', '🚙', '🚕', '🚓'], spots: 4 },
+            { cars: ['🚗', '🚙', '🚕', '🚓', '🚑'], spots: 5 },
+            { cars: ['🚗', '🚙', '🚕', '🚓', '🚑', '🚒'], spots: 6 }
+        ];
+        let currentLevel = 0;
+        let cars = [];
+        function initGame() {
+            currentLevel = 0;
+            document.getElementById('level').textContent = currentLevel + 1;
+            loadLevel();
+        }
+        function loadLevel() {
+            const level = levels[currentLevel];
+            const parking = document.getElementById('parking');
+            parking.innerHTML = '';
+            cars = [...level.cars];
+            cars.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < level.spots; i++) {
+                const spot = document.createElement('div');
+                spot.className = 'spot';
+                spot.dataset.index = i;
+
+                if (i < cars.length) {
+                    const car = document.createElement('div');
+                    car.className = `car ${['red','blue','green','yellow'][i % 4]}`;
+                    car.textContent = cars[i];
+                    car.draggable = true;
+                    car.dataset.target = i;
+                    car.ondragstart = (e) => { e.dataTransfer.setData('text', e.target.dataset.target); };
+                    car.onclick = () => moveCar(car, i);
+                    spot.appendChild(car);
+                }
+
+                const target = document.createElement('div');
+                target.className = 'target';
+                target.textContent = (i + 1);
+                spot.appendChild(target);
+
+                parking.appendChild(spot);
+            }
+            checkWin();
+        }
+        function moveCar(car, targetIndex) {
+            const currentSpot = car.parentElement;
+            const spots = document.querySelectorAll('.spot');
+            const targetSpot = spots[targetIndex];
+
+            if (!targetSpot.querySelector('.car') || targetSpot === currentSpot) {
+                if (targetSpot.querySelector('.car')) {
+                    currentSpot.appendChild(targetSpot.querySelector('.car'));
+                }
+                targetSpot.appendChild(car);
+                checkWin();
+            }
+        }
+        function checkWin() {
+            const spots = document.querySelectorAll('.spot');
+            let won = true;
+            spots.forEach((spot, i) => {
+                const car = spot.querySelector('.car');
+                if (car && car.dataset.target != i) won = false;
+            });
+            if (won) {
+                document.getElementById('message').textContent = '🎉 过关!';
+                setTimeout(() => {
+                    if (currentLevel < levels.length - 1) {
+                        currentLevel++;
+                        document.getElementById('level').textContent = currentLevel + 1;
+                        loadLevel();
+                    } else {
+                        alert('恭喜通关!');
+                        initGame();
+                    }
+                }, 1000);
+            }
+        }
+        initGame();
+    </script>
+</body>
+</html>

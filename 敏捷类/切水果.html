@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>切水果</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            width: 400px;
+            height: 500px;
+            background: linear-gradient(to bottom, #2c3e50, #1a252f);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .fruit {
+            position: absolute;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            user-select: none;
+        }
+
+        .fruit.sliced {
+            animation: slice 0.3s ease forwards;
+        }
+
+        @keyframes slice {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .bomb {
+            position: absolute;
+            font-size: 2.5rem;
+            cursor: pointer;
+        }
+
+        .slice-effect {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+            animation: fadeOut 0.5s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(20px); }
+        }
+
+        .combo {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #f1c40f;
+            animation: comboAnim 0.5s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes comboAnim {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .start-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            background: rgba(0,0,0,0.7);
+            padding: 20px 40px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔪 切水果</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">生命: <span id="lives">❤️❤️❤️</span></div>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="start-hint" id="startHint" onclick="startGame()">点击开始游戏</div>
+    </div>
+
+    <script>
+        const fruits = ['🍎', '🍊', '🍋', '🍉', '🍇', '🍓', '🍑', '🥝'];
+        const bomb = '💣';
+
+        const container = document.getElementById('gameContainer');
+
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let spawnTimer = null;
+        let items = [];
+        let combo = 0;
+        let lastSliceTime = 0;
+
+        function startGame() {
+            if (gameRunning) return;
+
+            score = 0;
+            lives = 3;
+            items = [];
+            combo = 0;
+            gameRunning = true;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('lives').textContent = '❤️❤️❤️';
+            document.getElementById('startHint').style.display = 'none';
+
+            // 清除旧元素
+            document.querySelectorAll('.fruit, .bomb, .slice-effect, .combo').forEach(e => e.remove());
+
+            spawnTimer = setInterval(spawnItem, 800);
+            gameLoop();
+        }
+
+        function spawnItem() {
+            if (!gameRunning) return;
+
+            const isBomb = Math.random() < 0.15;
+            const item = document.createElement('div');
+            item.className = isBomb ? 'bomb' : 'fruit';
+            item.textContent = isBomb ? bomb : fruits[Math.floor(Math.random() * fruits.length)];
+
+            item.style.left = (50 + Math.random() * 300) + 'px';
+            item.style.top = '500px';
+
+            const vy = -(8 + Math.random() * 4);
+            const vx = (Math.random() - 0.5) * 4;
+            const rotation = (Math.random() - 0.5) * 10;
+
+            item.dataset.vx = vx;
+            item.dataset.vy = vy;
+            item.dataset.rotation = rotation;
+
+            container.appendChild(item);
+            items.push(item);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            const gravity = 0.2;
+
+            items.forEach((item, index) => {
+                let vy = parseFloat(item.dataset.vy);
+                let vx = parseFloat(item.dataset.vx);
+                let rotation = parseFloat(item.dataset.rotation);
+
+                vy += gravity;
+                vx *= 0.99;
+
+                let top = parseFloat(item.style.top) + vy;
+                let left = parseFloat(item.style.left) + vx;
+                let rot = rotation + parseFloat(item.dataset.rotation);
+
+                item.style.top = top + 'px';
+                item.style.left = left + 'px';
+                item.style.transform = `rotate(${rot}deg)`;
+
+                // 检测切中
+                item.onmouseenter = () => slice(item);
+                item.ontouchstart = () => slice(item);
+
+                // 超出屏幕
+                if (top > 550) {
+                    if (!item.classList.contains('sliced') && item.classList.contains('bomb')) {
+                        // 炸弹漏掉不扣分
+                    } else if (!item.classList.contains('sliced') && !item.classList.contains('bomb')) {
+                        // 水果漏掉
+                        combo = 0;
+                    }
+                    item.remove();
+                    items.splice(index, 1);
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function slice(item) {
+            if (item.classList.contains('sliced')) return;
+
+            const isBomb = item.classList.contains('bomb');
+
+            if (isBomb) {
+                // 切到炸弹
+                item.classList.add('sliced');
+                lives--;
+
+                let hearts = '';
+                for (let i = 0; i < lives; i++) hearts += '❤️';
+                for (let i = lives; i < 3; i++) hearts += '🖤';
+                document.getElementById('lives').textContent = hearts;
+
+                if (lives <= 0) {
+                    gameOver();
+                }
+            } else {
+                // 切到水果
+                item.classList.add('sliced');
+
+                // 连击检测
+                const now = Date.now();
+                if (now - lastSliceTime < 500) {
+                    combo++;
+                    if (combo >= 2) {
+                        showCombo(combo, parseFloat(item.style.left), parseFloat(item.style.top));
+                    }
+                } else {
+                    combo = 1;
+                }
+                lastSliceTime = now;
+
+                const points = 10 * (combo >= 2 ? combo : 1);
+                score += points;
+                document.getElementById('score').textContent = score;
+
+                // 特效
+                showSliceEffect(item.textContent, parseFloat(item.style.left), parseFloat(item.style.top));
+
+                setTimeout(() => item.remove(), 300);
+            }
+        }
+
+        function showSliceEffect(fruit, x, y) {
+            const effect = document.createElement('div');
+            effect.className = 'slice-effect';
+            effect.textContent = '+' + (combo >= 2 ? 10 * combo : 10);
+            effect.style.left = x + 'px';
+            effect.style.top = y + 'px';
+            container.appendChild(effect);
+            setTimeout(() => effect.remove(), 500);
+        }
+
+        function showCombo(combo, x, y) {
+            const text = document.createElement('div');
+            text.className = 'combo';
+            text.textContent = combo + '连击!';
+            text.style.left = x + 'px';
+            text.style.top = (y - 30) + 'px';
+            container.appendChild(text);
+            setTimeout(() => text.remove(), 500);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(spawnTimer);
+            alert(`游戏结束!\n得分: ${score}`);
+            initGame();
+        }
+
+        function initGame() {
+            document.querySelectorAll('.fruit, .bomb, .slice-effect, .combo').forEach(e => e.remove());
+            document.getElementById('startHint').style.display = 'block';
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

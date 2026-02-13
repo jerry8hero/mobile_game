@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫雷</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: #bdc3c7;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .level-select {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .level-btn {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .level-btn.active {
+            background: #e74c3c;
+        }
+
+        #board {
+            display: grid;
+            gap: 2px;
+            background: #95a5a6;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            background: linear-gradient(145deg, #bdc3c7, #a6abae);
+            user-select: none;
+        }
+
+        .cell:hover:not(.revealed):not(.flagged) {
+            background: linear-gradient(145deg, #d5d8d9, #bdc3c7);
+        }
+
+        .cell.revealed {
+            background: #ecf0f1;
+            cursor: default;
+        }
+
+        .cell.mine {
+            background: #e74c3c;
+        }
+
+        .cell.flagged {
+            background: #f39c12;
+        }
+
+        .cell[data-num="1"] { color: #3498db; }
+        .cell[data-num="2"] { color: #27ae60; }
+        .cell[data-num="3"] { color: #e74c3c; }
+        .cell[data-num="4"] { color: #9b59b6; }
+        .cell[data-num="5"] { color: #e67e22; }
+        .cell[data-num="6"] { color: #1abc9c; }
+        .cell[data-num="7"] { color: #34495e; }
+        .cell[data-num="8"] { color: #7f8c8d; }
+
+        .btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .win-content h2 {
+            color: #27ae60;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>💣 扫雷</h1>
+
+    <div class="info-bar">
+        <div class="info-item">🚩 剩余: <span id="flags">10</span></div>
+        <div class="info-item">⏱️ <span id="timer">0</span></div>
+    </div>
+
+    <div class="level-select">
+        <button class="level-btn" onclick="setLevel('easy')">简单</button>
+        <button class="level-btn active" onclick="setLevel('medium')">中等</button>
+        <button class="level-btn" onclick="setLevel('hard')">困难</button>
+    </div>
+
+    <div class="game-container">
+        <div id="board"></div>
+    </div>
+
+    <button class="btn" onclick="initGame()">🔄 重新开始</button>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2 id="winTitle">🎉 胜利!</h2>
+            <p>用时: <span id="finalTime">0</span>秒</p>
+            <button class="btn" onclick="closeWin()">确定</button>
+        </div>
+    </div>
+
+    <script>
+        const levels = {
+            easy: { rows: 9, cols: 9, mines: 10 },
+            medium: { rows: 12, cols: 12, mines: 20 },
+            hard: { rows: 15, cols: 15, mines: 40 }
+        };
+
+        let currentLevel = 'medium';
+        let board = [];
+        let revealed = [];
+        let flagged = [];
+        let mines = [];
+        let flagsLeft;
+        let gameOver = false;
+        let gameWon = false;
+        let timerInterval;
+        let timeElapsed;
+
+        function setLevel(level) {
+            currentLevel = level;
+            document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                const levelNames = ['easy', 'medium', 'hard'];
+                btn.classList.toggle('active', levelNames[i] === level);
+            });
+            initGame();
+        }
+
+        function initGame() {
+            const config = levels[currentLevel];
+            board = [];
+            revealed = [];
+            flagged = [];
+            mines = [];
+            flagsLeft = config.mines;
+            gameOver = false;
+            gameWon = false;
+            timeElapsed = 0;
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!gameOver && !gameWon) {
+                    timeElapsed++;
+                    document.getElementById('timer').textContent = timeElapsed;
+                }
+            }, 1000);
+
+            document.getElementById('flags').textContent = flagsLeft;
+            document.getElementById('timer').textContent = '0';
+            document.getElementById('winOverlay').style.display = 'none';
+
+            // 生成地雷
+            while (mines.length < config.mines) {
+                const r = Math.floor(Math.random() * config.rows);
+                const c = Math.floor(Math.random() * config.cols);
+                const idx = r * config.cols + c;
+                if (!mines.includes(idx)) {
+                    mines.push(idx);
+                }
+            }
+
+            // 初始化格子
+            const boardEl = document.getElementById('board');
+            boardEl.style.gridTemplateColumns = `repeat(${config.cols}, 30px)`;
+            boardEl.innerHTML = '';
+
+            for (let i = 0; i < config.rows * config.cols; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.onclick = () => revealCell(i);
+                cell.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    flagCell(i);
+                };
+                boardEl.appendChild(cell);
+                board.push(0);
+                revealed.push(false);
+                flagged.push(false);
+            }
+        }
+
+        function revealCell(index) {
+            if (gameOver || gameWon || flagged[index] || revealed[index]) return;
+
+            const config = levels[currentLevel];
+            const row = Math.floor(index / config.cols);
+            const col = index % config.cols;
+
+            revealed[index] = true;
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.classList.add('revealed');
+
+            if (mines.includes(index)) {
+                // 踩到地雷
+                cell.classList.add('mine');
+                cell.textContent = '💣';
+                gameOver = true;
+                revealAllMines();
+                clearInterval(timerInterval);
+                document.getElementById('winTitle').textContent = '💥 游戏结束!';
+                document.getElementById('finalTime').textContent = timeElapsed;
+                document.getElementById('winOverlay').style.display = 'flex';
+            } else {
+                // 计算周围地雷数
+                const count = countMines(row, col, config);
+                if (count > 0) {
+                    cell.textContent = count;
+                    cell.dataset.num = count;
+                } else {
+                    // 空格子，展开周围
+                    revealEmpty(row, col, config);
+                }
+
+                // 检查胜利
+                checkWin(config);
+            }
+        }
+
+        function countMines(row, col, config) {
+            let count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    const nr = row + dr;
+                    const nc = col + dc;
+                    if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+                        const idx = nr * config.cols + nc;
+                        if (mines.includes(idx)) count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        function revealEmpty(row, col, config) {
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    const nr = row + dr;
+                    const nc = col + dc;
+                    if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+                        const idx = nr * config.cols + nc;
+                        if (!revealed[idx] && !flagged[idx]) {
+                            revealCell(idx);
+                        }
+                    }
+                }
+            }
+        }
+
+        function flagCell(index) {
+            if (gameOver || gameWon || revealed[index]) return;
+
+            flagged[index] = !flagged[index];
+            flagsLeft += flagged[index] ? -1 : 1;
+            document.getElementById('flags').textContent = flagsLeft;
+
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.classList.toggle('flagged', flagged[index]);
+            cell.textContent = flagged[index] ? '🚩' : '';
+        }
+
+        function revealAllMines() {
+            mines.forEach(idx => {
+                if (!flagged[idx]) {
+                    const cell = document.querySelector(`[data-index="${idx}"]`);
+                    cell.classList.add('revealed', 'mine');
+                    cell.textContent = '💣';
+                }
+            });
+        }
+
+        function checkWin(config) {
+            const safeCells = config.rows * config.cols - config.mines;
+            const revealedCount = revealed.filter(r => r).length;
+
+            if (revealedCount >= safeCells) {
+                gameWon = true;
+                clearInterval(timerInterval);
+                document.getElementById('winTitle').textContent = '🎉 胜利!';
+                document.getElementById('finalTime').textContent = timeElapsed;
+                document.getElementById('winOverlay').style.display = 'flex';
+            }
+        }
+
+        function closeWin() {
+            document.getElementById('winOverlay').style.display = 'none';
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

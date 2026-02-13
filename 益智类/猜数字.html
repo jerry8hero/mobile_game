@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜数字</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .game-container {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .range {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        input {
+            font-size: 2rem;
+            width: 150px;
+            padding: 10px;
+            text-align: center;
+            border: 3px solid #3498db;
+            border-radius: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #2980b9;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-new {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        .message {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            font-weight: bold;
+            min-height: 40px;
+        }
+
+        .message.too-big {
+            color: #e74c3c;
+        }
+
+        .message.too-small {
+            color: #3498db;
+        }
+
+        .message.correct {
+            color: #27ae60;
+        }
+
+        .history {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px 15px;
+            margin: 5px 0;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .history-item.big {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .history-item.small {
+            background: #d4e6f1;
+            color: #3498db;
+        }
+
+        .history-item.correct {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .attempts {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔢 猜数字</h1>
+
+    <div class="game-container">
+        <div class="range">我来想一个 1-100 之间的数字</div>
+
+        <div class="attempts">尝试次数: <span id="attempts">0</span></div>
+
+        <div class="message" id="message"></div>
+
+        <div class="input-group">
+            <input type="number" id="guessInput" placeholder="?" min="1" max="100">
+        </div>
+
+        <button class="btn" onclick="makeGuess()">猜!</button>
+        <button class="btn btn-new" onclick="newGame()">新游戏</button>
+
+        <div class="history" id="history"></div>
+    </div>
+
+    <script>
+        let targetNumber;
+        let attempts;
+        let gameOver;
+
+        function newGame() {
+            targetNumber = Math.floor(Math.random() * 100) + 1;
+            attempts = 0;
+            gameOver = false;
+
+            document.getElementById('attempts').textContent = '0';
+            document.getElementById('message').textContent = '';
+            document.getElementById('message').className = 'message';
+            document.getElementById('guessInput').value = '';
+            document.getElementById('history').innerHTML = '';
+            document.getElementById('guessInput').focus();
+        }
+
+        function makeGuess() {
+            if (gameOver) return;
+
+            const input = document.getElementById('guessInput');
+            const guess = parseInt(input.value);
+
+            if (isNaN(guess) || guess < 1 || guess > 100) {
+                document.getElementById('message').textContent = '请输入 1-100 之间的数字';
+                document.getElementById('message').className = 'message';
+                return;
+            }
+
+            attempts++;
+            document.getElementById('attempts').textContent = attempts;
+
+            const messageEl = document.getElementById('message');
+            const historyEl = document.getElementById('history');
+
+            if (guess === targetNumber) {
+                messageEl.textContent = `🎉 正确! 答案就是 ${targetNumber}`;
+                messageEl.className = 'message correct';
+                gameOver = true;
+
+                addHistory(guess, 'correct');
+            } else if (guess > targetNumber) {
+                messageEl.textContent = '太大了! 再小一点';
+                messageEl.className = 'message too-big';
+                addHistory(guess, 'big');
+            } else {
+                messageEl.textContent = '太小了! 再大一点';
+                messageEl.className = 'message too-small';
+                addHistory(guess, 'small');
+            }
+
+            input.value = '';
+            input.focus();
+        }
+
+        function addHistory(guess, type) {
+            const historyEl = document.getElementById('history');
+            const item = document.createElement('div');
+            item.className = `history-item ${type}`;
+
+            let text = guess;
+            if (type === 'big') text += ' ↓ (太大)';
+            else if (type === 'small') text += ' ↑ (太小)';
+            else text += ' ✓ (正确!)';
+
+            item.textContent = text;
+            historyEl.insertBefore(item, historyEl.firstChild);
+        }
+
+        // 回车猜测
+        document.getElementById('guessInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                makeGuess();
+            }
+        });
+
+        newGame();
+    </script>
+</body>
+</html>

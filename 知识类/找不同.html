@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>找不同</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .images {
+            display: flex;
+            gap: 20px;
+        }
+
+        .image-container {
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .image-container h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .circle {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #e74c3c;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: pulse 1s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            animation: pop 0.5s ease;
+        }
+
+        .win-content h2 {
+            font-size: 2.5rem;
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 找不同</h1>
+
+    <div class="info-bar">
+        <div class="info-item">已找到: <span id="found">0</span>/5</div>
+    </div>
+
+    <div class="game-container">
+        <div class="images">
+            <div class="image-container" id="container1">
+                <h3>原图</h3>
+                <canvas id="canvas1" width="300" height="300"></canvas>
+            </div>
+            <div class="image-container" id="container2">
+                <h3>找不同</h3>
+                <canvas id="canvas2" width="300" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn" onclick="initGame()">🔄 下一关</button>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 全部找到!</h2>
+            <p>太厉害了!</p>
+            <button class="btn" onclick="nextLevel()">下一关</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas1 = document.getElementById('canvas1');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx1 = canvas1.getContext('2d');
+        const ctx2 = canvas2.getContext('2d');
+
+        let differences = [];
+        let found = 0;
+        const TOTAL_DIFFS = 5;
+
+        // 绘制场景元素
+        function drawScene(ctx, hasDifferences = false) {
+            // 背景 - 天空
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 200);
+            skyGrad.addColorStop(0, '#87CEEB');
+            skyGrad.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, 300, 200);
+
+            // 背景 - 草地
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, 200, 300, 100);
+
+            // 太阳
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(250, 50, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 太阳光芒
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(250 + Math.cos(angle) * 35, 50 + Math.sin(angle) * 35);
+                ctx.lineTo(250 + Math.cos(angle) * 45, 50 + Math.sin(angle) * 45);
+                ctx.stroke();
+            }
+
+            // 房子
+            ctx.fillStyle = '#F5DEB3';
+            ctx.fillRect(50, 120, 100, 100);
+
+            // 屋顶
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.moveTo(40, 120);
+            ctx.lineTo(100, 60);
+            ctx.lineTo(160, 120);
+            ctx.closePath();
+            ctx.fill();
+
+            // 门
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(85, 170, 30, 50);
+
+            // 窗户
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(60, 140, 25, 25);
+            ctx.fillRect(115, 140, 25, 25);
+
+            // 树
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(220, 180, 20, 40);
+
+            // 树叶
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath();
+            ctx.arc(230, 160, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(210, 175, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(250, 175, 25, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 云朵
+            drawCloud(ctx, 50, 40);
+            drawCloud(ctx, 150, 60);
+
+            // 花朵
+            drawFlower(ctx, 30, 250, hasDifferences && differences.includes(0) ? '#FF69B4' : '#FF69B4');
+            drawFlower(ctx, 80, 270, hasDifferences && differences.includes(1) ? '#FF4500' : '#FF69B4');
+            drawFlower(ctx, 200, 260, hasDifferences && differences.includes(2) ? '#9370DB' : '#FF69B4');
+
+            // 鸟
+            drawBird(ctx, 180, 30, hasDifferences && differences.includes(3));
+        }
+
+        function drawCloud(ctx, x, y) {
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 25, y - 5, 25, 0, Math.PI * 2);
+            ctx.arc(x + 50, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawFlower(ctx, x, y, color) {
+            ctx.fillStyle = color || '#FF69B4';
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.arc(x + Math.cos(angle) * 8, y + Math.sin(angle) * 8, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawBird(ctx, x, y, flipped) {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (flipped) {
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + 10, y + 5, x + 20, y);
+                ctx.moveTo(x + 20, y);
+                ctx.quadraticCurveTo(x + 30, y - 5, x + 40, y);
+            } else {
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + 10, y - 5, x + 20, y);
+                ctx.moveTo(x + 20, y);
+                ctx.quadraticCurveTo(x + 30, y + 5, x + 40, y);
+            }
+            ctx.stroke();
+        }
+
+        function initGame() {
+            found = 0;
+            differences = [];
+
+            // 随机生成5个不同点
+            while (differences.length < TOTAL_DIFFS) {
+                const diff = Math.floor(Math.random() * 4);
+                if (!differences.includes(diff)) {
+                    differences.push(diff);
+                }
+            }
+
+            document.getElementById('found').textContent = '0';
+            document.getElementById('winOverlay').style.display = 'none';
+
+            // 清除标记
+            document.querySelectorAll('.circle').forEach(c => c.remove());
+
+            // 绘制两幅图
+            drawScene(ctx1, false);
+            drawScene(ctx2, true);
+
+            // 添加点击事件
+            canvas2.onclick = (e) => checkClick(e);
+        }
+
+        function checkClick(e) {
+            const rect = canvas2.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // 定义不同点的位置和范围
+            const diffAreas = [
+                { x: 80, y: 270, r: 30 },  // 第二朵花
+                { x: 200, y: 260, r: 30 }, // 第三朵花
+                { x: 30, y: 250, r: 30 },  // 第一朵花
+                { x: 220, y: 40, r: 30 }    // 鸟
+            ];
+
+            diffAreas.forEach((area, index) => {
+                const dist = Math.sqrt((x - area.x) ** 2 + (y - area.y) ** 2);
+                if (dist < area.r && differences.includes(index)) {
+                    if (!document.querySelector(`[data-diff="${index}"]`)) {
+                        found++;
+                        document.getElementById('found').textContent = found;
+
+                        // 添加圆圈标记
+                        addCircle(area.x, area.y, index);
+
+                        if (found >= TOTAL_DIFFS) {
+                            setTimeout(() => {
+                                document.getElementById('winOverlay').style.display = 'flex';
+                            }, 500);
+                        }
+                    }
+                }
+            });
+        }
+
+        function addCircle(x, y, index) {
+            const container2 = document.getElementById('container2');
+            const rect = canvas2.getBoundingClientRect();
+            const containerRect = container2.getBoundingClientRect();
+
+            const circle = document.createElement('div');
+            circle.className = 'circle';
+            circle.style.left = (x + (containerRect.left - rect.left)) + 'px';
+            circle.style.top = (y + (containerRect.top - rect.top)) + 'px';
+            circle.dataset.diff = index;
+            container2.appendChild(circle);
+        }
+
+        function nextLevel() {
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

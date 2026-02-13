@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>套牛游戏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #87f1ff 0%, #4a90e2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            width: 400px;
+            height: 500px;
+            background: linear-gradient(to bottom, #87f1ff 40%, #c9e265 40%, #7ab32e 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .rope {
+            position: absolute;
+            width: 4px;
+            background: #8B4513;
+            transform-origin: top center;
+            z-index: 10;
+            display: none;
+        }
+
+        .rope::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -8px;
+            width: 20px;
+            height: 20px;
+            background: #8B4513;
+            border-radius: 50%;
+        }
+
+        .lasso {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 4px solid #8B4513;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: none;
+        }
+
+        .cow {
+            position: absolute;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        .cow:hover { transform: scale(1.2); }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 20;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐄 套牛游戏</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">时间: <span id="time">30</span>秒</div>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="rope" id="rope"></div>
+        <div class="lasso" id="lasso"></div>
+        <div class="message" id="message"></div>
+    </div>
+
+    <button class="btn" onclick="startGame()">开始游戏</button>
+
+    <script>
+        const cows = ['🐄', '🐂', '🐃', '�水牛'];
+        const container = document.getElementById('gameContainer');
+        const rope = document.getElementById('rope');
+        const lasso = document.getElementById('lasso');
+        const message = document.getElementById('message');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameRunning = false;
+        let timer = null;
+        let activeCows = [];
+        let currentAngle = 90;
+        let isShooting = false;
+
+        function startGame() {
+            if (gameRunning) return;
+
+            score = 0;
+            timeLeft = 30;
+            gameRunning = true;
+            activeCows = [];
+            isShooting = false;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('time').textContent = '30';
+
+            // 清除旧的牛
+            document.querySelectorAll('.cow').forEach(c => c.remove());
+
+            message.style.display = 'none';
+
+            // 生成牛
+            spawnCow();
+            spawnCow();
+            spawnCow();
+
+            timer = setInterval(updateTime, 1000);
+
+            // 键盘控制
+            document.addEventListener('keydown', handleKey);
+        }
+
+        function spawnCow() {
+            const cow = document.createElement('div');
+            cow.className = 'cow';
+            cow.textContent = cows[Math.floor(Math.random() * cows.length)];
+            cow.style.left = (50 + Math.random() * 300) + 'px';
+            cow.style.top = (150 + Math.random() * 250) + 'px';
+            cow.onclick = () => tryLasso(cow);
+            container.appendChild(cow);
+            activeCows.push(cow);
+        }
+
+        function tryLasso(cow) {
+            if (!gameRunning || isShooting) return;
+            isShooting = true;
+
+            const rect = container.getBoundingClientRect();
+            const cowRect = cow.getBoundingClientRect();
+            const cowX = cowRect.left - rect.left + 25;
+            const cowY = cowRect.top - rect.top + 25;
+
+            // 计算角度
+            currentAngle = 90;
+            const dx = cowX - 200;
+            const dy = 500 - cowY;
+            currentAngle = Math.atan2(dx, dy) * 180 / Math.PI;
+
+            rope.style.display = 'block';
+            rope.style.left = '200px';
+            rope.style.top = '80px';
+            rope.style.height = '0px';
+            rope.style.transform = `rotate(${currentAngle}deg)`;
+
+            lasso.style.display = 'block';
+            lasso.style.left = cowX + 'px';
+            lasso.style.top = '80px';
+
+            let length = 0;
+            const targetLength = Math.sqrt(dx*dx + dy*dy);
+
+            const shootInterval = setInterval(() => {
+                length += 15;
+                rope.style.height = length + 'px';
+                lasso.style.top = (80 + length) + 'px';
+
+                if (length >= targetLength) {
+                    clearInterval(shootInterval);
+                    // 套中
+                    score += 10;
+                    document.getElementById('score').textContent = score;
+                    cow.remove();
+                    activeCows = activeCows.filter(c => c !== cow);
+
+                    message.textContent = '+10';
+                    message.style.display = 'block';
+                    setTimeout(() => message.style.display = 'none', 500);
+
+                    if (activeCows.length < 3) spawnCow();
+
+                    setTimeout(() => {
+                        rope.style.display = 'none';
+                        lasso.style.display = 'none';
+                        isShooting = false;
+                    }, 300);
+                }
+            }, 20);
+        }
+
+        function handleKey(e) {
+            if (!gameRunning) return;
+
+            if (e.key === ' ' || e.key === 'Enter') {
+                // 随机套一只牛
+                if (activeCows.length > 0 && !isShooting) {
+                    const cow = activeCows[Math.floor(Math.random() * activeCows.length)];
+                    tryLasso(cow);
+                }
+            }
+        }
+
+        function updateTime() {
+            timeLeft--;
+            document.getElementById('time').textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(timer);
+            document.removeEventListener('keydown', handleKey);
+
+            message.textContent = `游戏结束!\n得分: ${score}`;
+            message.style.display = 'block';
+        }
+
+        function init() {
+            message.textContent = '点击开始游戏';
+            message.style.display = 'block';
+        }
+
+        init();
+    </script>
+</body>
+</html>

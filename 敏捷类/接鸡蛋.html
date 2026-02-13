@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>接鸡蛋</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #ffe259 0%, #ffa751 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 15px; }
+        .info-item { background: rgba(255,255,255,0.3); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; }
+        .game-container { width: 400px; height: 500px; background: linear-gradient(to bottom, #87CEEB 60%, #90EE90 60%); border-radius: 20px; position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .basket { position: absolute; font-size: 3rem; bottom: 10px; transition: left 0.1s; }
+        .egg { position: absolute; font-size: 2rem; animation: fall linear; }
+        @keyframes fall { to { transform: translateY(500px); } }
+        .start-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; background: rgba(255,255,255,0.9); padding: 20px 40px; border-radius: 15px; cursor: pointer; }
+        .btn { margin-top: 20px; padding: 12px 30px; font-size: 1rem; background: #e74c3c; color: white; border: none; border-radius: 25px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🥚 接鸡蛋</h1>
+    <div class="info-bar"><div class="info-item">得分: <span id="score">0</span></div><div class="info-item">生命: <span id="lives">❤️❤️❤️</span></div></div>
+    <div class="game-container" id="gameContainer">
+        <div class="basket" id="basket" style="left: 160px;">🧺</div>
+        <div class="start-hint" id="startHint" onclick="startGame()">点击开始</div>
+    </div>
+    <button class="btn" onclick="restart()">重新开始</button>
+    <script>
+        const container = document.getElementById('gameContainer');
+        const basket = document.getElementById('basket');
+        let score = 0, lives = 3, gameRunning = false, basketX = 160, eggs = [], gameLoop;
+        function startGame() { if (gameRunning) return; gameRunning = true; score = 0; lives = 3; eggs = []; document.querySelectorAll('.egg').forEach(e=>e.remove()); document.getElementById('score').textContent='0'; document.getElementById('lives').textContent='❤️❤️❤️'; document.getElementById('startHint').style.display='none'; spawnEgg(); gameLoop = setInterval(update, 20); }
+        function spawnEgg() { if (!gameRunning) return; const egg = document.createElement('div'); egg.className='egg'; egg.textContent='🥚'; egg.style.left=Math.random()*350+'px'; egg.style.top='0px'; egg.dataset.speed=2+Math.random()*3; container.appendChild(egg); eggs.push(egg); setTimeout(spawnEgg, 1000+Math.random()*1000); }
+        function update() { eggs.forEach((egg,i) => { let top=parseFloat(egg.style.top)+parseFloat(egg.dataset.speed); egg.style.top=top+'px'; if (top>400 && top<480 && parseFloat(egg.style.left)>basketX-20 && parseFloat(egg.style.left)<basketX+60) { score+=10; document.getElementById('score').textContent=score; egg.remove(); eggs.splice(i,1); } if (top>500) { lives--; updateLives(); egg.remove(); eggs.splice(i,1); if(lives<=0) gameOver(); } }); }
+        function updateLives() { document.getElementById('lives').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives); }
+        function gameOver() { gameRunning=false; clearInterval(gameLoop); alert('游戏结束! 得分: '+score); restart(); }
+        function restart() { gameRunning=false; clearInterval(gameLoop); score=0; lives=3; document.querySelectorAll('.egg').forEach(e=>e.remove()); document.getElementById('score').textContent='0'; document.getElementById('lives').textContent='❤️❤️❤️'; document.getElementById('startHint').style.display='block'; basketX=160; basket.style.left='160px'; }
+        container.onmousemove = (e) => { if(!gameRunning)return; const rect=container.getBoundingClientRect(); basketX=e.clientX-rect.left-30; basketX=Math.max(0,Math.min(340,basketX)); basket.style.left=basketX+'px'; };
+        document.addEventListener('keydown',e=>{ if(e.key==='ArrowLeft'){ basketX=Math.max(0,basketX-20); basket.style.left=basketX+'px'; } if(e.key==='ArrowRight'){ basketX=Math.min(340,basketX+20); basket.style.left=basketX+'px'; } });
+    </script>
+</body>
+</html>

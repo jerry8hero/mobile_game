@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打字练习</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .current-word {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 30px 0;
+            min-height: 60px;
+            letter-spacing: 5px;
+        }
+
+        .current-word span {
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .current-word .correct {
+            color: #27ae60;
+        }
+
+        .current-word .wrong {
+            color: #e74c3c;
+            background: #fadbd8;
+        }
+
+        .current-word .pending {
+            color: #95a5a6;
+        }
+
+        .input-display {
+            font-size: 2rem;
+            color: #3498db;
+            margin: 20px 0;
+            min-height: 50px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 30px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .key {
+            width: 45px;
+            height: 50px;
+            background: linear-gradient(145deg, #ecf0f1, #bdc3c7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 4px 0 #95a5a6;
+            transition: all 0.1s ease;
+        }
+
+        .key.active {
+            transform: translateY(4px);
+            box-shadow: none;
+            background: #3498db;
+            color: white;
+        }
+
+        .key.space {
+            width: 300px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            margin: 5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+
+        .btn-restart {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .start-content {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .start-content h2 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .start-content p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>⌨️ 打字练习</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">时间: <span id="time">60</span>秒</div>
+    </div>
+
+    <div class="game-container">
+        <div class="progress-bar">
+            <div class="progress" id="progress" style="width: 100%"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="wpm">0</div>
+                <div class="stat-label">字/分钟</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="accuracy">100%</div>
+                <div class="stat-label">正确率</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div class="stat-label">连击</div>
+            </div>
+        </div>
+
+        <div class="current-word" id="currentWord">
+            <span class="pending">准备好...</span>
+        </div>
+
+        <div class="input-display" id="inputDisplay"></div>
+
+        <div class="keyboard" id="keyboard">
+            <div class="keyboard-row">
+                <div class="key" data-key="`">`</div>
+                <div class="key" data-key="1">1</div>
+                <div class="key" data-key="2">2</div>
+                <div class="key" data-key="3">3</div>
+                <div class="key" data-key="4">4</div>
+                <div class="key" data-key="5">5</div>
+                <div class="key" data-key="6">6</div>
+                <div class="key" data-key="7">7</div>
+                <div class="key" data-key="8">8</div>
+                <div class="key" data-key="9">9</div>
+                <div class="key" data-key="0">0</div>
+                <div class="key" data-key="-">-</div>
+                <div class="key" data-key="=">=</div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key" data-key="q">Q</div>
+                <div class="key" data-key="w">W</div>
+                <div class="key" data-key="e">E</div>
+                <div class="key" data-key="r">R</div>
+                <div class="key" data-key="t">T</div>
+                <div class="key" data-key="y">Y</div>
+                <div class="key" data-key="u">U</div>
+                <div class="key" data-key="i">I</div>
+                <div class="key" data-key="o">O</div>
+                <div class="key" data-key="p">P</div>
+                <div class="key" data-key="[">[</div>
+                <div class="key" data-key="]">]</div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key" data-key="a">A</div>
+                <div class="key" data-key="s">S</div>
+                <div class="key" data-key="d">D</div>
+                <div class="key" data-key="f">F</div>
+                <div class="key" data-key="g">G</div>
+                <div class="key" data-key="h">H</div>
+                <div class="key" data-key="j">J</div>
+                <div class="key" data-key="k">K</div>
+                <div class="key" data-key="l">L</div>
+                <div class="key" data-key=";">;</div>
+                <div class="key" data-key="'">'</div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key" data-key="z">Z</div>
+                <div class="key" data-key="x">X</div>
+                <div class="key" data-key="c">C</div>
+                <div class="key" data-key="v">V</div>
+                <div class="key" data-key="b">B</div>
+                <div class="key" data-key="n">N</div>
+                <div class="key" data-key="m">M</div>
+                <div class="key" data-key=",">,</div>
+                <div class="key" data-key=".">.</div>
+                <div class="key" data-key="/">/</div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key space" data-key=" ">空格</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="start-overlay" id="startOverlay">
+        <div class="start-content">
+            <h2>⌨️ 打字练习</h2>
+            <p>在60秒内输入尽可能多的单词<br>输入正确的字母会自动跳到下一个单词</p>
+            <button class="btn btn-start" onclick="startGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        // 单词列表
+        const WORDS = [
+            'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'I',
+            'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+            'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+            'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+            'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+            'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+            'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
+            'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
+            'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
+            'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+            'cat', 'dog', 'run', 'eat', 'big', 'small', 'red', 'blue', 'green', 'fast',
+            'happy', 'sun', 'moon', 'star', 'fish', 'bird', 'tree', 'flower', 'rain', 'snow'
+        ];
+
+        let currentWord = '';
+        let typedChars = '';
+        let score = 0;
+        let timeLeft = 60;
+        let timer = null;
+        let gameRunning = false;
+        let correctChars = 0;
+        let totalChars = 0;
+        let streak = 0;
+        let wordsCompleted = 0;
+
+        function startGame() {
+            document.getElementById('startOverlay').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            timeLeft = 60;
+            correctChars = 0;
+            totalChars = 0;
+            streak = 0;
+            wordsCompleted = 0;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('time').textContent = '60';
+            document.getElementById('wpm').textContent = '0';
+            document.getElementById('accuracy').textContent = '100%';
+            document.getElementById('streak').textContent = '0';
+
+            newWord();
+            timer = setInterval(updateTime, 1000);
+            updateKeyboard('');
+        }
+
+        function updateTime() {
+            timeLeft--;
+            document.getElementById('time').textContent = timeLeft;
+            document.getElementById('progress').style.width = (timeLeft / 60 * 100) + '%';
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function newWord() {
+            currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            typedChars = '';
+            renderWord();
+            document.getElementById('inputDisplay').textContent = '';
+        }
+
+        function renderWord() {
+            const wordEl = document.getElementById('currentWord');
+            let html = '';
+
+            for (let i = 0; i < currentWord.length; i++) {
+                if (i < typedChars.length) {
+                    if (typedChars[i] === currentWord[i]) {
+                        html += `<span class="correct">${currentWord[i]}</span>`;
+                    } else {
+                        html += `<span class="wrong">${currentWord[i]}</span>`;
+                    }
+                } else {
+                    html += `<span class="pending">${currentWord[i]}</span>`;
+                }
+            }
+
+            wordEl.innerHTML = html;
+        }
+
+        function handleKeyPress(key) {
+            if (!gameRunning) return;
+
+            key = key.toLowerCase();
+
+            // 检查是否是有效的字母
+            if (!/^[a-z]$/.test(key) && key !== ' ') return;
+
+            if (key === ' ') {
+                // 检查当前单词是否完成
+                if (typedChars === currentWord) {
+                    streak++;
+                    wordsCompleted++;
+                    score += currentWord.length * 10 + streak * 5;
+                    newWord();
+                }
+            } else {
+                typedChars += key;
+
+                // 检查当前字符是否正确
+                const currentIndex = typedChars.length - 1;
+                totalChars++;
+
+                if (typedChars[currentIndex] === currentWord[currentIndex]) {
+                    correctChars++;
+                } else {
+                    streak = 0;
+                }
+
+                // 检查单词是否完成
+                if (typedChars === currentWord) {
+                    streak++;
+                    wordsCompleted++;
+                    score += currentWord.length * 10 + streak * 5;
+
+                    setTimeout(() => {
+                        if (gameRunning) newWord();
+                    }, 200);
+                }
+            }
+
+            updateStats();
+            renderWord();
+            document.getElementById('inputDisplay').textContent = typedChars;
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+
+            // 计算正确率
+            const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+
+            // 计算WPM (每分钟字数)
+            const minutes = (60 - timeLeft) / 60;
+            const wpm = minutes > 0 ? Math.round(wordsCompleted / minutes) : 0;
+            document.getElementById('wpm').textContent = wpm;
+        }
+
+        function updateKeyboard(key) {
+            document.querySelectorAll('.key').forEach(k => {
+                k.classList.remove('active');
+                if (k.dataset.key === key.toLowerCase()) {
+                    k.classList.add('active');
+                }
+            });
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(timer);
+            alert(`游戏结束!\n\n得分: ${score}\n完成单词: ${wordsCompleted}\n正确率: ${document.getElementById('accuracy').textContent}\nWPM: ${document.getElementById('wpm').textContent}`);
+            document.getElementById('startOverlay').style.display = 'flex';
+        }
+
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (typedChars.length > 0) {
+                    typedChars = typedChars.slice(0, -1);
+                    renderWord();
+                    document.getElementById('inputDisplay').textContent = typedChars;
+                }
+                return;
+            }
+
+            handleKeyPress(e.key);
+            updateKeyboard(e.key);
+        });
+
+        document.addEventListener('keyup', (e) => {
+            updateKeyboard('');
+        });
+
+        // 点击开始
+        document.getElementById('startOverlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-start')) {
+                startGame();
+            }
+        });
+    </script>
+</body>
+</html>

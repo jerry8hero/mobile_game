@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片拼图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa502 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .level-select {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .level-btn {
+            padding: 10px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+
+        .level-btn.active {
+            background: #ffa502;
+            color: white;
+            font-weight: bold;
+        }
+
+        .puzzle-container {
+            position: relative;
+            margin: 0 auto;
+        }
+
+        #puzzle {
+            display: grid;
+            gap: 3px;
+            background: #bdc3c7;
+            padding: 3px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .tile.empty {
+            background: transparent;
+            cursor: default;
+        }
+
+        .tile.empty:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tile.correct {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+
+        .preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .preview-title {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .preview-tiles {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .preview-tile {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-restart {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .btn-hint {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #27ae60;
+        }
+
+        .win-content h2 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .win-content p {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .moves {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧩 图片拼图</h1>
+
+    <div class="info-bar">
+        <div class="info-item">步数: <span id="moves">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="level-select">
+            <button class="level-btn active" onclick="setLevel(3)">3×3</button>
+            <button class="level-btn" onclick="setLevel(4)">4×4</button>
+            <button class="level-btn" onclick="setLevel(5)">5×5</button>
+        </div>
+
+        <div class="puzzle-container">
+            <div id="puzzle"></div>
+        </div>
+
+        <div class="moves">拖动方块到空白位置拼成顺序</div>
+
+        <div class="controls">
+            <button class="btn btn-restart" onclick="initGame()">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 太棒了!</h2>
+            <p>拼图完成!</p>
+            <p>共用 <span id="finalMoves">0</span> 步</p>
+            <button class="btn btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        let size = 3;
+        let tiles = [];
+        let emptyIndex = 0;
+        let moves = 0;
+        let isSolved = false;
+
+        // emoji图案集
+        const emojiSets = [
+            ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨'],
+            ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🍑', '🥝', '🍍'],
+            ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒'],
+            ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓']
+        ];
+
+        let currentEmojis = [];
+
+        function setLevel(s) {
+            size = s;
+            document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 2 === s);
+            });
+            initGame();
+        }
+
+        function initGame() {
+            moves = 0;
+            isSolved = false;
+            document.getElementById('moves').textContent = '0';
+            document.getElementById('winOverlay').style.display = 'none';
+
+            // 选择一组emoji
+            currentEmojis = emojiSets[Math.floor(Math.random() * emojiSets.length)].slice(0, size * size - 1);
+
+            // 创建有序的tiles
+            tiles = [];
+            for (let i = 0; i < size * size - 1; i++) {
+                tiles.push(i + 1);
+            }
+            tiles.push(0); // 0表示空白
+
+            emptyIndex = size * size - 1;
+
+            // 打乱（确保有解）
+            shuffleTiles();
+
+            renderPuzzle();
+        }
+
+        function shuffleTiles() {
+            // 随机交换多次，确保有解
+            for (let i = 0; i < size * size * 10; i++) {
+                const neighbors = getNeighbors(emptyIndex);
+                const randomIndex = neighbors[Math.floor(Math.random() * neighbors.length)];
+                swap(emptyIndex, randomIndex);
+            }
+        }
+
+        function getNeighbors(index) {
+            const neighbors = [];
+            const row = Math.floor(index / size);
+            const col = index % size;
+
+            if (row > 0) neighbors.push(index - size); // 上
+            if (row < size - 1) neighbors.push(index + size); // 下
+            if (col > 0) neighbors.push(index - 1); // 左
+            if (col < size - 1) neighbors.push(index + 1); // 右
+
+            return neighbors;
+        }
+
+        function swap(i, j) {
+            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+            if (tiles[i] === 0) emptyIndex = i;
+            else if (tiles[j] === 0) emptyIndex = j;
+        }
+
+        function renderPuzzle() {
+            const puzzle = document.getElementById('puzzle');
+            puzzle.innerHTML = '';
+            puzzle.style.gridTemplateColumns = `repeat(${size}, 70px)`;
+
+            const tileSize = 70;
+
+            for (let i = 0; i < tiles.length; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+
+                if (tiles[i] === 0) {
+                    tile.classList.add('empty');
+                } else {
+                    tile.textContent = currentEmojis[tiles[i] - 1];
+                    tile.onclick = () => clickTile(i);
+
+                    // 检查是否在正确位置
+                    if (tiles[i] === i + 1) {
+                        tile.classList.add('correct');
+                    }
+                }
+
+                puzzle.appendChild(tile);
+            }
+        }
+
+        function clickTile(index) {
+            if (isSolved) return;
+
+            const neighbors = getNeighbors(emptyIndex);
+            if (neighbors.includes(index)) {
+                swap(emptyIndex, index);
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                renderPuzzle();
+                checkWin();
+            }
+        }
+
+        function checkWin() {
+            for (let i = 0; i < tiles.length - 1; i++) {
+                if (tiles[i] !== i + 1) return;
+            }
+
+            isSolved = true;
+            setTimeout(() => {
+                document.getElementById('finalMoves').textContent = moves;
+                document.getElementById('winOverlay').style.display = 'flex';
+            }, 300);
+        }
+
+        function closeWinAndRestart() {
+            document.getElementById('winOverlay').style.display = 'none';
+            initGame();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (isSolved) return;
+
+            let targetIndex = -1;
+            const row = Math.floor(emptyIndex / size);
+            const col = emptyIndex % size;
+
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    if (row < size - 1) targetIndex = emptyIndex + size;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    if (row > 0) targetIndex = emptyIndex - size;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    if (col < size - 1) targetIndex = emptyIndex + 1;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    if (col > 0) targetIndex = emptyIndex - 1;
+                    break;
+            }
+
+            if (targetIndex >= 0 && targetIndex < tiles.length) {
+                swap(emptyIndex, targetIndex);
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                renderPuzzle();
+                checkWin();
+            }
+        });
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>
