@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>切水果</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,84 +15,48 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            padding: 20px;
+            padding: 15px;
             overflow: hidden;
-            cursor: crosshair;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; }
+        h1 { color: #fff; font-size: 2rem; margin-bottom: 10px; }
 
         .info-bar {
             display: flex;
-            gap: 30px;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 10px;
         }
 
         .info-item {
-            background: rgba(255,255,255,0.1);
-            padding: 10px 20px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 18px;
             border-radius: 20px;
             color: #fff;
             font-size: 1.1rem;
         }
 
         .game-container {
-            width: 400px;
+            width: 100%;
+            max-width: 400px;
             height: 500px;
-            background: linear-gradient(to bottom, #2c3e50, #1a252f);
-            border-radius: 20px;
+            background: linear-gradient(to bottom, #1e3c72, #2a5298);
+            border-radius: 15px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.5);
+            cursor: crosshair;
         }
 
-        .fruit {
+        #gameCanvas {
             position: absolute;
-            font-size: 2.5rem;
-            cursor: pointer;
-            transition: transform 0.1s ease;
-            user-select: none;
-        }
-
-        .fruit.sliced {
-            animation: slice 0.3s ease forwards;
-        }
-
-        @keyframes slice {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        .bomb {
-            position: absolute;
-            font-size: 2.5rem;
-            cursor: pointer;
-        }
-
-        .slice-effect {
-            position: absolute;
-            font-size: 2rem;
-            pointer-events: none;
-            animation: fadeOut 0.5s ease forwards;
-        }
-
-        @keyframes fadeOut {
-            to { opacity: 0; transform: translateY(20px); }
-        }
-
-        .combo {
-            position: absolute;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #f1c40f;
-            animation: comboAnim 0.5s ease forwards;
-            pointer-events: none;
-        }
-
-        @keyframes comboAnim {
-            0% { transform: scale(0.5); opacity: 0; }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
         .start-hint {
@@ -103,9 +67,68 @@
             color: white;
             font-size: 1.5rem;
             background: rgba(0,0,0,0.7);
-            padding: 20px 40px;
+            padding: 25px 50px;
             border-radius: 15px;
             cursor: pointer;
+            z-index: 10;
+            border: 3px solid #f1c40f;
+        }
+
+        .start-hint:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            animation: pop 0.4s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .game-over-content h2 {
+            color: #e74c3c;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .game-over-content p {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .game-over-content button {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .game-over-content button:hover {
+            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -118,14 +141,33 @@
     </div>
 
     <div class="game-container" id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
         <div class="start-hint" id="startHint" onclick="startGame()">点击开始游戏</div>
     </div>
 
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-content">
+            <h2>💥 游戏结束!</h2>
+            <p>得分: <span id="finalScore">0</span></p>
+            <button onclick="restartGame()">再来一次</button>
+        </div>
+    </div>
+
     <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('gameContainer');
+
+        // 设置canvas尺寸
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         const fruits = ['🍎', '🍊', '🍋', '🍉', '🍇', '🍓', '🍑', '🥝'];
         const bomb = '💣';
-
-        const container = document.getElementById('gameContainer');
 
         let score = 0;
         let lives = 3;
@@ -135,98 +177,108 @@
         let combo = 0;
         let lastSliceTime = 0;
 
-        function startGame() {
-            if (gameRunning) return;
+        // 刀光轨迹
+        let trailPoints = [];
+        const maxTrailLength = 15;
 
-            score = 0;
-            lives = 3;
-            items = [];
-            combo = 0;
-            gameRunning = true;
+        // 鼠标/触摸位置
+        let lastX = 0;
+        let lastY = 0;
+        let isTouching = false;
 
-            document.getElementById('score').textContent = '0';
-            document.getElementById('lives').textContent = '❤️❤️❤️';
-            document.getElementById('startHint').style.display = 'none';
+        // 绘制刀光轨迹
+        function drawTrail() {
+            if (trailPoints.length < 2) return;
 
-            // 清除旧元素
-            document.querySelectorAll('.fruit, .bomb, .slice-effect, .combo').forEach(e => e.remove());
+            ctx.beginPath();
+            ctx.moveTo(trailPoints[0].x, trailPoints[0].y);
 
-            spawnTimer = setInterval(spawnItem, 800);
-            gameLoop();
+            for (let i = 1; i < trailPoints.length; i++) {
+                ctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+            }
+
+            // 渐变效果
+            const gradient = ctx.createLinearGradient(
+                trailPoints[0].x, trailPoints[0].y,
+                trailPoints[trailPoints.length-1].x, trailPoints[trailPoints.length-1].y
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            // 白色核心
+            ctx.beginPath();
+            ctx.moveTo(trailPoints[0].x, trailPoints[0].y);
+            for (let i = 1; i < trailPoints.length; i++) {
+                ctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+            }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
         }
 
-        function spawnItem() {
-            if (!gameRunning) return;
-
-            const isBomb = Math.random() < 0.15;
-            const item = document.createElement('div');
-            item.className = isBomb ? 'bomb' : 'fruit';
-            item.textContent = isBomb ? bomb : fruits[Math.floor(Math.random() * fruits.length)];
-
-            item.style.left = (50 + Math.random() * 300) + 'px';
-            item.style.top = '500px';
-
-            const vy = -(8 + Math.random() * 4);
-            const vx = (Math.random() - 0.5) * 4;
-            const rotation = (Math.random() - 0.5) * 10;
-
-            item.dataset.vx = vx;
-            item.dataset.vy = vy;
-            item.dataset.rotation = rotation;
-
-            container.appendChild(item);
-            items.push(item);
+        function addTrailPoint(x, y) {
+            trailPoints.push({x, y, time: Date.now()});
+            // 移除太旧的点
+            while (trailPoints.length > maxTrailLength) {
+                trailPoints.shift();
+            }
         }
 
-        function gameLoop() {
-            if (!gameRunning) return;
+        // 碰撞检测：线段与圆
+        function lineCircleIntersect(x1, y1, x2, y2, cx, cy, r) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const fx = x1 - cx;
+            const fy = y1 - cy;
 
-            const gravity = 0.2;
+            const a = dx * dx + dy * dy;
+            const b = 2 * (fx * dx + fy * dy);
+            const c = fx * fx + fy * fy - r * r;
+
+            let discriminant = b * b - 4 * a * c;
+
+            if (discriminant < 0) return false;
+
+            discriminant = Math.sqrt(discriminant);
+            const t1 = (-b - discriminant) / (2 * a);
+            const t2 = (-b + discriminant) / (2 * a);
+
+            return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1);
+        }
+
+        function checkSlice(x, y) {
+            if (trailPoints.length < 2) return;
+
+            const lastPoint = trailPoints[trailPoints.length - 2];
+            const radius = 30;
 
             items.forEach((item, index) => {
-                let vy = parseFloat(item.dataset.vy);
-                let vx = parseFloat(item.dataset.vx);
-                let rotation = parseFloat(item.dataset.rotation);
+                if (item.sliced) return;
 
-                vy += gravity;
-                vx *= 0.99;
+                const intersects = lineCircleIntersect(
+                    lastPoint.x, lastPoint.y,
+                    x, y,
+                    item.x, item.y, radius
+                );
 
-                let top = parseFloat(item.style.top) + vy;
-                let left = parseFloat(item.style.left) + vx;
-                let rot = rotation + parseFloat(item.dataset.rotation);
-
-                item.style.top = top + 'px';
-                item.style.left = left + 'px';
-                item.style.transform = `rotate(${rot}deg)`;
-
-                // 检测切中
-                item.onmouseenter = () => slice(item);
-                item.ontouchstart = () => slice(item);
-
-                // 超出屏幕
-                if (top > 550) {
-                    if (!item.classList.contains('sliced') && item.classList.contains('bomb')) {
-                        // 炸弹漏掉不扣分
-                    } else if (!item.classList.contains('sliced') && !item.classList.contains('bomb')) {
-                        // 水果漏掉
-                        combo = 0;
-                    }
-                    item.remove();
-                    items.splice(index, 1);
+                if (intersects) {
+                    sliceItem(item);
                 }
             });
-
-            requestAnimationFrame(gameLoop);
         }
 
-        function slice(item) {
-            if (item.classList.contains('sliced')) return;
-
-            const isBomb = item.classList.contains('bomb');
+        function sliceItem(item) {
+            const isBomb = item.isBomb;
 
             if (isBomb) {
-                // 切到炸弹
-                item.classList.add('sliced');
+                item.sliced = true;
                 lives--;
 
                 let hearts = '';
@@ -234,69 +286,290 @@
                 for (let i = lives; i < 3; i++) hearts += '🖤';
                 document.getElementById('lives').textContent = hearts;
 
+                // 爆炸效果
+                showExplosion(item.x, item.y);
+
                 if (lives <= 0) {
                     gameOver();
                 }
             } else {
-                // 切到水果
-                item.classList.add('sliced');
+                item.sliced = true;
 
                 // 连击检测
                 const now = Date.now();
                 if (now - lastSliceTime < 500) {
                     combo++;
-                    if (combo >= 2) {
-                        showCombo(combo, parseFloat(item.style.left), parseFloat(item.style.top));
-                    }
                 } else {
                     combo = 1;
                 }
                 lastSliceTime = now;
 
-                const points = 10 * (combo >= 2 ? combo : 1);
+                const points = 10 * combo;
                 score += points;
                 document.getElementById('score').textContent = score;
 
-                // 特效
-                showSliceEffect(item.textContent, parseFloat(item.style.left), parseFloat(item.style.top));
+                // 显示分数
+                showScore(item.x, item.y, points, combo);
 
-                setTimeout(() => item.remove(), 300);
+                // 显示切割效果
+                showSliceEffect(item);
             }
         }
 
-        function showSliceEffect(fruit, x, y) {
-            const effect = document.createElement('div');
-            effect.className = 'slice-effect';
-            effect.textContent = '+' + (combo >= 2 ? 10 * combo : 10);
-            effect.style.left = x + 'px';
-            effect.style.top = y + 'px';
-            container.appendChild(effect);
-            setTimeout(() => effect.remove(), 500);
+        function showScore(x, y, points, combo) {
+            const container = document.getElementById('gameContainer');
+            const elem = document.createElement('div');
+            elem.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                color: #f1c40f;
+                font-size: ${combo >= 2 ? '2rem' : '1.5rem'};
+                font-weight: bold;
+                pointer-events: none;
+                animation: scoreFloat 0.8s ease forwards;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+                z-index: 5;
+            `;
+            elem.textContent = combo >= 2 ? `${combo}连击! +${points}` : `+${points}`;
+            container.appendChild(elem);
+
+            setTimeout(() => elem.remove(), 800);
         }
 
-        function showCombo(combo, x, y) {
-            const text = document.createElement('div');
-            text.className = 'combo';
-            text.textContent = combo + '连击!';
-            text.style.left = x + 'px';
-            text.style.top = (y - 30) + 'px';
-            container.appendChild(text);
-            setTimeout(() => text.remove(), 500);
+        function showSliceEffect(item) {
+            // 创建两半水果
+            const leftHalf = document.createElement('div');
+            const rightHalf = document.createElement('div');
+
+            leftHalf.style.cssText = `
+                position: absolute;
+                left: ${item.x - 20}px;
+                top: ${item.y}px;
+                font-size: 2.5rem;
+                pointer-events: none;
+                animation: sliceLeft 0.5s ease forwards;
+                z-index: 4;
+            `;
+            rightHalf.style.cssText = `
+                position: absolute;
+                left: ${item.x + 20}px;
+                top: ${item.y}px;
+                font-size: 2.5rem;
+                pointer-events: none;
+                animation: sliceRight 0.5s ease forwards;
+                z-index: 4;
+            `;
+
+            // 简单的切割效果
+            leftHalf.textContent = item.emoji + '🍉'[0];
+            rightHalf.textContent = item.emoji;
+
+            container.appendChild(leftHalf);
+            container.appendChild(rightHalf);
+
+            setTimeout(() => {
+                leftHalf.remove();
+                rightHalf.remove();
+            }, 500);
+        }
+
+        function showExplosion(x, y) {
+            const elem = document.createElement('div');
+            elem.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                font-size: 4rem;
+                pointer-events: none;
+                animation: explode 0.5s ease forwards;
+                z-index: 6;
+            `;
+            elem.textContent = '💥';
+            container.appendChild(elem);
+            setTimeout(() => elem.remove(), 500);
+        }
+
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes scoreFloat {
+                0% { transform: translateY(0) scale(1); opacity: 1; }
+                100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+            }
+            @keyframes sliceLeft {
+                0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+                100% { transform: translateX(-40px) rotate(-20deg); opacity: 0; }
+            }
+            @keyframes sliceRight {
+                0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+                100% { transform: translateX(40px) rotate(20deg); opacity: 0; }
+            }
+            @keyframes explode {
+                0% { transform: scale(0.5); opacity: 1; }
+                50% { transform: scale(1.5); opacity: 1; }
+                100% { transform: scale(2); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 输入事件处理
+        function handleStart(x, y) {
+            isTouching = true;
+            lastX = x;
+            lastY = y;
+            trailPoints = [];
+            addTrailPoint(x, y);
+        }
+
+        function handleMove(x, y) {
+            if (!isTouching) return;
+
+            addTrailPoint(x, y);
+            checkSlice(x, y);
+            lastX = x;
+            lastY = y;
+        }
+
+        function handleEnd() {
+            isTouching = false;
+            // 保留轨迹一小段时间后清除
+            setTimeout(() => {
+                if (!isTouching) trailPoints = [];
+            }, 100);
+        }
+
+        // 鼠标事件
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            handleStart(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            handleMove(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+
+        // 触摸事件
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleStart(touch.clientX - rect.left, touch.clientY - rect.top);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleMove(touch.clientX - rect.left, touch.clientY - rect.top);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('touchcancel', handleEnd);
+
+        function startGame() {
+            if (gameRunning) return;
+
+            score = 0;
+            lives = 3;
+            items = [];
+            combo = 0;
+            trailPoints = [];
+            gameRunning = true;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('lives').textContent = '❤️❤️❤️';
+            document.getElementById('startHint').style.display = 'none';
+
+            spawnTimer = setInterval(spawnItem, 700);
+            gameLoop();
+        }
+
+        function spawnItem() {
+            if (!gameRunning) return;
+
+            const isBomb = Math.random() < 0.12;
+            const emoji = isBomb ? bomb : fruits[Math.floor(Math.random() * fruits.length)];
+
+            const item = {
+                x: 50 + Math.random() * (canvas.width - 100),
+                y: canvas.height + 30,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -(9 + Math.random() * 4),
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                emoji: emoji,
+                isBomb: isBomb,
+                sliced: false
+            };
+
+            items.push(item);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制水果
+            items.forEach((item, index) => {
+                // 物理更新
+                item.vy += 0.2;
+                item.x += item.vx;
+                item.y += item.vy;
+                item.rotation += item.rotationSpeed;
+
+                // 绘制
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rotation);
+                ctx.font = '2.5rem Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (item.sliced) {
+                    ctx.globalAlpha = 0;
+                }
+
+                ctx.fillText(item.emoji, 0, 0);
+                ctx.restore();
+
+                // 移除超出屏幕的
+                if (item.y > canvas.height + 50) {
+                    if (!item.sliced && !item.isBomb) {
+                        combo = 0;
+                    }
+                    items.splice(index, 1);
+                }
+            });
+
+            // 绘制刀光轨迹
+            drawTrail();
+
+            // 清理旧轨迹点
+            const now = Date.now();
+            trailPoints = trailPoints.filter(p => now - p.time < 100);
+
+            requestAnimationFrame(gameLoop);
         }
 
         function gameOver() {
             gameRunning = false;
             clearInterval(spawnTimer);
-            alert(`游戏结束!\n得分: ${score}`);
-            initGame();
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverOverlay').style.display = 'flex';
         }
 
-        function initGame() {
-            document.querySelectorAll('.fruit, .bomb, .slice-effect, .combo').forEach(e => e.remove());
-            document.getElementById('startHint').style.display = 'block';
+        function restartGame() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            items = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            startGame();
         }
-
-        initGame();
     </script>
 </body>
 </html>
