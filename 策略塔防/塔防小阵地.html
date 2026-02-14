@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>塔防小阵地</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50, #27ae60);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 10px;
+            user-select: none;
+        }
+
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 8px; }
+
+        .info-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 15px;
+            border-radius: 15px;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 10px;
+            max-width: 500px;
+        }
+
+        #gameCanvas {
+            background: #1a1a2e;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tower-btn {
+            padding: 10px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            background: #2d2d44;
+            color: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            min-width: 70px;
+        }
+
+        .tower-btn:hover { border-color: #f39c12; }
+        .tower-btn.selected { border-color: #27ae60; background: #1e3a2a; }
+        .tower-btn:disabled { opacity: 0.4; }
+        .tower-icon { font-size: 1.8rem; }
+        .tower-name { font-size: 0.7rem; margin-top: 3px; }
+        .tower-cost { font-size: 0.65rem; color: #f39c12; }
+
+        .game-over {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .game-over.show { display: flex; }
+
+        .game-over-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .game-over h2 { color: #e74c3c; margin-bottom: 10px; }
+        .game-over button {
+            padding: 12px 25px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏰 塔防小阵地</h1>
+
+    <div class="info-bar">
+        <div class="info-item">💰 金币: <span id="money">100</span></div>
+        <div class="info-item">❤️ 生命: <span id="lives">10</span></div>
+        <div class="info-item">🌊 波次: <span id="wave">1</span></div>
+    </div>
+
+    <div class="game-area">
+        <canvas id="gameCanvas" width="350" height="400"></canvas>
+        <div class="sidebar">
+            <div class="tower-btn" onclick="selectTower('arrow')">
+                <div class="tower-icon">🏹</div>
+                <div class="tower-name">弓箭塔</div>
+                <div class="tower-cost">💰30</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('cannon')">
+                <div class="tower-icon">💣</div>
+                <div class="tower-name">大炮塔</div>
+                <div class="tower-cost">💰50</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('ice')">
+                <div class="tower-icon">❄️</div>
+                <div class="tower-name">冰霜塔</div>
+                <div class="tower-cost">💰40</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('fire')">
+                <div class="tower-icon">🔥</div>
+                <div class="tower-name">火焰塔</div>
+                <div class="tower-cost">💰80</div>
+            </div>
+            <button onclick="startWave()" id="startBtn" style="margin-top:auto;padding:10px;background:#27ae60;color:#fff;border:none;border-radius:10px;cursor:pointer;">开始波次</button>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>💥 游戏结束</h2>
+            <p>到达终点: <span id="finalEnemies">0</span> 只怪物</p>
+            <button onclick="restartGame()">再来一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const CELL = 50;
+        const ROWS = 8, COLS = 7;
+        const path = [
+            {x:0,y:1},{x:1,y:1},{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:3,y:3},
+            {x:4,y:3},{x:4,y:4},{x:4,y:5},{x:3,y:5},{x:2,y:5},{x:2,y:6},
+            {x:2,y:7},{x:3,y:7},{x:4,y:7},{x:5,y:7},{x:6,y:7}
+        ];
+
+        const towers = {
+            arrow: {cost:30, range:2, damage:10, color:'#3498db', icon:'🏹', speed:500},
+            cannon: {cost:50, range:1.5, damage:25, color:'#e74c3c', icon:'💣', speed:1000},
+            ice: {cost:40, range:2, damage:5, color:'#74b9ff', icon:'❄️', speed:800, slow:0.5},
+            fire: {cost:80, range:2.5, damage:40, color:'#e67e22', icon:'🔥', speed:1200}
+        };
+
+        let money = 100, lives = 10, wave = 1;
+        let selectedTower = null;
+        let placedTowers = [];
+        let enemies = [];
+        let projectiles = [];
+        let gameRunning = false;
+        let waveRunning = false;
+        let enemySpawnTimer = null;
+
+        function drawMap() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 网格
+            for(let y=0; y<ROWS; y++){
+                for(let x=0; x<COLS; x++){
+                    const px = x*CELL, py = y*CELL;
+                    if((x+y)%2===0) ctx.fillStyle='#232342';
+                    else ctx.fillStyle='#1e1e32';
+                    ctx.fillRect(px, py, CELL, CELL);
+                }
+            }
+
+            // 路径
+            ctx.fillStyle = '#3d3d5c';
+            path.forEach(p => ctx.fillRect(p.x*CELL, p.y*CELL, CELL, CELL));
+
+            // 起点终点
+            ctx.font = '1.5rem';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🏰', path[0].x*CELL+CELL/2, path[0].y*CELL+CELL/2);
+            ctx.fillText('🏁', path[path.length-1].x*CELL+CELL/2, path[path.length-1].y*CELL+CELL/2);
+        }
+
+        function drawTowers() {
+            placedTowers.forEach(t => {
+                const x = t.x*CELL + CELL/2, y = t.y*CELL + CELL/2;
+                ctx.fillStyle = towers[t.type].color;
+                ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI*2); ctx.fill();
+                ctx.font = '1.3rem';
+                ctx.fillText(towers[t.type].icon, x, y);
+
+                // 范围
+                if(selectedTower){
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, towers[t.type].range*CELL, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                const x = e.x*CELL + CELL/2, y = e.y*CELL + CELL/2;
+                ctx.font = '1.5rem';
+                ctx.fillText(e.emoji, x, y);
+
+                // 血条
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(x-15, y-22, 30, 4);
+                ctx.fillStyle = '#27ae60';
+                ctx.fillRect(x-15, y-22, 30*(e.hp/e.maxHp), 4);
+            });
+        }
+
+        function drawProjectiles() {
+            projectiles.forEach(p => {
+                ctx.font = '1rem';
+                const icons = {arrow:'🏹',cannon:'💣',ice:'❄️',fire:'🔥'};
+                ctx.fillText(icons[p.type], p.x, p.y);
+            });
+        }
+
+        function draw() {
+            drawMap();
+            drawTowers();
+            drawEnemies();
+            drawProjectiles();
+        }
+
+        canvas.onclick = (e) => {
+            if(!selectedTower) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX-rect.left)/CELL);
+            const y = Math.floor((e.clientY-rect.top)/CELL);
+
+            if(x<0||x>=COLS||y<0||y>=ROWS) return;
+            if(path.some(p=>p.x===x&&p.y===y)) return;
+            if(placedTowers.some(t=>t.x===x&&t.y===y)) return;
+
+            const cost = towers[selectedTower].cost;
+            if(money>=cost){
+                money -= cost;
+                placedTowers.push({x,y, type:selectedTower, lastShot:0});
+                updateUI();
+            }
+        };
+
+        function selectTower(type){
+            selectedTower = selectedTower===type?null:type;
+            document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
+            if(selectedTower) event.target.closest('.tower-btn').classList.add('selected');
+            draw();
+        }
+
+        function startWave(){
+            if(waveRunning) return;
+            waveRunning = true;
+            document.getElementById('startBtn').disabled = true;
+
+            let count = 3 + wave*2;
+            let spawned = 0;
+
+            enemySpawnTimer = setInterval(() => {
+                if(spawned>=count){
+                    clearInterval(enemySpawnTimer);
+                    return;
+                }
+                const hp = 20 + wave*10;
+                enemies.push({x:path[0].x, y:path[0].y, hp, maxHp:hp, pathIndex:0, slow:0});
+                spawned++;
+            }, 1000);
+        }
+
+        function updateEnemies(){
+            const now = Date.now();
+
+            enemies.forEach((e, i) => {
+                if(e.slow>0) e.slow--;
+
+                // 移动
+                const next = path[e.pathIndex+1];
+                if(!next){
+                    lives--;
+                    enemies.splice(i,1);
+                    updateUI();
+                    if(lives<=0) gameOver();
+                    return;
+                }
+
+                const speed = e.slow>0?0.03:0.05;
+                const dx = next.x - e.x, dy = next.y - e.y;
+                const dist = Math.sqrt(dx*dx+dy*dy);
+
+                if(dist<speed){
+                    e.x = next.x; e.y = next.y;
+                    e.pathIndex++;
+                }else{
+                    e.x += (dx/dist)*speed;
+                    e.y += (dy/dist)*speed;
+                }
+
+                // 攻击
+                placedTowers.forEach(t => {
+                    const tx = t.x+0.5, ty = t.y+0.5;
+                    const dist = Math.sqrt((e.x-tx)**2+(e.y-ty)**2);
+                    if(dist<towers[t.type].range && now-t.lastShot>towers[t.type].speed){
+                        t.lastShot = now;
+                        projectiles.push({
+                            x:tx*CELL, y:ty*CELL,
+                            target:e, type:t.type,
+                            damage:towers[t.type].damage
+                        });
+                    }
+                });
+            });
+        }
+
+        function updateProjectiles(){
+            projectiles.forEach((p,i)=>{
+                const ex = p.target.x*CELL+CELL/2, ey = p.target.y*CELL+CELL/2;
+                const dx = ex-p.x, dy = ey-p.y;
+                const dist = Math.sqrt(dx*dx+dy*dy);
+
+                if(dist<10 || !enemies.includes(p.target)){
+                    if(enemies.includes(p.target)){
+                        p.target.hp -= p.damage;
+                        if(p.type==='ice') p.target.slow = 60;
+                        if(p.target.hp<=0){
+                            const idx = enemies.indexOf(p.target);
+                            if(idx>-1){
+                                enemies.splice(idx,1);
+                                money += 5 + wave;
+                                updateUI();
+                            }
+                        }
+                    }
+                    projectiles.splice(i,1);
+                }else{
+                    p.x += dx/dist*8;
+                    p.y += dy/dist*8;
+                }
+            });
+        }
+
+        function gameLoop(){
+            if(!gameRunning) return;
+            updateEnemies();
+            updateProjectiles();
+            draw();
+
+            // 波次结束检查
+            if(waveRunning && enemies.length===0 && !enemySpawnTimer){
+                // 检查是否所有敌人都生成完了
+                const btn = document.getElementById('startBtn');
+                if(btn.disabled){
+                    // 延迟检查
+                    setTimeout(()=>{
+                        if(enemies.length===0){
+                            waveRunning = false;
+                            wave++;
+                            document.getElementById('startBtn').disabled = false;
+                            updateUI();
+                        }
+                    },1000);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI(){
+            document.getElementById('money').textContent = money;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('wave').textContent = wave;
+        }
+
+        function gameOver(){
+            gameRunning = false;
+            document.getElementById('finalEnemies').textContent = wave*5;
+            document.getElementById('gameOver').classList.add('show');
+        }
+
+        function restartGame(){
+            money = 100; lives = 10; wave = 1;
+            placedTowers = []; enemies = []; projectiles = [];
+            gameRunning = true; waveRunning = false;
+            document.getElementById('gameOver').classList.remove('show');
+            document.getElementById('startBtn').disabled = false;
+            updateUI();
+            gameLoop();
+        }
+
+        gameRunning = true;
+        gameLoop();
+    </script>
+</body>
+</html>

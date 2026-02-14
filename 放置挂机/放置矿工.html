@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放置矿工</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+
+        .info-bar { display: flex; gap: 15px; margin-bottom: 10px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 15px; color: #fff; }
+
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 350px; width: 100%; }
+
+        .mine {
+            background: linear-gradient(135deg, #5d4e37, #3d3225);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .miner { font-size: 3rem; animation: dig 0.5s infinite; }
+        @keyframes dig { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(-20deg)} }
+
+        .ore-display { font-size: 2rem; margin: 10px 0; }
+        .rate { color: #f39c12; font-weight: bold; }
+
+        .upgrade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .upgrade-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: #f8f9fa;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .upgrade-btn:hover:not(:disabled) { border-color: #27ae60; transform: scale(1.02); }
+        .upgrade-btn:disabled { opacity: 0.5; }
+        .upgrade-icon { font-size: 1.8rem; }
+        .upgrade-name { font-size: 0.8rem; font-weight: bold; margin: 5px 0; }
+        .upgrade-cost { font-size: 0.75rem; color: #f39c12; }
+
+        .stats { display: flex; justify-content: space-around; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 10px; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; color: #333; }
+        .stat-label { font-size: 0.75rem; color: #666; }
+
+        .auto-save { text-align: center; margin-top: 10px; font-size: 0.8rem; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>⛏️ 放置矿工</h1>
+
+    <div class="info-bar">
+        <div class="info-item">💰 金币: <span id="money">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="mine">
+            <div class="miner" id="miner">⛏️</div>
+            <div class="ore-display">💎 <span id="ore">0</span></div>
+            <div>挖矿速度: <span class="rate" id="rate">1</span> 秒/矿</div>
+        </div>
+
+        <div class="upgrade-grid" id="upgrades"></div>
+
+        <div class="stats">
+            <div class="stat"><div class="stat-value" id="totalOre">0</div><div class="stat-label">总产量</div></div>
+            <div class="stat"><div class="stat-value" id="totalEarned">0</div><div class="stat-label">总收入</div></div>
+        </div>
+
+        <div class="auto-save">💾 自动保存中...</div>
+    </div>
+
+    <script>
+        const upgrades = [
+            {id:'pickaxe', name:'更好的镐', icon:'⛏️', baseCost:10, effect:0.9, desc:'挖矿速度-10%'},
+            {id:'miner', name:'矿工助手', icon:'👷', baseCost:50, effect:2, desc:'自动挖矿'},
+            {id:'cart', name:'矿车', icon:'🛒', baseCost:100, effect:2, desc:'产出x2'},
+            {id:'dynamite', name:'炸药', icon:'🧨', baseCost:500, effect:3, desc:'产出x3'},
+            {id:'drill', name:'钻机', icon:'🔧', baseCost:2000, effect:5, desc:'产出x5'},
+            {id:'factory', name:'加工厂', icon:'🏭', baseCost:10000, effect:10, desc:'产出x10'}
+        ];
+
+        let game = {
+            money: 0,
+            ore: 0,
+            totalOre: 0,
+            totalEarned: 0,
+            miningSpeed: 1000,
+            multiplier: 1,
+            autoMiners: 0,
+            counts: {}
+        };
+
+        upgrades.forEach(u => game.counts[u.id] = 0);
+
+        function renderUpgrades(){
+            const grid = document.getElementById('upgrades');
+            grid.innerHTML = '';
+            upgrades.forEach(u => {
+                const cost = Math.floor(u.baseCost * Math.pow(1.5, game.counts[u.id]));
+                const btn = document.createElement('button');
+                btn.className = 'upgrade-btn';
+                btn.disabled = game.money < cost;
+                btn.innerHTML = `
+                    <div class="upgrade-icon">${u.icon}</div>
+                    <div class="upgrade-name">${u.name} (${game.counts[u.id]})</div>
+                    <div class="upgrade-cost">💰 ${cost}</div>
+                `;
+                btn.onclick = () => buyUpgrade(u);
+                grid.appendChild(btn);
+            });
+        }
+
+        function buyUpgrade(u){
+            const cost = Math.floor(u.baseCost * Math.pow(1.5, game.counts[u.id]));
+            if(game.money < cost) return;
+
+            game.money -= cost;
+            game.counts[u.id]++;
+
+            if(u.id === 'pickaxe') game.miningSpeed *= u.effect;
+            if(u.id === 'miner') game.autoMiners += u.effect;
+            if(['cart','dynamite','drill','factory'].includes(u.id)) game.multiplier = Math.pow(u.effect, game.counts[u.id] - (game.counts[u.id]>0?1:0));
+
+            updateUI();
+            renderUpgrades();
+        }
+
+        function mine(){
+            const oreGain = game.multiplier;
+            game.ore += oreGain;
+            game.totalOre += oreGain;
+            updateUI();
+
+            document.getElementById('miner').style.animation = 'none';
+            setTimeout(() => document.getElementById('miner').style.animation = 'dig 0.5s', 10);
+        }
+
+        function autoMine(){
+            if(game.autoMiners > 0){
+                for(let i=0; i<game.autoMiners; i++){
+                    setTimeout(() => mine(), i*100);
+                }
+            }
+        }
+
+        function updateUI(){
+            document.getElementById('money').textContent = Math.floor(game.money);
+            document.getElementById('ore').textContent = game.ore;
+            document.getElementById('totalOre').textContent = game.totalOre;
+            document.getElementById('totalEarned').textContent = Math.floor(game.totalEarned);
+            document.getElementById('rate').textContent = (game.miningSpeed/1000).toFixed(1);
+        }
+
+        // 自动出售
+        setInterval(() => {
+            if(game.ore >= 1){
+                const earn = Math.floor(game.ore);
+                game.money += earn;
+                game.totalEarned += earn;
+                game.ore = 0;
+                updateUI();
+                renderUpgrades();
+            }
+        }, 1000);
+
+        // 自动挖矿
+        setInterval(autoMine, game.miningSpeed);
+
+        // 手动挖矿
+        document.getElementById('miner').onclick = mine;
+
+        // 自动保存
+        setInterval(() => {
+            localStorage.setItem('minerGame', JSON.stringify(game));
+        }, 5000);
+
+        // 加载存档
+        const saved = localStorage.getItem('minerGame');
+        if(saved){
+            const loaded = JSON.parse(saved);
+            Object.assign(game, loaded);
+        }
+
+        updateUI();
+        renderUpgrades();
+    </script>
+</body>
+</html>

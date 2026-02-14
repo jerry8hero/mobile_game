@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地下城探险</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 10px;
+            user-select: none;
+        }
+
+        h1 { color: #fff; font-size: 1.6rem; margin-bottom: 8px; }
+
+        .info-bar { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
+        .info-item { background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 12px; color: #fff; font-size: 0.85rem; }
+
+        .game-area { display: flex; gap: 10px; }
+
+        #gameCanvas { background: #0a0a15; border-radius: 10px; }
+
+        .sidebar { display: flex; flex-direction: column; gap: 8px; }
+
+        .action-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .action-btn:hover { transform: scale(1.02); }
+        .attack-btn { background: #e74c3c; color: #fff; }
+        .item-btn { background: #f39c12; color: #fff; }
+        .run-btn { background: #95a5a6; color: #fff; }
+
+        .stats-panel {
+            background: #1e1e3f;
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            min-width: 120px;
+        }
+
+        .player-hp { color: #e74c3c; font-weight: bold; }
+        .player-hp-bar {
+            height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-top: 3px;
+        }
+        .player-hp-fill { height: 100%; background: #e74c3c; transition: width 0.3s; }
+
+        .enemy-panel {
+            background: #2d1f1f;
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            margin-top: 8px;
+        }
+
+        .enemy-hp { color: #e74c3c; }
+        .enemy-hp-bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 3px; }
+        .enemy-hp-fill { height: 100%; background: #e74c3c; transition: width 0.3s; }
+
+        .log {
+            background: #111;
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 8px;
+            max-height: 80px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .log-entry { margin: 3px 0; }
+        .log-entry.damage { color: #e74c3c; }
+        .log-entry.heal { color: #27ae60; }
+        .log-entry.win { color: #f1c40f; }
+        .log-entry.lose { color: #95a5a6; }
+    </style>
+</head>
+<body>
+    <h1>⚔️ 地下城探险</h1>
+
+    <div class="info-bar">
+        <div class="info-item">🏰 楼层: <span id="floor">1</span></div>
+        <div class="info-item">💰 金币: <span id="money">0</span></div>
+        <div class="info-item">🎒 药水: <span id="potions">2</span></div>
+    </div>
+
+    <div class="game-area">
+        <canvas id="gameCanvas" width="280" height="320"></canvas>
+        <div class="sidebar">
+            <button class="action-btn attack-btn" onclick="attack()">⚔️ 攻击</button>
+            <button class="action-btn item-btn" onclick="usePotion()">🧪 药水</button>
+            <button class="action-btn run-btn" onclick="tryRun()">🏃 逃跑</button>
+
+            <div class="stats-panel">
+                <div>👤 勇者</div>
+                <div class="player-hp">❤️ <span id="hp">100</span>/<span id="maxHp">100</span></div>
+                <div class="player-hp-bar"><div class="player-hp-fill" id="hpBar" style="width:100%"></div></div>
+                <div style="margin-top:5px;">⚔️ <span id="attack">10</span> | 🛡️ <span id="defense">0</span></div>
+            </div>
+
+            <div class="enemy-panel" id="enemyPanel" style="display:none;">
+                <div>👹 <span id="enemyName">史莱姆</span></div>
+                <div class="enemy-hp">❤️ <span id="enemyHp">30</span>/<span id="enemyMaxHp">30</span></div>
+                <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemyHpBar" style="width:100%"></div></div>
+            </div>
+
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const enemies = [
+            {emoji:'🟢',name:'史莱姆',hp:30,attack:5,reward:10},
+            {emoji:'🦇',name:'蝙蝠',hp:25,attack:8,reward:15},
+            {emoji:'🕷️',name:'蜘蛛',hp:40,attack:10,reward:20},
+            {emoji:'💀',name:'骷髅',hp:50,attack:12,reward:25},
+            {emoji:'👹',name:'牛头人',hp:80,attack:15,reward:40},
+            {emoji:'🐉',name:'巨龙',hp:150,attack:25,reward:100}
+        ];
+
+        let player = {hp:100, maxHp:100, attack:10, defense:0, money:0, potions:2, floor:1};
+        let enemy = null;
+
+        function draw(){
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            // 地板
+            ctx.fillStyle = '#1a1a2e';
+            for(let y=0;y<8;y++){
+                for(let x=0;x<7;x++){
+                    if((x+y)%2===0) ctx.fillRect(x*40,y*40,40,40);
+                }
+            }
+
+            // 玩家
+            ctx.font = '2rem';
+            ctx.textAlign = 'center';
+            ctx.fillText('🧙', 140, 180);
+
+            // 敌人
+            if(enemy){
+                ctx.fillText(enemy.emoji, 140, 80);
+            }
+
+            // 楼层背景
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.font = '8rem';
+            ctx.textAlign = 'center';
+            ctx.fillText(player.floor, 140, 200);
+        }
+
+        function spawnEnemy(){
+            const index = Math.min(Math.floor((player.floor-1)/2), enemies.length-1);
+            enemy = {...enemies[index]};
+            enemy.maxHp = enemy.hp;
+            updateEnemyUI();
+            document.getElementById('enemyPanel').style.display = 'block';
+            log(`遇到了 ${enemy.emoji}${enemy.name}！`);
+            draw();
+        }
+
+        function attack(){
+            if(!enemy) return;
+
+            const damage = Math.max(1, player.attack);
+            enemy.hp -= damage;
+            log(`攻击！造成 ${damage} 伤害`);
+
+            if(enemy.hp <= 0){
+                winBattle();
+            }else{
+                enemyAttack();
+            }
+            updateEnemyUI();
+        }
+
+        function enemyAttack(){
+            const damage = Math.max(1, enemy.attack - player.defense);
+            player.hp -= damage;
+            log(`${enemy.name} 攻击！受到 ${damage} 伤害`, 'damage');
+
+            if(player.hp <= 0){
+                gameOver();
+            }
+            updatePlayerUI();
+        }
+
+        function usePotion(){
+            if(player.potions <= 0){
+                log('没有药水了！');
+                return;
+            }
+            if(player.hp >= player.maxHp){
+                log('生命值已满！');
+                return;
+            }
+
+            player.potions--;
+            player.hp = Math.min(player.maxHp, player.hp + 50);
+            log('使用药水，恢复 50 生命！', 'heal');
+            enemyAttack();
+            updatePlayerUI();
+        }
+
+        function tryRun(){
+            if(!enemy) return;
+            if(Math.random() < 0.5){
+                log('逃跑成功！', 'lose');
+                enemy = null;
+                document.getElementById('enemyPanel').style.display = 'none';
+                player.floor++;
+                updatePlayerUI();
+                draw();
+            }else{
+                log('逃跑失败！', 'lose');
+                enemyAttack();
+            }
+        }
+
+        function winBattle(){
+            player.money += enemy.reward;
+            log(`战胜 ${enemy.name}！获得 ${enemy.reward} 金币`, 'win');
+
+            // 每3层恢复一点血
+            if(player.floor % 3 === 0){
+                player.hp = Math.min(player.maxHp, player.hp + 20);
+                log('每3层恢复20生命！', 'heal');
+            }
+
+            enemy = null;
+            document.getElementById('enemyPanel').style.display = 'none';
+            player.floor++;
+            updatePlayerUI();
+            draw();
+        }
+
+        function gameOver(){
+            log('游戏结束！', 'lose');
+            alert(`你到达了第 ${player.floor} 层！\n获得金币: ${player.money}`);
+            // 重置
+            player.hp = player.maxHp;
+            player.floor = 1;
+            player.potions = 2;
+            player.money = 0;
+            enemy = null;
+            document.getElementById('enemyPanel').style.display = 'none';
+            document.getElementById('log').innerHTML = '';
+            updatePlayerUI();
+            draw();
+        }
+
+        function updatePlayerUI(){
+            document.getElementById('floor').textContent = player.floor;
+            document.getElementById('money').textContent = player.money;
+            document.getElementById('potions').textContent = player.potions;
+            document.getElementById('hp').textContent = player.hp;
+            document.getElementById('maxHp').textContent = player.maxHp;
+            document.getElementById('hpBar').style.width = (player.hp/player.maxHp*100)+'%';
+        }
+
+        function updateEnemyUI(){
+            if(!enemy) return;
+            document.getElementById('enemyName').textContent = enemy.name;
+            document.getElementById('enemyHp').textContent = Math.max(0, enemy.hp);
+            document.getElementById('enemyMaxHp').textContent = enemy.maxHp;
+            document.getElementById('enemyHpBar').style.width = (enemy.hp/enemy.maxHp*100)+'%';
+        }
+
+        function log(msg, type=''){
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = msg;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            while(logDiv.children.length > 10) logDiv.removeChild(logDiv.lastChild);
+        }
+
+        // 开始游戏
+        spawnEnemy();
+        draw();
+    </script>
+</body>
+</html>
