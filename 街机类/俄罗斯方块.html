@@ -157,6 +157,48 @@
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
+
+        /* PC端 */
+        @media (min-width: 768px) {
+            #gameCanvas { width: 250px; height: 400px; }
+            #nextCanvas { width: 100px; height: 100px; }
+            .side-panel { width: 140px; }
+            .mobile-controls { display: none; }
+        }
+
+        /* 移动端 */
+        @media (max-width: 767px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.3rem; }
+            .game-container { flex-direction: column; padding: 10px; }
+            #gameCanvas { width: 210px; height: 336px; }
+            #nextCanvas { width: 70px; height: 70px; }
+            .side-panel { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
+            .score-box, .level-box, .lines-box { padding: 5px 10px; font-size: 0.8rem; }
+            .control-hint { font-size: 0.7rem; }
+            .mobile-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; max-width: 180px; margin: 10px auto; }
+            .mobile-btn { padding: 12px; font-size: 1.2rem; }
+            .control-btn { padding: 10px 15px; font-size: 0.8rem; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            #gameCanvas { width: 180px; height: 288px; }
+            h1 { font-size: 1.1rem; }
+        }
+
+        /* 横屏 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .game-container { flex-direction: row; }
+            #gameCanvas { width: 240px; height: 320px; }
+            .mobile-controls { max-width: 150px; }
+        }
+
+        /* 触摸优化 */
+        .mobile-btn, .control-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
     </style>
 </head>
 <body>
@@ -189,6 +231,15 @@
 
     <div class="controls">
         <p class="control-hint">← → 移动 | ↑ 旋转 | ↓ 加速 | 空格 快速下落</p>
+        <!-- 移动端虚拟按键 -->
+        <div class="mobile-controls" id="mobileControls">
+            <div></div>
+            <button class="mobile-btn" onclick="rotate()">↻</button>
+            <div></div>
+            <button class="mobile-btn" onclick="moveLeft()">←</button>
+            <button class="mobile-btn" onclick="drop()">↓</button>
+            <button class="mobile-btn" onclick="moveRight()">→</button>
+        </div>
         <button class="btn-restart" onclick="initGame()">🔄 重新开始</button>
     </div>
 

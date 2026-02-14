@@ -133,6 +133,37 @@
             border-radius: 15px;
             cursor: pointer;
         }
+
+        /* PC端 */
+        @media (min-width: 768px) {
+            #gameCanvas { width: 400px; height: 500px; }
+            .mobile-controls { display: none; }
+            h1 { font-size: 2rem; }
+        }
+
+        /* 移动端 */
+        @media (max-width: 767px) {
+            body { padding: 8px; }
+            h1 { font-size: 1.3rem; margin-bottom: 5px; }
+            .info-bar { gap: 15px; margin-bottom: 5px; }
+            .info-item { padding: 5px 10px; font-size: 0.8rem; }
+            #gameCanvas { width: 100%; max-width: 320px; height: 400px; }
+            .mobile-controls { display: flex; justify-content: center; gap: 20px; margin-top: 10px; }
+            .mobile-btn { padding: 15px 30px; font-size: 1.5rem; background: #27ae60; border: none; border-radius: 15px; color: white; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            h1 { font-size: 1.1rem; }
+            #gameCanvas { height: 350px; }
+            .mobile-btn { padding: 12px 25px; font-size: 1.2rem; }
+        }
+
+        /* 触摸优化 */
+        .mobile-btn, .start-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
     </style>
 </head>
 <body>
@@ -150,6 +181,10 @@
 
     <div class="controls">
         <p class="control-hint">← → 或 鼠标 左右移动篮子接住水果</p>
+        <div class="mobile-controls" id="mobileControls">
+            <button class="mobile-btn" onmousedown="startMove('left')" onmouseup="stopMove()" ontouchstart="startMove('left')" ontouchend="stopMove()">⬅️ 左</button>
+            <button class="mobile-btn" onmousedown="startMove('right')" onmouseup="stopMove()" ontouchstart="startMove('right')" ontouchend="stopMove()">➡️ 右</button>
+        </div>
         <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
     </div>
 
@@ -341,6 +376,22 @@
         function closeAndRestart() {
             document.getElementById('gameOverOverlay').style.display = 'none';
             restartGame();
+        }
+
+        // 移动端触摸控制
+        let moveInterval = null;
+        function startMove(dir) {
+            if (!gameRunning) return;
+            const moveSpeed = 15;
+            if (moveInterval) clearInterval(moveInterval);
+            moveInterval = setInterval(() => {
+                if (dir === 'left') basket.x = Math.max(0, basket.x - moveSpeed);
+                else basket.x = Math.min(canvas.width - basket.width, basket.x + moveSpeed);
+                draw();
+            }, 30);
+        }
+        function stopMove() {
+            if (moveInterval) clearInterval(moveInterval);
         }
 
         // 键盘控制

@@ -200,6 +200,61 @@
 
         /* 事件弹窗 */
         .event-modal .shop-modal { border: 2px solid #3498db; }
+
+        /* PC端布局 */
+        @media (min-width: 768px) {
+            .main-area { flex-direction: row; align-items: flex-start; }
+            .battle-scene { order: 1; }
+            .side-panel { order: 2; }
+            #gameCanvas { width: 320px; height: 360px; }
+            .side-panel { max-width: 200px; }
+            .action-btn { padding: 14px 20px; font-size: 1rem; }
+            .player-card { padding: 15px; }
+            .player-stats { font-size: 0.9rem; }
+            h1 { font-size: 2rem; }
+        }
+
+        /* 移动端布局 - 默认 */
+        @media (max-width: 767px) {
+            .main-area { flex-direction: column; align-items: center; }
+            .battle-scene { order: 2; }
+            .side-panel { order: 1; max-width: 100%; width: 100%; }
+            #gameCanvas { width: 280px; height: 320px; }
+            .action-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .action-btn { padding: 14px 10px; font-size: 0.9rem; }
+            .action-btn.shop-btn, .action-btn.run-btn { grid-column: span 1; }
+            .player-card { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+            .player-card h3 { width: 100%; margin-bottom: 0; }
+            .player-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+            .stat-row { font-size: 0.85rem; }
+            .skill-panel { justify-content: center; }
+            .top-bar { gap: 5px; }
+            .stat-box { padding: 5px 8px; font-size: 0.75rem; }
+            h1 { font-size: 1.3rem; }
+            .log-box { max-width: 100%; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            #gameCanvas { width: 240px; height: 280px; }
+            .action-btn { padding: 12px 8px; font-size: 0.8rem; }
+            h1 { font-size: 1.1rem; }
+        }
+
+        /* 触摸设备优化 */
+        .action-btn, .buy-btn, .skill-btn-small, .close-shop, .tab, .nav-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* 横屏移动端 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .main-area { flex-direction: row; }
+            .battle-scene { order: 1; }
+            .side-panel { order: 2; max-width: 45%; }
+            #gameCanvas { width: 260px; height: 200px; }
+            .log-box { max-height: 60px; }
+        }
     </style>
 </head>
 <body>

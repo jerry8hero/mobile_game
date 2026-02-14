@@ -154,6 +154,53 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
+
+        /* PC端 */
+        @media (min-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .info-bar { gap: 30px; }
+            .info-item { padding: 10px 20px; font-size: 1.1rem; }
+            #gameCanvas { width: 400px; height: 400px; }
+            .dpad { display: none; }
+        }
+
+        /* 移动端 */
+        @media (max-width: 767px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.5rem; margin-bottom: 10px; }
+            .info-bar { gap: 15px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+            .info-item { padding: 6px 12px; font-size: 0.85rem; }
+            .game-container { padding: 10px; }
+            #gameCanvas { width: 280px; height: 280px; }
+            .control-hint { font-size: 0.8rem; margin-bottom: 10px; }
+            .speed-btn { padding: 6px 12px; font-size: 0.75rem; margin: 0 2px; }
+            .btn-restart { padding: 10px 20px; font-size: 0.9rem; }
+            .dpad { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 15px; max-width: 180px; margin-left: auto; margin-right: auto; }
+            .dpad-btn { padding: 15px; font-size: 1.2rem; }
+            .dpad-center { visibility: hidden; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            #gameCanvas { width: 240px; height: 240px; }
+            h1 { font-size: 1.2rem; }
+            .info-item { padding: 5px 10px; font-size: 0.75rem; }
+        }
+
+        /* 横屏移动端 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            h1 { font-size: 1.3rem; margin-bottom: 5px; }
+            .info-bar { margin-bottom: 5px; }
+            #gameCanvas { width: 300px; height: 200px; }
+            .controls { margin-top: 10px; }
+            .dpad { margin-top: 5px; }
+        }
+
+        /* 触摸优化 */
+        .speed-btn, .btn-restart, .dpad-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
     </style>
 </head>
 <body>
@@ -176,6 +223,15 @@
 
     <div class="controls">
         <p class="control-hint">使用方向键或 WASD 控制移动</p>
+        <!-- 移动端虚拟方向键 -->
+        <div class="dpad" id="dpad">
+            <div class="dpad-center"></div>
+            <button class="dpad-btn" onclick="changeDirection('up')">⬆️</button>
+            <div class="dpad-center"></div>
+            <button class="dpad-btn" onclick="changeDirection('left')">⬅️</button>
+            <button class="dpad-btn" onclick="changeDirection('down')">⬇️</button>
+            <button class="dpad-btn" onclick="changeDirection('right')">➡️</button>
+        </div>
         <button class="btn-restart" onclick="initGame()">🔄 重新开始</button>
     </div>
 
@@ -412,6 +468,17 @@
         function closeAndRestart() {
             document.getElementById('gameOverOverlay').style.display = 'none';
             initGame();
+        }
+
+        // 移动端虚拟方向键控制
+        function changeDirection(dir) {
+            if (isGameOver) return;
+            switch(dir) {
+                case 'up': if (direction.y !== 1) nextDirection = { x: 0, y: -1 }; break;
+                case 'down': if (direction.y !== -1) nextDirection = { x: 0, y: 1 }; break;
+                case 'left': if (direction.x !== 1) nextDirection = { x: -1, y: 0 }; break;
+                case 'right': if (direction.x !== -1) nextDirection = { x: 1, y: 0 }; break;
+            }
         }
 
         // 键盘控制

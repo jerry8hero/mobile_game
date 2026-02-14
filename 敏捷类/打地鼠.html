@@ -113,6 +113,39 @@
         }
 
         .btn:hover { transform: translateY(-2px); }
+
+        /* PC端 */
+        @media (min-width: 768px) {
+            .hole-grid { grid-template-columns: repeat(3, 100px); gap: 15px; }
+            .hole { width: 100px; height: 100px; }
+            h1 { font-size: 2rem; }
+        }
+
+        /* 移动端 */
+        @media (max-width: 767px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.3rem; margin-bottom: 8px; }
+            .info-bar { gap: 15px; margin-bottom: 8px; }
+            .info-item { padding: 5px 10px; font-size: 0.85rem; }
+            .hole-grid { grid-template-columns: repeat(3, 80px); gap: 8px; }
+            .hole { width: 80px; height: 80px; }
+            .hole-emoji { font-size: 2.5rem; }
+            .btn { padding: 10px 20px; font-size: 0.9rem; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            .hole-grid { grid-template-columns: repeat(3, 65px); gap: 5px; }
+            .hole { width: 65px; height: 65px; }
+            .hole-emoji { font-size: 2rem; }
+            h1 { font-size: 1.1rem; }
+        }
+
+        /* 触摸优化 */
+        .btn, .hole {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
     </style>
 </head>
 <body>
