@@ -80,6 +80,27 @@
             100% { transform: translateX(-50%) scale(1); }
         }
 
+        /* 锤子样式 */
+        .hammer {
+            position: fixed;
+            font-size: 4rem;
+            pointer-events: none;
+            z-index: 1000;
+            transform-origin: bottom right;
+            transition: transform 0.05s ease;
+            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.4));
+        }
+
+        .hammer.hit {
+            animation: hammerHit 0.15s ease;
+        }
+
+        @keyframes hammerHit {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-45deg) scale(1.2); }
+            100% { transform: rotate(0deg); }
+        }
+
         .btn {
             margin-top: 20px;
             padding: 12px 30px;
@@ -108,10 +129,46 @@
 
     <button class="btn" id="startBtn" onclick="startGame()">开始游戏</button>
 
+    <!-- 锤子元素 -->
+    <div class="hammer" id="hammer">🔨</div>
+
     <script>
         const holesEl = document.getElementById('holes');
+        const hammer = document.getElementById('hammer');
         const moles = [];
         let score = 0;
+
+        // 锤子跟随鼠标/触摸
+        function moveHammer(x, y) {
+            hammer.style.left = (x - 30) + 'px';
+            hammer.style.top = (y - 60) + 'px';
+        }
+
+        // 鼠标移动
+        document.addEventListener('mousemove', (e) => {
+            moveHammer(e.clientX, e.clientY);
+        });
+
+        // 触摸移动
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                moveHammer(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        // 点击时锤子敲击动画
+        document.addEventListener('mousedown', () => {
+            hammer.classList.add('hit');
+        });
+        document.addEventListener('mouseup', () => {
+            setTimeout(() => hammer.classList.remove('hit'), 150);
+        });
+        document.addEventListener('touchstart', () => {
+            hammer.classList.add('hit');
+        });
+        document.addEventListener('touchend', () => {
+            setTimeout(() => hammer.classList.remove('hit'), 150);
+        });
         let timeLeft = 30;
         let gameRunning = false;
         let moleTimer = null;
@@ -174,7 +231,11 @@
             document.getElementById('score').textContent = score;
             mole.classList.remove('up');
             mole.classList.add('hit');
-            setTimeout(() => mole.classList.remove('hit'), 200);
+            mole.textContent = '😵';
+            setTimeout(() => {
+                mole.classList.remove('hit');
+                mole.textContent = '🐹';
+            }, 200);
         }
 
         function endGame() {
