@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼音学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { background: #e0e0e0; }
+        .tab.active { background: #ff6b6b; color: #fff; }
+
+        .card-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            margin: 20px 0;
+        }
+
+        .pinyin-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            width: 150px;
+            height: 150px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .pinyin-card:hover {
+            transform: scale(1.05);
+        }
+
+        .pinyin-card.show {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .pinyin-main {
+            font-size: 4rem;
+            font-weight: bold;
+        }
+
+        .pinyin-pronounce {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .pinyin-meaning {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .pinyin-card.show .pinyin-main { display: none; }
+        .pinyin-card.show .pinyin-pronounce { display: none; }
+        .pinyin-card.show .pinyin-meaning { display: block; }
+
+        .example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .example-word {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .example-sentence {
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .nav-btns {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover { transform: scale(1.05); }
+        .prev-btn { background: #3498db; color: #fff; }
+        .next-btn { background: #27ae60; color: #fff; }
+        .random-btn { background: #f39c12; color: #fff; }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📖 拼音学习</h1>
+
+    <div class="info-bar">
+        <div class="info-item">当前: <span id="currentIndex">1</span>/<span id="total">6</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="tabs">
+            <button class="tab active" onclick="showCategory('dan')">单韵母</button>
+            <button class="tab" onclick="showCategory('fu')">复韵母</button>
+            <button class="tab" onclick="showCategory('sheng')">声母</button>
+            <button class="tab" onclick="showCategory('quan')">整体认读</button>
+        </div>
+
+        <div class="card-area">
+            <div class="pinyin-card" onclick="this.classList.toggle('show')">
+                <div class="pinyin-main" id="pinyinMain">a</div>
+                <div class="pinyin-pronounce" id="pinyinPronounce">啊</div>
+                <div class="pinyin-meaning" id="pinyinMeaning">ā á ǎ à</div>
+            </div>
+        </div>
+
+        <div class="example">
+            <div class="example-word" id="exampleWord">爸爸 bà ba</div>
+            <div class="example-sentence" id="exampleSentence">爸爸是一名医生</div>
+        </div>
+
+        <div class="nav-btns">
+            <button class="nav-btn prev-btn" onclick="prevCard()">◀️ 上一个</button>
+            <button class="nav-btn random-btn" onclick="randomCard()">🎲 随机</button>
+            <button class="nav-btn next-btn" onclick="nextCard()">下一个 ▶️</button>
+        </div>
+    </div>
+
+    <p class="hint">点击卡片查看声调 | 点击按钮切换学习</p>
+
+    <script>
+        const categories = {
+            dan: [
+                { pinyin: 'a', pronounce: '啊', meaning: 'ā á ǎ à', word: '爸爸 bà ba', sentence: '爸爸是一名医生' },
+                { pinyin: 'o', pronounce: '喔', meaning: 'ō ó ǒ ò', word: '伯伯 bó bo', sentence: '伯伯在上班' },
+                { pinyin: 'e', pronounce: '鹅', meaning: 'ē é ě è', word: '恶心 ě xin', sentence: '我感觉有点恶心' },
+                { pinyin: 'i', pronounce: '衣', meaning: 'ī í ǐ ì', word: '医生 yī shēng', sentence: '医生看病很辛苦' },
+                { pinyin: 'u', pronounce: '乌', meaning: 'ū ú ǔ ù', word: '五 wǔ', sentence: '我今年五岁了' },
+                { pinyin: 'ü', pronounce: '鱼', meaning: 'ǖ ǘ ǚ ǜ', word: '小鱼 xiǎo yú', sentence: '小河里有小鱼' }
+            ],
+            fu: [
+                { pinyin: 'ai', pronounce: '爱', meaning: 'āi ái ǎi ài', word: '爱学习 ài xué xí', sentence: '我爱学习' },
+                { pinyin: 'ei', pronounce: '诶', meaning: 'ēi éi ěi èi', word: '飞 fēi', sentence: '小鸟在天上飞' },
+                { pinyin: 'ui', pronounce: '威', meaning: 'uī uí uǐ uì', word: '水 shuǐ', sentence: '我口渴了要喝水' },
+                { pinyin: 'ao', pronounce: '奥', meaning: 'āo áo ǎo ào', word: '棉袄 mián ǎo', sentence: '冬天要穿棉袄' },
+                { pinyin: 'ou', pronounce: '欧', meaning: 'ōu óu ǒu òu', word: '同学 tóng xué', sentence: '我和同学一起玩' },
+                { pinyin: 'iu', pronounce: '优', meaning: 'iū iú iǔ iù', word: '牛 niú', sentence: '农村有很多牛' }
+            ],
+            sheng: [
+                { pinyin: 'b', pronounce: '玻', meaning: 'bō', word: '报纸 bào zhǐ', sentence: '爸爸在看报纸' },
+                { pinyin: 'p', pronounce: '坡', meaning: 'pō', word: '跑步 pǎo bù', sentence: '小明喜欢跑步' },
+                { pinyin: 'm', pronounce: '摸', meaning: 'mō', word: '妈妈 mā ma', sentence: '妈妈爱我' },
+                { pinyin: 'f', pronounce: '佛', meaning: 'fó', word: '飞机 fēi jī', sentence: '我长大了想开飞机' },
+                { pinyin: 'd', pronounce: '得', meaning: 'dé', word: '电脑 diàn nǎo', sentence: '爸爸在用电脑' },
+                { pinyin: 't', pronounce: '特', meaning: 'tè', word: '兔子 tù zi', sentence: '小白兔真可爱' }
+            ],
+            quan: [
+                { pinyin: 'zhi', pronounce: '知', meaning: 'zhī', word: '知识 zhī shi', sentence: '知识很重要' },
+                { pinyin: 'chi', pronounce: '吃', meaning: 'chī', word: '吃饭 chī fàn', sentence: '我们要好好吃饭' },
+                { pinyin: 'shi', pronounce: '诗', meaning: 'shī', word: '老师 lǎo shī', sentence: '老师教我们知识' },
+                { pinyin: 'ri', pronounce: '日', meaning: 'rì', word: '日子 rì zi', sentence: '今天是个好日子' },
+                { pinyin: 'zi', pronounce: '字', meaning: 'zì', word: '写字 xiě zì', sentence: '小明在写作业' },
+                { pinyin: 'ci', pronounce: '次', meaning: 'cì', word: '一次 yí cì', sentence: '我过一次生日' }
+            ]
+        };
+
+        let currentCategory = 'dan';
+        let currentIndex = 0;
+
+        function showCategory(cat) {
+            currentCategory = cat;
+            currentIndex = 0;
+
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('total').textContent = categories[cat].length;
+            updateCard();
+        }
+
+        function updateCard() {
+            const list = categories[currentCategory];
+            const card = list[currentIndex];
+
+            document.getElementById('currentIndex').textContent = currentIndex + 1;
+            document.getElementById('pinyinMain').textContent = card.pinyin;
+            document.getElementById('pinyinPronounce').textContent = card.pronounce;
+            document.getElementById('pinyinMeaning').textContent = card.meaning;
+            document.getElementById('exampleWord').textContent = card.word;
+            document.getElementById('exampleSentence').textContent = card.sentence;
+
+            // 重置卡片显示状态
+            document.querySelector('.pinyin-card').classList.remove('show');
+        }
+
+        function prevCard() {
+            const list = categories[currentCategory];
+            currentIndex = (currentIndex - 1 + list.length) % list.length;
+            updateCard();
+        }
+
+        function nextCard() {
+            const list = categories[currentCategory];
+            currentIndex = (currentIndex + 1) % list.length;
+            updateCard();
+        }
+
+        function randomCard() {
+            const list = categories[currentCategory];
+            currentIndex = Math.floor(Math.random() * list.length);
+            updateCard();
+        }
+
+        // 初始化
+        document.getElementById('total').textContent = categories.dan.length;
+    </script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语单词</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .game-container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 15px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { background: #e0e0e0; }
+        .tab.active { background: #11998e; color: #fff; }
+
+        .word-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .word-emoji {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .word-english {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .word-chinese {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+
+        .speaker-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 1rem;
+        }
+
+        .speaker-btn:hover { background: rgba(255,255,255,0.5); }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover { border-color: #11998e; }
+
+        .option-btn.correct {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .option-btn.wrong {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .score-display {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📚 英语单词</h1>
+
+    <div class="game-container">
+        <div class="tabs">
+            <button class="tab active" onclick="showCategory('animals')">动物</button>
+            <button class="tab" onclick="showCategory('colors')">颜色</button>
+            <button class="tab" onclick="showCategory('food')">食物</button>
+            <button class="tab" onclick="showCategory('body')">身体</button>
+            <button class="tab" onclick="showCategory('family')">家庭</button>
+        </div>
+
+        <div class="word-card">
+            <div class="word-emoji" id="wordEmoji">🐱</div>
+            <div class="word-english" id="wordEnglish">cat</div>
+            <div class="word-chinese" id="wordChinese">猫</div>
+            <button class="speaker-btn" onclick="speakWord()">🔊 读一读</button>
+        </div>
+
+        <div class="options" id="options">
+            <!-- 选项由JS生成 -->
+        </div>
+
+        <div class="score-display">
+            得分: <span id="score">0</span> | 连续正确: <span id="streak">0</span>
+        </div>
+    </div>
+
+    <p class="hint">点击单词卡片听发音 | 选择正确的中文意思</p>
+
+    <script>
+        const categories = {
+            animals: [
+                { emoji: '🐱', english: 'cat', chinese: '猫' },
+                { emoji: '🐕', english: 'dog', chinese: '狗' },
+                { emoji: '🐰', english: 'rabbit', chinese: '兔子' },
+                { emoji: '🐼', english: 'panda', chinese: '熊猫' },
+                { emoji: '🦁', english: 'lion', chinese: '狮子' },
+                { emoji: '🐘', english: 'elephant', chinese: '大象' },
+                { emoji: '🦒', english: 'giraffe', chinese: '长颈鹿' },
+                { emoji: '🐸', english: 'frog', chinese: '青蛙' }
+            ],
+            colors: [
+                { emoji: '🔴', english: 'red', chinese: '红色' },
+                { emoji: '🔵', english: 'blue', chinese: '蓝色' },
+                { emoji: '🟢', english: 'green', chinese: '绿色' },
+                { emoji: '🟡', english: 'yellow', chinese: '黄色' },
+                { emoji: '🟠', english: 'orange', chinese: '橙色' },
+                { emoji: '🟣', english: 'purple', chinese: '紫色' },
+                { emoji: '⚫', english: 'black', chinese: '黑色' },
+                { emoji: '⚪', english: 'white', chinese: '白色' }
+            ],
+            food: [
+                { emoji: '🍎', english: 'apple', chinese: '苹果' },
+                { emoji: '🍌', english: 'banana', chinese: '香蕉' },
+                { emoji: '🍊', english: 'orange', chinese: '橙子' },
+                { emoji: '🍇', english: 'grape', chinese: '葡萄' },
+                { emoji: '🍓', english: 'strawberry', chinese: '草莓' },
+                { emoji: '🍕', english: 'pizza', chinese: '披萨' },
+                { emoji: '🍔', english: 'burger', chinese: '汉堡' },
+                { emoji: '🍦', english: 'ice cream', chinese: '冰淇淋' }
+            ],
+            body: [
+                { emoji: '👀', english: 'eye', chinese: '眼睛' },
+                { emoji: '👂', english: 'ear', chinese: '耳朵' },
+                { emoji: '👃', english: 'nose', chinese: '鼻子' },
+                { emoji: '👄', english: 'mouth', chinese: '嘴巴' },
+                { emoji: '✋', english: 'hand', chinese: '手' },
+                { emoji: '🦶', english: 'foot', chinese: '脚' },
+                { emoji: '🧠', english: 'brain', chinese: '大脑' },
+                { emoji: '❤️', english: 'heart', chinese: '心脏' }
+            ],
+            family: [
+                { emoji: '👨', english: 'father', chinese: '爸爸' },
+                { emoji: '👩', english: 'mother', chinese: '妈妈' },
+                { emoji: '👦', english: 'son', chinese: '儿子' },
+                { emoji: '👧', english: 'daughter', chinese: '女儿' },
+                { emoji: '👴', english: 'grandfather', chinese: '爷爷' },
+                { emoji: '👵', english: 'grandmother', chinese: '奶奶' },
+                { emoji: '👶', english: 'baby', chinese: '宝宝' },
+                { emoji: '👫', english: 'friend', chinese: '朋友' }
+            ]
+        };
+
+        let currentCategory = 'animals';
+        let currentWord = null;
+        let score = 0;
+        let streak = 0;
+        let answered = false;
+
+        function showCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            nextWord();
+        }
+
+        function nextWord() {
+            answered = false;
+            const list = categories[currentCategory];
+            currentWord = list[Math.floor(Math.random() * list.length)];
+
+            document.getElementById('wordEmoji').textContent = currentWord.emoji;
+            document.getElementById('wordEnglish').textContent = currentWord.english;
+            document.getElementById('wordChinese').textContent = currentWord.chinese;
+
+            generateOptions();
+        }
+
+        function generateOptions() {
+            const container = document.getElementById('options');
+            container.innerHTML = '';
+
+            const list = categories[currentCategory];
+            const correctIndex = list.indexOf(currentWord);
+
+            // 生成3个错误选项
+            let options = [currentWord];
+            while (options.length < 4) {
+                const random = list[Math.floor(Math.random() * list.length)];
+                if (!options.includes(random)) {
+                    options.push(random);
+                }
+            }
+
+            // 打乱顺序
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt.chinese;
+                btn.onclick = () => selectAnswer(opt, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(opt, btn) {
+            if (answered) return;
+            answered = true;
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+
+            if (opt === currentWord) {
+                btn.classList.add('correct');
+                score += 10;
+                streak++;
+                document.getElementById('score').textContent = score;
+                document.getElementById('streak').textContent = streak;
+
+                setTimeout(nextWord, 1000);
+            } else {
+                btn.classList.add('wrong');
+                streak = 0;
+                document.getElementById('streak').textContent = streak;
+
+                // 显示正确答案
+                buttons.forEach(b => {
+                    if (b.textContent === currentWord.chinese) {
+                        b.classList.add('correct');
+                    }
+                });
+
+                setTimeout(nextWord, 1500);
+            }
+        }
+
+        function speakWord() {
+            if (currentWord) {
+                const utterance = new SpeechSynthesisUtterance(currentWord.english);
+                utterance.lang = 'en-US';
+                speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>
