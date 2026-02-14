@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机器人指令</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        #gameCanvas {
+            background: #2d2d44;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            margin-bottom: 15px;
+        }
+
+        /* 指令面板 */
+        .command-panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .command-title {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .direction-btns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+            max-width: 200px;
+            margin: 0 auto 15px auto;
+        }
+
+        .dir-btn {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: #3d3d5c;
+            color: #fff;
+            box-shadow: 0 4px 0 #2a2a40;
+        }
+
+        .dir-btn:hover {
+            background: #4d4d6d;
+            transform: translateY(-2px);
+        }
+
+        .dir-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2a2a40;
+        }
+
+        .dir-btn.empty {
+            visibility: hidden;
+        }
+
+        /* 指令队列显示 */
+        .command-queue {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            min-height: 40px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            background: #4a69bd;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .command-item:hover {
+            background: #e74c3c;
+        }
+
+        .command-item.active {
+            background: #f39c12;
+            animation: pulse 0.3s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .empty-queue {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-run {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .btn-clear {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .btn-reset {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-next {
+            background: #9b59b6;
+            color: #fff;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .instructions {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 350px;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        /* 游戏结束弹窗 */
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #fff, #f5f5f5);
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            animation: pop 0.4s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .game-over-content h2 {
+            color: #27ae60;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        .game-over-content .fail-text {
+            color: #e74c3c;
+        }
+
+        .game-over-content p {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .game-over-content .buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .game-over-content button {
+            padding: 10px 25px;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 450px) {
+            h1 { font-size: 1.6rem; }
+            .info-item { font-size: 0.95rem; padding: 6px 12px; }
+            #gameCanvas { width: 300px; height: 300px; }
+            .dir-btn { width: 45px; height: 45px; font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 机器人指令</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">📝 指令: <span id="cmdCount">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="320" height="320"></canvas>
+
+    <div class="command-panel">
+        <div class="command-title">📋 点击添加指令</div>
+
+        <div class="direction-btns">
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="addCommand('up')">⬆️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="addCommand('left')">⬅️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="addCommand('right')">➡️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="addCommand('down')">⬇️</button>
+            <div class="dir-btn empty"></div>
+        </div>
+
+        <div class="command-queue" id="commandQueue">
+            <span class="empty-queue">点击上方按钮添加指令</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-run" id="btnRun" onclick="runCommands()">▶️ 执行</button>
+        <button class="btn-clear" onclick="clearCommands()">🗑️ 清空</button>
+        <button class="btn-reset" onclick="resetLevel()">🔄 重置</button>
+    </div>
+
+    <p class="instructions">
+        规划机器人的行动路线，让它从 <span style="color:#3498db">🤖</span> 到达 <span style="color:#f39c12">⭐</span>
+    </p>
+
+    <!-- 游戏结束弹窗 -->
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-content" id="gameOverContent">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏配置
+        const GRID_SIZE = 6;
+        const TILE_SIZE = canvas.width / GRID_SIZE;
+
+        // 格子类型
+        const EMPTY = 0;
+        const WALL = 1;
+        const ROBOT = 2;
+        const GOAL = 3;
+
+        // 指令方向
+        const DIRECTIONS = {
+            'up': {dx: 0, dy: -1},
+            'down': {dx: 0, dy: 1},
+            'left': {dx: -1, dy: 0},
+            'right': {dx: 1, dy: 0}
+        };
+
+        // 关卡数据
+        const levels = [
+            // Level 1: 简单直线
+            {
+                grid: [
+                    [0,0,0,0,0,0],
+                    [0,0,0,0,0,0],
+                    [2,0,0,0,0,3],
+                    [0,0,0,0,0,0],
+                    [0,0,0,0,0,0],
+                    [0,0,0,0,0,0]
+                ]
+            },
+            // Level 2: 有个墙
+            {
+                grid: [
+                    [0,0,0,0,0,0],
+                    [0,0,0,0,0,0],
+                    [2,0,1,0,0,3],
+                    [0,0,1,0,0,0],
+                    [0,0,0,0,0,0],
+                    [0,0,0,0,0,0]
+                ]
+            },
+            // Level 3: 迷宫
+            {
+                grid: [
+                    [2,0,0,1,0,0],
+                    [1,1,0,1,0,1],
+                    [0,0,0,0,0,0],
+                    [0,1,1,1,1,0],
+                    [0,0,0,0,1,0],
+                    [1,1,0,0,0,3]
+                ]
+            },
+            // Level 4: 更复杂
+            {
+                grid: [
+                    [0,0,0,0,0,0],
+                    [0,1,1,0,1,0],
+                    [0,0,0,0,1,0],
+                    [0,1,0,1,1,0],
+                    [2,1,0,0,0,0],
+                    [1,1,0,1,1,3]
+                ]
+            },
+            // Level 5: 挑战
+            {
+                grid: [
+                    [0,0,1,0,0,3],
+                    [0,1,1,0,1,1],
+                    [0,0,0,0,0,0],
+                    [1,1,1,1,1,0],
+                    [0,0,0,0,1,0],
+                    [2,0,1,0,0,0]
+                ]
+            },
+            // Level 6: 终极挑战
+            {
+                grid: [
+                    [0,0,1,3,0,0],
+                    [0,1,1,1,1,0],
+                    [0,0,0,0,0,0],
+                    [1,1,0,1,1,1],
+                    [0,0,0,0,0,0],
+                    [2,1,1,0,1,0]
+                ]
+            }
+        ];
+
+        // 游戏状态
+        let currentLevel = 0;
+        let grid = [];
+        let robotPos = {x: 0, y: 0};
+        let goalPos = {x: 0, y: 0};
+        let commands = [];
+        let isExecuting = false;
+        let executingIndex = -1;
+
+        // 初始化游戏
+        function initGame() {
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+            grid = JSON.parse(JSON.stringify(level.grid));
+
+            // 找到机器人和目标
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (grid[y][x] === ROBOT) {
+                        robotPos = {x, y};
+                    }
+                    if (grid[y][x] === GOAL) {
+                        goalPos = {x, y};
+                    }
+                }
+            }
+
+            isExecuting = false;
+            executingIndex = -1;
+
+            document.getElementById('level').textContent = levelIndex + 1;
+            updateCommandDisplay();
+        }
+
+        // 绘制游戏
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制网格背景
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const px = x * TILE_SIZE;
+                    const py = y * TILE_SIZE;
+
+                    // 背景
+                    if ((x + y) % 2 === 0) {
+                        ctx.fillStyle = '#3d3d5c';
+                    } else {
+                        ctx.fillStyle = '#45456a';
+                    }
+                    ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+
+                    // 格子内容
+                    const cell = grid[y][x];
+                    ctx.font = `${TILE_SIZE * 0.55}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    if (cell === WALL) {
+                        ctx.fillText('🧱', px + TILE_SIZE/2, py + TILE_SIZE/2);
+                    } else if (cell === GOAL) {
+                        ctx.fillText('⭐', px + TILE_SIZE/2, py + TILE_SIZE/2);
+                    }
+                }
+            }
+
+            // 绘制机器人
+            const robotX = robotPos.x * TILE_SIZE + TILE_SIZE/2;
+            const robotY = robotPos.y * TILE_SIZE + TILE_SIZE/2;
+            ctx.font = `${TILE_SIZE * 0.6}px Arial`;
+            ctx.fillText('🤖', robotX, robotY);
+
+            // 绘制目标高亮
+            const goalX = goalPos.x * TILE_SIZE + TILE_SIZE/2;
+            const goalY = goalPos.y * TILE_SIZE + TILE_SIZE/2;
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(goalX, goalY, TILE_SIZE/3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // 添加指令
+        function addCommand(dir) {
+            if (isExecuting) return;
+            if (commands.length >= 20) return;
+
+            commands.push(dir);
+            updateCommandDisplay();
+        }
+
+        // 清空指令
+        function clearCommands() {
+            if (isExecuting) return;
+            commands = [];
+            updateCommandDisplay();
+        }
+
+        // 更新指令显示
+        function updateCommandDisplay() {
+            const container = document.getElementById('commandQueue');
+            document.getElementById('cmdCount').textContent = commands.length;
+
+            if (commands.length === 0) {
+                container.innerHTML = '<span class="empty-queue">点击上方按钮添加指令</span>';
+                return;
+            }
+
+            container.innerHTML = commands.map((cmd, i) => {
+                const icon = cmd === 'up' ? '⬆️' : cmd === 'down' ? '⬇️' : cmd === 'left' ? '⬅️' : '➡️';
+                const activeClass = i === executingIndex ? 'active' : '';
+                return `<span class="command-item ${activeClass}" onclick="removeCommand(${i})">${icon}</span>`;
+            }).join('');
+        }
+
+        // 移除指令
+        function removeCommand(index) {
+            if (isExecuting) return;
+            commands.splice(index, 1);
+            updateCommandDisplay();
+        }
+
+        // 执行指令
+        function runCommands() {
+            if (isExecuting || commands.length === 0) return;
+
+            isExecuting = true;
+            executingIndex = 0;
+            document.getElementById('btnRun').disabled = true;
+            updateCommandDisplay();
+
+            executeNext();
+        }
+
+        // 执行下一条指令
+        function executeNext() {
+            if (executingIndex >= commands.length) {
+                // 所有指令执行完毕
+                checkResult();
+                return;
+            }
+
+            const cmd = commands[executingIndex];
+            const dir = DIRECTIONS[cmd];
+
+            const newX = robotPos.x + dir.dx;
+            const newY = robotPos.y + dir.dy;
+
+            // 检查是否撞墙
+            if (newX < 0 || newX >= GRID_SIZE || newY < 0 || newY >= GRID_SIZE ||
+                grid[newY][newX] === WALL) {
+                showFail();
+                return;
+            }
+
+            // 移动机器人
+            robotPos = {x: newX, y: newY};
+            draw();
+            updateCommandDisplay();
+
+            // 延迟执行下一条
+            setTimeout(() => {
+                executingIndex++;
+                if (executingIndex < commands.length) {
+                    executeNext();
+                } else {
+                    checkResult();
+                }
+            }, 400);
+        }
+
+        // 检查结果
+        function checkResult() {
+            if (robotPos.x === goalPos.x && robotPos.y === goalPos.y) {
+                showWin();
+            } else {
+                showFail();
+            }
+        }
+
+        // 胜利
+        function showWin() {
+            const overlay = document.getElementById('gameOverOverlay');
+            const content = document.getElementById('gameOverContent');
+
+            if (currentLevel < levels.length - 1) {
+                content.innerHTML = `
+                    <h2>🎉 成功!</h2>
+                    <p>机器人到达目标!</p>
+                    <p>使用指令: ${commands.length} 条</p>
+                    <div class="buttons">
+                        <button class="btn-reset" onclick="restartLevel()">🔄 重玩</button>
+                        <button class="btn-next" onclick="nextLevel()">下一关 →</button>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <h2>🏆 恭喜通关!</h2>
+                    <p>所有关卡已完成!</p>
+                    <div class="buttons">
+                        <button class="btn-reset" onclick="restartGame()">从头开始</button>
+                    </div>
+                `;
+            }
+
+            overlay.style.display = 'flex';
+        }
+
+        // 失败
+        function showFail() {
+            const overlay = document.getElementById('gameOverOverlay');
+            const content = document.getElementById('gameOverContent');
+
+            content.innerHTML = `
+                <h2 class="fail-text">💥 撞墙了!</h2>
+                <p>机器人没有到达目标</p>
+                <div class="buttons">
+                    <button class="btn-reset" onclick="restartLevel()">🔄 重试</button>
+                </div>
+            `;
+
+            overlay.style.display = 'flex';
+        }
+
+        // 重新开始当前关
+        function restartLevel() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('btnRun').disabled = false;
+            resetLevel();
+        }
+
+        // 重置关卡
+        function resetLevel() {
+            isExecuting = false;
+            executingIndex = -1;
+            commands = [];
+            document.getElementById('btnRun').disabled = false;
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 下一关
+        function nextLevel() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('btnRun').disabled = false;
+            currentLevel++;
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 从头开始
+        function restartGame() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('btnRun').disabled = false;
+            currentLevel = 0;
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 键盘支持
+        document.addEventListener('keydown', (e) => {
+            if (isExecuting) return;
+
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W':
+                    addCommand('up');
+                    break;
+                case 'ArrowDown': case 's': case 'S':
+                    addCommand('down');
+                    break;
+                case 'ArrowLeft': case 'a': case 'A':
+                    addCommand('left');
+                    break;
+                case 'ArrowRight': case 'd': case 'D':
+                    addCommand('right');
+                    break;
+                case 'Enter':
+                    runCommands();
+                    break;
+                case 'Delete': case 'Backspace':
+                    clearCommands();
+                    break;
+            }
+        });
+
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
