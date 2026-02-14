@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史问答</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #c21500 0%, #ffc500 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; backdrop-filter: blur(10px); }
+        .game-container { background: rgba(255,255,255,0.95); padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 100%; }
+        .question-num { color: #666; font-size: 1rem; margin-bottom: 15px; }
+        .question { font-size: 1.4rem; color: #333; margin: 25px 0; font-weight: 600; line-height: 1.6; }
+        .category-tag { display: inline-block; background: linear-gradient(135deg, #c21500, #ffc500); color: white; padding: 5px 15px; border-radius: 15px; font-size: 0.85rem; margin-bottom: 15px; }
+        .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 30px; }
+        .option { padding: 18px; font-size: 1.1rem; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; border-radius: 15px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 5px 15px rgba(52,152,219,0.3); }
+        .option:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(52,152,219,0.4); }
+        .option.correct { background: linear-gradient(145deg, #27ae60, #1e8449); animation: correctPulse 0.5s ease; }
+        .option.wrong { background: linear-gradient(145deg, #e74c3c, #c0392b); animation: wrongShake 0.5s ease; }
+        @keyframes correctPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .feedback { font-size: 1.3rem; margin: 20px 0; min-height: 35px; font-weight: bold; }
+        .feedback.correct { color: #27ae60; }
+        .feedback.wrong { color: #e74c3c; }
+        .progress-bar { width: 100%; height: 8px; background: #ecf0f1; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); border-radius: 4px; transition: width 0.3s ease; }
+        .btn-restart { margin-top: 25px; padding: 12px 30px; font-size: 1.1rem; background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-restart:hover { transform: translateY(-2px); }
+        .win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .win-content { background: linear-gradient(145deg, #1a1a2e, #16213e); padding: 50px; border-radius: 30px; text-align: center; color: white; animation: pop 0.5s ease; border: 2px solid #ffc500; }
+        .win-content h2 { font-size: 2.5rem; margin-bottom: 20px; }
+        .stars { font-size: 3.5rem; margin: 15px 0; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @media (max-width: 600px) { .options { grid-template-columns: 1fr; } .game-container { padding: 25px; } h1 { font-size: 1.8rem; } .question { font-size: 1.15rem; } }
+    </style>
+</head>
+<body>
+    <h1>📜 历史问答</h1>
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">题数: <span id="questionNum">0</span>/10</div>
+    </div>
+    <div class="game-container">
+        <div class="progress-bar"><div class="progress" id="progress" style="width: 0%"></div></div>
+        <div class="category-tag" id="category">中国历史</div>
+        <div class="question-num">第 <span id="currentNum">1</span> 题</div>
+        <div class="feedback" id="feedback"></div>
+        <div class="question" id="question">准备开始!</div>
+        <div class="options" id="options"></div>
+        <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 挑战完成!</h2>
+            <div class="stars" id="stars"></div>
+            <p>得分: <span id="finalScore">0</span> / 100</p>
+            <p>正确: <span id="correctCount">0</span> / 10</p>
+            <button class="btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+    <script>
+        const questions = [
+            { q: "中国第一个皇帝是谁?", options: ["刘邦", "秦始皇", "武则天", "曹操"], a: 1, cat: "中国历史" },
+            { q: "唐朝的开国皇帝是谁?", options: ["李渊", "李世民", "李隆基", "李白"], a: 0, cat: "中国历史" },
+            { q: "清朝最后一个皇帝是谁?", options: ["乾隆", "光绪", "溥仪", "雍正"], a: 2, cat: "中国历史" },
+            { q: "三国时期的\"三顾茅庐\"请的是谁?", options: ["曹操", "周瑜", "诸葛亮", "刘备"], a: 2, cat: "中国历史" },
+            { q: "抗日战争的全面爆发时间是?", options: ["1931年", "1937年", "1938年", "1945年"], a: 1, cat: "中国历史" },
+            { q: "新中国成立于哪一年?", options: ["1945年", "1949年", "1950年", "1954年"], a: 1, cat: "中国历史" },
+            { q: "丝绸之路是谁开辟的?", options: ["张骞", "郑和", "玄奘", "班超"], a: 0, cat: "中国历史" },
+            { q: "《史记》的作者是谁?", options: ["司马迁", "司马光", "班固", "陈寿"], a: 0, cat: "中国历史" },
+            { q: "火烧赤壁是谁的计策?", options: ["诸葛亮", "周瑜", "曹操", "鲁肃"], a: 1, cat: "中国历史" },
+            { q: "明朝的开国皇帝是?", options: ["朱棣", "朱元璋", "朱允炆", "崇祯"], a: 1, cat: "中国历史" },
+            { q: "世界古代七大奇迹不包括?", options: ["金字塔", "长城", "空中花园", "罗德岛巨像"], a: 1, cat: "世界历史" },
+            { q: "法国大革命发生在哪一年?", options: ["1776年", "1789年", "1799年", "1815年"], a: 1, cat: "世界历史" },
+            { q: "美国独立宣言发布于?", options: ["1776年", "1789年", "1492年", "1804年"], a: 0, cat: "世界历史" },
+            { q: "第一次世界大战开始于?", options: ["1912年", "1914年", "1916年", "1918年"], a: 1, cat: "世界历史" },
+            { q: "第二次世界大战结束于?", options: ["1943年", "1944年", "1945年", "1946年"], a: 2, cat: "世界历史" },
+            { q: "文艺复兴运动起源于哪个国家?", options: ["法国", "英国", "意大利", "德国"], a: 2, cat: "世界历史" },
+            { q: "哥伦布发现新大陆是在?", options: ["1488年", "1492年", "1498年", "1502年"], a: 1, cat: "世界历史" },
+            { q: "工业革命首先发生在哪个国家?", options: ["美国", "法国", "德国", "英国"], a: 3, cat: "世界历史" },
+            { q: "拿破仑是哪个国家的皇帝?", options: ["德国", "法国", "意大利", "西班牙"], a: 1, cat: "世界历史" },
+            { q: "柏林墙倒塌于哪一年?", options: ["1987年", "1989年", "1991年", "1993年"], a: 1, cat: "世界历史" },
+            { q: "造纸术是谁发明的?", options: ["蔡伦", "张衡", "毕昇", "李时珍"], a: 0, cat: "中国历史" },
+            { q: "指南针是谁发明的?", options: ["张衡", "沈括", "蔡伦", "传说中黄帝"], a: 3, cat: "中国历史" },
+            { q: "活字印刷术是谁发明的?", options: ["蔡伦", "毕昇", "沈括", "王羲之"], a: 1, cat: "中国历史" },
+            { q: "我国最早的诗歌总集是?", options: ["《诗经》", "《楚辞》", "《唐诗》", "《宋词》"], a: 0, cat: "中国历史" },
+            { q: "甲骨文发现于哪个遗址?", options: ["洛阳", "西安", "安阳", "南京"], a: 2, cat: "中国历史" }
+        ];
+
+        let score = 0, questionCount = 0, currentQuestion = null, usedQuestions = [], isAnswering = false;
+        const maxQuestions = 10;
+
+        function getRandomQuestion() {
+            if (usedQuestions.length >= questions.length) usedQuestions = [];
+            let idx;
+            do { idx = Math.floor(Math.random() * questions.length); } while (usedQuestions.includes(idx));
+            usedQuestions.push(idx);
+            return questions[idx];
+        }
+
+        function showQuestion() {
+            currentQuestion = getRandomQuestion();
+            document.getElementById('category').textContent = currentQuestion.cat;
+            document.getElementById('currentNum').textContent = questionCount + 1;
+            document.getElementById('question').textContent = currentQuestion.q;
+            document.getElementById('feedback').textContent = '';
+            const opts = document.getElementById('options');
+            opts.innerHTML = '';
+            currentQuestion.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(i, btn);
+                opts.appendChild(btn);
+            });
+            isAnswering = true;
+        }
+
+        function checkAnswer(selected, btn) {
+            if (!isAnswering) return;
+            isAnswering = false;
+            questionCount++;
+            const isCorrect = selected === currentQuestion.a;
+            if (isCorrect) { score += 10; btn.classList.add('correct'); document.getElementById('feedback').textContent = '✅ 回答正确!'; document.getElementById('feedback').className = 'feedback correct'; }
+            else { btn.classList.add('wrong'); document.getElementById('feedback').textContent = '❌ 正确答案是 ' + currentQuestion.options[currentQuestion.a]; document.getElementById('feedback').className = 'feedback wrong'; document.querySelectorAll('.option')[currentQuestion.a].classList.add('correct'); }
+            document.getElementById('score').textContent = score;
+            document.getElementById('questionNum').textContent = questionCount;
+            document.getElementById('progress').style.width = (questionCount / maxQuestions * 100) + '%';
+            setTimeout(() => questionCount >= maxQuestions ? gameWin() : showQuestion(), 1500);
+        }
+
+        function gameWin() {
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctCount').textContent = score / 10;
+            let stars = score >= 80 ? '⭐⭐⭐' : score >= 50 ? '⭐⭐' : '⭐';
+            document.getElementById('stars').textContent = stars;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function restartGame() {
+            score = 0; questionCount = 0; usedQuestions = []; isAnswering = false;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('questionNum').textContent = '0';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('question').textContent = '准备好了吗?';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('winOverlay').style.display = 'none';
+            setTimeout(showQuestion, 500);
+        }
+
+        function closeWinAndRestart() { document.getElementById('winOverlay').style.display = 'none'; restartGame(); }
+        restartGame();
+    </script>
+</body>
+</html>

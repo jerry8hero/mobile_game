@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地理问答</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; backdrop-filter: blur(10px); }
+        .game-container { background: rgba(255,255,255,0.95); padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 100%; }
+        .question-num { color: #666; font-size: 1rem; margin-bottom: 15px; }
+        .question { font-size: 1.4rem; color: #333; margin: 25px 0; font-weight: 600; line-height: 1.6; }
+        .category-tag { display: inline-block; background: linear-gradient(135deg, #00c6ff, #0072ff); color: white; padding: 5px 15px; border-radius: 15px; font-size: 0.85rem; margin-bottom: 15px; }
+        .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 30px; }
+        .option { padding: 18px; font-size: 1.1rem; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; border-radius: 15px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 5px 15px rgba(52,152,219,0.3); }
+        .option:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(52,152,219,0.4); }
+        .option.correct { background: linear-gradient(145deg, #27ae60, #1e8449); animation: correctPulse 0.5s ease; }
+        .option.wrong { background: linear-gradient(145deg, #e74c3c, #c0392b); animation: wrongShake 0.5s ease; }
+        @keyframes correctPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .feedback { font-size: 1.3rem; margin: 20px 0; min-height: 35px; font-weight: bold; }
+        .feedback.correct { color: #27ae60; }
+        .feedback.wrong { color: #e74c3c; }
+        .progress-bar { width: 100%; height: 8px; background: #ecf0f1; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); border-radius: 4px; transition: width 0.3s ease; }
+        .btn-restart { margin-top: 25px; padding: 12px 30px; font-size: 1.1rem; background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-restart:hover { transform: translateY(-2px); }
+        .win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .win-content { background: linear-gradient(145deg, #1a1a2e, #16213e); padding: 50px; border-radius: 30px; text-align: center; color: white; animation: pop 0.5s ease; border: 2px solid #00c6ff; }
+        .win-content h2 { font-size: 2.5rem; margin-bottom: 20px; }
+        .stars { font-size: 3.5rem; margin: 15px 0; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @media (max-width: 600px) { .options { grid-template-columns: 1fr; } .game-container { padding: 25px; } h1 { font-size: 1.8rem; } .question { font-size: 1.15rem; } }
+    </style>
+</head>
+<body>
+    <h1>🌍 地理问答</h1>
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">题数: <span id="questionNum">0</span>/10</div>
+    </div>
+    <div class="game-container">
+        <div class="progress-bar"><div class="progress" id="progress" style="width: 0%"></div></div>
+        <div class="category-tag" id="category">地理</div>
+        <div class="question-num">第 <span id="currentNum">1</span> 题</div>
+        <div class="feedback" id="feedback"></div>
+        <div class="question" id="question">准备开始!</div>
+        <div class="options" id="options"></div>
+        <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 挑战完成!</h2>
+            <div class="stars" id="stars"></div>
+            <p>得分: <span id="finalScore">0</span> / 100</p>
+            <p>正确: <span id="correctCount">0</span> / 10</p>
+            <button class="btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+    <script>
+        const questions = [
+            { q: "世界上最大的海洋是?", options: ["大西洋", "太平洋", "印度洋", "北冰洋"], a: 1, cat: "海洋" },
+            { q: "世界上最长的河流是?", options: ["亚马逊河", "尼罗河", "长江", "密西西比河"], a: 1, cat: "河流" },
+            { q: "世界上面积最大的国家是?", options: ["中国", "美国", "加拿大", "俄罗斯"], a: 3, cat: "国家" },
+            { q: "世界上最高的山峰是?", options: ["乔戈里峰", "干城章嘉峰", "珠穆朗玛峰", "马卡鲁峰"], a: 2, cat: "山峰" },
+            { q: "中国陆地面积约是多少万平方公里?", options: ["960万", "1260万", "740万", "540万"], a: 0, cat: "中国地理" },
+            { q: "世界上最深的海沟是?", options: ["马里亚纳海沟", "菲律宾海沟", "千岛海沟", "日本海沟"], a: 0, cat: "海洋" },
+            { q: "世界最高峰珠穆朗玛峰位于哪个国家?", options: ["尼泊尔", "中国", "印度", "巴基斯坦"], a: 1, cat: "山峰" },
+            { q: "世界上最大的沙漠是?", options: ["撒哈拉沙漠", "阿拉伯沙漠", "戈壁沙漠", "澳大利亚沙漠"], a: 0, cat: "沙漠" },
+            { q: "中国最长的河流是?", options: ["黄河", "长江", "珠江", "黑龙江"], a: 1, cat: "中国地理" },
+            { q: "世界上面积最大的洲是?", options: ["非洲", "北美洲", "亚洲", "欧洲"], a: 2, cat: "大洲" },
+            { q: "死海位于哪个大洲?", options: ["欧洲", "亚洲", "非洲", "北美洲"], a: 2, cat: "湖泊" },
+            { q: "世界上最大的岛屿是?", options: ["马达加斯加岛", "格陵兰岛", "新几内亚岛", "婆罗洲"], a: 1, cat: "岛屿" },
+            { q: "热带雨林气候区主要分布在?", options: ["赤道附近", "南北纬30度", "南北纬60度", "极地"], a: 0, cat: "气候" },
+            { q: "世界上最大的平原是?", options: ["华北平原", "亚马逊平原", "东欧平原", "西西伯利亚平原"], a: 1, cat: "平原" },
+            { q: "日本的首都是?", options: ["大阪", "京都", "东京", "横滨"], a: 2, cat: "国家" },
+            { q: "世界上最长的山脉是?", options: ["喜马拉雅山脉", "安第斯山脉", "阿尔卑斯山脉", "落基山脉"], a: 1, cat: "山脉" },
+            { q: "中国最大的盆地是?", options: ["四川盆地", "柴达木盆地", "塔里木盆地", "准噶尔盆地"], a: 2, cat: "中国地理" },
+            { q: "世界上最大的湖泊是?", options: ["里海", "贝加尔湖", "苏必利尔湖", "维多利亚湖"], a: 0, cat: "湖泊" },
+            { q: "地中海气候的特点是?", options: ["全年多雨", "夏季炎热干燥", "全年寒冷", "台风多发"], a: 1, cat: "气候" },
+            { q: "世界上流量最大的河流是?", options: ["尼罗河", "亚马逊河", "长江", "密西西比河"], a: 1, cat: "河流" },
+            { q: "中国最大的盐湖是?", options: ["青海湖", "茶卡盐湖", "察尔汗盐湖", "鄱阳湖"], a: 2, cat: "中国地理" },
+            { q: "世界上面积最小的国家是?", options: ["梵蒂冈", "摩纳哥", "圣马力诺", "列支敦士登"], a: 0, cat: "国家" },
+            { q: "红海位于哪两个大洲之间?", options: ["亚洲和非洲", "欧洲和非洲", "美洲和亚洲", "非洲和欧洲"], a: 0, cat: "海洋" },
+            { q: "中国最高的山脉是?", options: ["华山", "黄山", "珠穆朗玛峰", "泰山"], a: 2, cat: "中国地理" },
+            { q: "世界上最长的海峡是?", options: ["英吉利海峡", "马六甲海峡", "莫桑比克海峡", "台湾海峡"], a: 2, cat: "海峡" }
+        ];
+
+        let score = 0, questionCount = 0, currentQuestion = null, usedQuestions = [], isAnswering = false;
+        const maxQuestions = 10;
+
+        function getRandomQuestion() {
+            if (usedQuestions.length >= questions.length) usedQuestions = [];
+            let idx;
+            do { idx = Math.floor(Math.random() * questions.length); } while (usedQuestions.includes(idx));
+            usedQuestions.push(idx);
+            return questions[idx];
+        }
+
+        function showQuestion() {
+            currentQuestion = getRandomQuestion();
+            document.getElementById('category').textContent = currentQuestion.cat;
+            document.getElementById('currentNum').textContent = questionCount + 1;
+            document.getElementById('question').textContent = currentQuestion.q;
+            document.getElementById('feedback').textContent = '';
+            const opts = document.getElementById('options');
+            opts.innerHTML = '';
+            currentQuestion.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(i, btn);
+                opts.appendChild(btn);
+            });
+            isAnswering = true;
+        }
+
+        function checkAnswer(selected, btn) {
+            if (!isAnswering) return;
+            isAnswering = false;
+            questionCount++;
+            const isCorrect = selected === currentQuestion.a;
+            if (isCorrect) { score += 10; btn.classList.add('correct'); document.getElementById('feedback').textContent = '✅ 回答正确!'; document.getElementById('feedback').className = 'feedback correct'; }
+            else { btn.classList.add('wrong'); document.getElementById('feedback').textContent = '❌ 正确答案是 ' + currentQuestion.options[currentQuestion.a]; document.getElementById('feedback').className = 'feedback wrong'; document.querySelectorAll('.option')[currentQuestion.a].classList.add('correct'); }
+            document.getElementById('score').textContent = score;
+            document.getElementById('questionNum').textContent = questionCount;
+            document.getElementById('progress').style.width = (questionCount / maxQuestions * 100) + '%';
+            setTimeout(() => questionCount >= maxQuestions ? gameWin() : showQuestion(), 1500);
+        }
+
+        function gameWin() {
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctCount').textContent = score / 10;
+            let stars = score >= 80 ? '⭐⭐⭐' : score >= 50 ? '⭐⭐' : '⭐';
+            document.getElementById('stars').textContent = stars;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function restartGame() {
+            score = 0; questionCount = 0; usedQuestions = []; isAnswering = false;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('questionNum').textContent = '0';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('question').textContent = '准备好了吗?';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('winOverlay').style.display = 'none';
+            setTimeout(showQuestion, 500);
+        }
+
+        function closeWinAndRestart() { document.getElementById('winOverlay').style.display = 'none'; restartGame(); }
+        restartGame();
+    </script>
+</body>
+</html>

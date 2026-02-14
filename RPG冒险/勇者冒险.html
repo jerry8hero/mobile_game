@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勇者冒险</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); display: flex; flex-direction: column; align-items: center; font-family: 'Microsoft YaHei', sans-serif; padding: 10px; user-select: none; }
+        h1 { color: #ffd700; font-size: 1.5rem; margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+
+        .top-bar { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
+        .stat-box { background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px; color: #fff; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.2); }
+        .stat-box.gold { background: linear-gradient(135deg, #f39c12, #d68910); }
+        .stat-box.floor { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        .game-area { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+
+        .world-map { position: relative; background: linear-gradient(180deg, #87CEEB 0%, #228B22 50%, #8B4513 100%); border-radius: 15px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); width: 320px; height: 320px; }
+        #mapCanvas { display: block; }
+        .map-overlay { position: absolute; top:0;left:0;width:100%;height:100%; pointer-events: none; }
+
+        .side-panel { display: flex; flex-direction: column; gap: 8px; max-width: 160px; }
+
+        .hero-card { background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 10px; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .hero-card h3 { font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .hp-bar-container { background: #1a1a2e; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 6px; }
+        .hp-bar { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width 0.3s; border-radius: 10px; }
+        .hero-stats { font-size: 0.7rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+
+        .monster-card { background: linear-gradient(135deg, #6c1e1e, #4a1414); border-radius: 12px; padding: 10px; color: #fff; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .monster-card.show { display: block; }
+        .monster-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .monster-emoji { font-size: 1.5rem; }
+        .monster-hp-bar { background: #1a1a2e; border-radius: 8px; height: 8px; overflow: hidden; }
+        .monster-hp { height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); transition: width 0.3s; }
+
+        .action-panel { display: flex; flex-direction: column; gap: 6px; }
+        .action-btn { padding: 10px 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: all 0.2s; }
+        .action-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .attack-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; }
+        .magic-btn { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
+        .item-btn { background: linear-gradient(135deg, #27ae60, #1e8449); color: #fff; }
+        .run-btn { background: linear-gradient(135deg, #7f8c8d, #5d6d7e); color: #fff; }
+        .explore-btn { background: linear-gradient(135deg, #f39c12, #d68910); color: #fff; }
+
+        .log-box { background: rgba(0,0,0,0.5); border-radius: 10px; padding: 8px; max-height: 100px; overflow-y: auto; font-size: 0.7rem; color: #aaa; width: 100%; max-width: 320px; }
+        .log-entry { margin: 3px 0; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .log-entry.damage { color: #e74c3c; }
+        .log-entry.heal { color: #2ecc71; }
+        .log-entry.gold { color: #f1c40f; }
+        .log-entry.event { color: #3498db; }
+        .log-entry.win { color: #ffd700; font-weight: bold; }
+        .log-entry.loot { color: #9b59b6; }
+
+        .battle-overlay { position: absolute; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .battle-overlay.show { display: flex; }
+        .battle-emoji { font-size: 4rem; animation: bounce 0.5s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+        .treasure-overlay { position: absolute; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .treasure-overlay.show { display: flex; }
+        .treasure-box { font-size: 4rem; animation: shake 0.5s infinite; }
+        @keyframes shake { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+
+        .win-overlay { position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .win-overlay.show { display: flex; }
+        .win-content { background: linear-gradient(135deg, #1e3c72, #2a5298); border-radius: 30px; padding: 40px; text-align: center; color: #fff; border: 3px solid #ffd700; }
+        .win-content h2 { color: #ffd700; font-size: 2rem; margin-bottom: 15px; }
+        .trophy { font-size: 5rem; }
+        .restart-btn { margin-top: 20px; padding: 12px 30px; border: none; border-radius: 25px; background: #ffd700; color: #1e3c72; font-weight: bold; cursor: pointer; }
+
+        @media (max-width: 500px) { .world-map { width: 100%; max-width: 320px; height: 280px; } }
+    </style>
+</head>
+<body>
+    <h1>🏰 勇者冒险</h1>
+    <div class="top-bar">
+        <div class="stat-box">💖 <span id="hp">100</span>/<span id="maxHp">100</span></div>
+        <div class="stat-box gold">💰 <span id="gold">0</span></div>
+        <div class="stat-box floor">🏆 第<span id="floor">1</span>层</div>
+    </div>
+
+    <div class="game-area">
+        <div class="world-map">
+            <canvas id="mapCanvas" width="320" height="320"></canvas>
+            <div class="battle-overlay" id="battleOverlay">
+                <div class="battle-emoji" id="battleEmoji">👹</div>
+                <div style="color:white;margin-top:10px" id="battleName">怪物</div>
+            </div>
+            <div class="treasure-overlay" id="treasureOverlay">
+                <div class="treasure-box" id="treasureEmoji">🎁</div>
+                <div style="color:white;margin-top:10px" id="treasureText">发现宝箱!</div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="hero-card">
+                <h3>🗡️ 勇者</h3>
+                <div class="hp-bar-container"><div class="hp-bar" id="heroHpBar" style="width: 100%"></div></div>
+                <div class="hero-stats">
+                    <div>攻击: <span id="atk">10</span></div>
+                    <div>防御: <span id="def">3</span></div>
+                    <div>等级: <span id="level">1</span></div>
+                    <div>金币: <span id="gold2">0</span></div>
+                </div>
+            </div>
+
+            <div class="monster-card" id="monsterCard">
+                <div class="monster-header">
+                    <span class="monster-emoji" id="monsterEmoji">👹</span>
+                    <div><h4 id="monsterName">怪物</h4></div>
+                </div>
+                <div class="monster-hp-bar"><div class="monster-hp" id="monsterHpBar" style="width: 100%"></div></div>
+            </div>
+
+            <div class="action-panel" id="actionPanel">
+                <button class="action-btn explore-btn" onclick="explore()">🔍 探索地图</button>
+                <button class="action-btn attack-btn" onclick="attack()" id="attackBtn" disabled>⚔️ 攻击</button>
+                <button class="action-btn magic-btn" onclick="useMagic()" id="magicBtn" disabled>✨ 魔法</button>
+                <button class="action-btn item-btn" onclick="usePotion()" id="itemBtn" disabled>🧪 药水</button>
+                <button class="action-btn run-btn" onclick="tryRun()" id="runBtn" disabled>🏃 逃跑</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="log-box" id="logBox"><div class="log-entry">欢迎来到勇者迷宫！点击探索寻找怪物和宝藏。</div></div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <div class="trophy">🏆</div>
+            <h2>🎉 通关成功!</h2>
+            <p>你成功通过了10层迷宫！</p>
+            <p>等级: <span id="finalLevel">1</span></p>
+            <p>金币: <span id="finalGold">0</span></p>
+            <button class="restart-btn" onclick="restartGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const monsters = [
+            { name: "史莱姆", emoji: "🟢", hp: 20, atk: 5, gold: 10, exp: 5 },
+            { name: "蝙蝠", emoji: "🦇", hp: 15, atk: 8, gold: 15, exp: 8 },
+            { name: "骷髅兵", emoji: "💀", hp: 30, atk: 10, gold: 20, exp: 12 },
+            { name: "哥布林", emoji: "👺", hp: 35, atk: 12, gold: 25, exp: 15 },
+            { name: "狼", emoji: "🐺", hp: 40, atk: 15, gold: 30, exp: 18 },
+            { name: "蜘蛛", emoji: "🕷️", hp: 25, atk: 18, gold: 20, exp: 10 },
+            { name: "石像鬼", emoji: "🗿", hp: 50, atk: 20, gold: 40, exp: 25 },
+            { name: "牛头人", emoji: "🐂", hp: 60, atk: 25, gold: 50, exp: 30 }
+        ];
+
+        const treasures = [
+            { name: "金币袋", emoji: "💰", gold: 50, exp: 10 },
+            { name: "强化石", emoji: "💎", exp: 20, atk: 1 },
+            { name: "护甲片", emoji: "🛡️", exp: 20, def: 1 },
+            { name: "生命药水", emoji: "🧪", exp: 5, heal: 30 },
+            { name: "神秘宝箱", emoji: "🎁", gold: 100, exp: 50 }
+        ];
+
+        const boss = { name: "龙 boss", emoji: "🐉", hp: 150, atk: 35, gold: 200, exp: 100 };
+
+        let hero = { hp: 100, maxHp: 100, atk: 10, def: 3, level: 1, exp: 0, gold: 0, potions: 3 };
+        let currentFloor = 1;
+        let monster = null;
+        let isExploring = true;
+        let positions = { playerX: 160, playerY: 280, enemyX: 0, enemyY: 0 };
+
+        function explore() {
+            if (!isExploring) return;
+            isExploring = false;
+
+            const rand = Math.random();
+            if (rand < 0.35) {
+                spawnMonster();
+            } else if (rand < 0.5) {
+                findTreasure();
+            } else {
+                movePlayer();
+            }
+        }
+
+        function movePlayer() {
+            positions.playerX = 50 + Math.random() * 220;
+            positions.playerY = 50 + Math.random() * 200;
+            drawMap();
+            addLog("你发现了一片安全的区域。", "event");
+            setTimeout(() => { isExploring = true; }, 300);
+        }
+
+        function spawnMonster() {
+            const isBoss = currentFloor % 5 === 0;
+            const template = isBoss ? boss : monsters[Math.floor(Math.random() * monsters.length)];
+            monster = { ...template, maxHp: template.hp + currentFloor * 2, hp: template.hp + currentFloor * 2 };
+
+            positions.enemyX = 80 + Math.random() * 160;
+            positions.enemyY = 80 + Math.random() * 120;
+
+            document.getElementById('battleEmoji').textContent = monster.emoji;
+            document.getElementById('battleName').textContent = monster.name + (isBoss ? "(BOSS)" : "");
+            document.getElementById('battleOverlay').classList.add('show');
+
+            document.getElementById('monsterCard').classList.add('show');
+            document.getElementById('monsterEmoji').textContent = monster.emoji;
+            document.getElementById('monsterName').textContent = monster.name;
+            updateUI();
+
+            addLog(`遭遇 ${monster.name}！`, "damage");
+            enableBattleButtons();
+        }
+
+        function findTreasure() {
+            const treasure = treasures[Math.floor(Math.random() * treasures.length)];
+
+            document.getElementById('treasureEmoji').textContent = treasure.emoji;
+            document.getElementById('treasureText').textContent = `发现${treasure.name}!`;
+            document.getElementById('treasureOverlay').classList.add('show');
+
+            if (treasure.gold) hero.gold += treasure.gold;
+            if (treasure.exp) hero.exp += treasure.exp;
+            if (treasure.heal) hero.hp = Math.min(hero.maxHp, hero.hp + treasure.heal);
+            if (treasure.atk) hero.atk += treasure.atk;
+            if (treasure.def) hero.def += treasure.def;
+
+            addLog(`获得${treasure.name}！`, "loot");
+
+            setTimeout(() => {
+                document.getElementById('treasureOverlay').classList.remove('show');
+                checkLevelUp();
+                updateUI();
+                setTimeout(() => { isExploring = true; }, 300);
+            }, 1000);
+        }
+
+        function attack() {
+            if (isExploring || !monster) return;
+
+            const dmg = Math.max(1, hero.atk - Math.floor(monster.atk * 0.3));
+            monster.hp -= dmg;
+            addLog(`攻击${monster.name}，造成 ${dmg} 伤害！`, "damage");
+
+            if (monster.hp <= 0) {
+                winBattle();
+            } else {
+                monsterAttack();
+            }
+            updateUI();
+        }
+
+        function useMagic() {
+            if (isExploring || !monster || hero.mp < 10) return;
+            hero.mp -= 10;
+
+            const dmg = Math.max(1, hero.atk * 2 - monster.atk * 0.3);
+            monster.hp -= dmg;
+            addLog(`施展魔法，对${monster.name}造成 ${dmg} 伤害！`, "loot");
+
+            if (monster.hp <= 0) winBattle();
+            else monsterAttack();
+            updateUI();
+        }
+
+        function usePotion() {
+            if (hero.potions <= 0) { addLog("没有药水了！", "damage"); return; }
+            hero.potions--;
+            hero.hp = Math.min(hero.maxHp, hero.hp + 50);
+            addLog("使用生命药水，恢复50点生命！", "heal");
+            monsterAttack();
+            updateUI();
+        }
+
+        function tryRun() {
+            if (Math.random() < 0.5) {
+                addLog("逃跑成功！", "event");
+                endBattle();
+            } else {
+                addLog("逃跑失败！", "damage");
+                monsterAttack();
+            }
+        }
+
+        function monsterAttack() {
+            if (!monster) return;
+            const dmg = Math.max(1, monster.atk - hero.def);
+            hero.hp -= dmg;
+            addLog(`${monster.name}攻击你，造成 ${dmg} 伤害！`, "damage");
+
+            if (hero.hp <= 0) {
+                addLog("你被打败了...", "damage");
+                setTimeout(() => location.reload(), 1500);
+            }
+            updateUI();
+        }
+
+        function winBattle() {
+            const goldGain = monster.gold;
+            const expGain = monster.exp;
+            hero.gold += goldGain;
+            hero.exp += expGain;
+            addLog(`击败${monster.name}！获得 ${goldGain}金币, ${expGain}经验`, "win");
+
+            endBattle();
+            checkLevelUp();
+            updateUI();
+        }
+
+        function endBattle() {
+            monster = null;
+            document.getElementById('battleOverlay').classList.remove('show');
+            document.getElementById('monsterCard').classList.remove('show');
+            disableBattleButtons();
+            isExploring = true;
+
+            if (currentFloor >= 10 && !monster) {
+                setTimeout(() => {
+                    document.getElementById('finalLevel').textContent = hero.level;
+                    document.getElementById('finalGold').textContent = hero.gold;
+                    document.getElementById('winOverlay').classList.add('show');
+                }, 500);
+            }
+        }
+
+        function checkLevelUp() {
+            const expNeeded = hero.level * 30;
+            if (hero.exp >= expNeeded) {
+                hero.level++;
+                hero.maxHp += 20;
+                hero.atk += 3;
+                hero.def += 2;
+                hero.hp = hero.maxHp;
+                hero.potions += 1;
+                hero.exp -= expNeeded;
+                addLog(`升级了！现在是 ${hero.level} 级！`, "win");
+            }
+        }
+
+        function enableBattleButtons() {
+            document.getElementById('attackBtn').disabled = false;
+            document.getElementById('magicBtn').disabled = false;
+            document.getElementById('itemBtn').disabled = false;
+            document.getElementById('runBtn').disabled = false;
+        }
+
+        function disableBattleButtons() {
+            document.getElementById('attackBtn').disabled = true;
+            document.getElementById('magicBtn').disabled = true;
+            document.getElementById('itemBtn').disabled = true;
+            document.getElementById('runBtn').disabled = true;
+        }
+
+        function updateUI() {
+            document.getElementById('hp').textContent = hero.hp;
+            document.getElementById('maxHp').textContent = hero.maxHp;
+            document.getElementById('gold').textContent = hero.gold;
+            document.getElementById('gold2').textContent = hero.gold;
+            document.getElementById('atk').textContent = hero.atk;
+            document.getElementById('def').textContent = hero.def;
+            document.getElementById('level').textContent = hero.level;
+            document.getElementById('floor').textContent = currentFloor;
+            document.getElementById('heroHpBar').style.width = (hero.hp / hero.maxHp * 100) + '%';
+            if (monster) {
+                document.getElementById('monsterHpBar').style.width = (monster.hp / monster.maxHp * 100) + '%';
+            }
+        }
+
+        function addLog(msg, type) {
+            const box = document.getElementById('logBox');
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + type;
+            div.textContent = msg;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function drawMap() {
+            // 天空
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, 100);
+
+            // 草地
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, 100, canvas.width, 120);
+
+            // 地面
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, 220, canvas.width, 100);
+
+            // 树木
+            ctx.fillStyle = '#006400';
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(30 + i * 70, 180);
+                ctx.lineTo(45 + i * 70, 140);
+                ctx.lineTo(60 + i * 70, 180);
+                ctx.fill();
+            }
+
+            // 迷宫人口
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(130, 0, 60, 30);
+
+            // 出口
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(130, 290, 60, 30);
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.fillText('出口', 160, 312);
+
+            // 玩家
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🗡️', positions.playerX, positions.playerY);
+
+            // 敌人
+            if (monster) {
+                ctx.font = '24px Arial';
+                ctx.fillText(monster.emoji, positions.enemyX, positions.enemyY);
+            }
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
+        drawMap();
+    </script>
+</body>
+</html>
