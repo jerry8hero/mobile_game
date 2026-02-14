@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码执行器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #2c3e50, #1a1a2e); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 1.6rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 550px; width: 100%; }
+        .code-area { background: #1e1e1e; border-radius: 10px; padding: 15px; margin-bottom: 10px; }
+        .code-title { color: #aaa; font-size: 0.85rem; margin-bottom: 8px; }
+        .code-input { width: 100%; height: 120px; background: #2d2d2d; color: #d4d4d4; border: none; border-radius: 8px; padding: 10px; font-family: 'Consolas', monospace; font-size: 0.9rem; resize: none; }
+        .output-area { background: #f5f5f5; border-radius: 10px; padding: 15px; min-height: 80px; margin-bottom: 10px; }
+        .output-title { color: #666; font-size: 0.85rem; margin-bottom: 5px; }
+        .output { font-family: 'Consolas', monospace; font-size: 0.9rem; color: #27ae60; white-space: pre-wrap; }
+        .output.error { color: #e74c3c; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .run-btn { padding: 12px 30px; background: #27ae60; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .run-btn:hover { background: #219a52; }
+        .clear-btn { padding: 12px 25px; background: #e74c3c; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        .examples { background: #f8f9fa; border-radius: 10px; padding: 10px; margin-top: 10px; }
+        .example-btn { padding: 6px 12px; margin: 3px; border: 1px solid #ddd; border-radius: 15px; background: #fff; cursor: pointer; font-size: 0.8rem; }
+        .example-btn:hover { background: #e9ecef; }
+        .hint { color: rgba(255,255,255,0.8); font-size: 0.85rem; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>⚡ 代码执行器</h1>
+    <div class="game-container">
+        <div class="code-area">
+            <div class="code-title">📝 输入Python代码</div>
+            <textarea class="code-input" id="codeInput" placeholder="# 输入Python代码\nprint('Hello!')"></textarea>
+        </div>
+        <div class="output-area">
+            <div class="output-title">📋 输出结果</div>
+            <div class="output" id="output"></div>
+        </div>
+        <div class="btn-group">
+            <button class="run-btn" onclick="runCode()">▶️ 运行代码</button>
+            <button class="clear-btn" onclick="clearOutput()">🗑️ 清空</button>
+        </div>
+        <div class="examples">
+            <div style="font-size:0.85rem;color:#666;margin-bottom:5px;">💡 示例代码（点击加载）：</div>
+            <button class="example-btn" onclick="loadExample(1)">Hello World</button>
+            <button class="example-btn" onclick="loadExample(2)">变量计算</button>
+            <button class="example-btn" onclick="loadExample(3)">循环打印</button>
+            <button class="example-btn" onclick="loadExample(4)">条件判断</button>
+            <button class="example-btn" onclick="loadExample(5)">列表操作</button>
+        </div>
+    </div>
+    <p class="hint">输入Python代码，点击运行查看结果！</p>
+    <script>
+        const examples = {
+            1: "print('Hello, World!')\nprint('欢迎来到代码世界！')",
+            2: "a = 10\nb = 20\nprint('a =', a)\nprint('b =', b)\nprint('a + b =', a + b)\nprint('a * b =', a * b)",
+            3: "# 打印1到5\nfor i in range(1, 6):\n    print('数字:', i)\n\nprint('---')\n\n# 打印乘法表\nfor i in range(1, 4):\n    for j in range(1, 4):\n        print(i, 'x', j, '=', i*j)",
+            4: "score = 85\n\nif score >= 90:\n    print('成绩: A - 优秀！')\nelif score >= 80:\n    print('成绩: B - 良好')\nelif score >= 60:\n    print('成绩: C - 及格')\nelse:\n    print('成绩: D - 需要努力')",
+            5: "# 列表操作\nfruits = ['苹果', '香蕉', '橙子']\nprint('水果列表:', fruits)\n\n# 添加\nfruits.append('葡萄')\nprint('添加后:', fruits)\n\n# 遍历\nprint('---遍历---')\nfor fruit in fruits:\n    print('我喜欢吃', fruit)\n\nprint('---长度---')\nprint('共有', len(fruits), '种水果')"
+        };
+        function loadExample(n){ document.getElementById('codeInput').value = examples[n]; }
+        function runCode(){
+            const code = document.getElementById('codeInput').value;
+            const output = document.getElementById('output');
+            output.classList.remove('error');
+            output.textContent = '';
+            let result = '';
+            try{
+                // 简单的解释器模拟
+                const lines = code.split('\n');
+                let variables = {};
+                for(let line of lines){
+                    line = line.trim();
+                    if(!line || line.startsWith('#')) continue;
+                    if(line.startsWith('print(')){
+                        let content = line.match(/print\((.*)\)/)[1];
+                        content = evaluateExpression(content, variables);
+                        result += content + '\n';
+                    }else if(line.includes('=') && !line.includes('==')){
+                        let [name, value] = line.split('=').map(s=>s.trim());
+                        variables[name] = evaluateExpression(value, variables);
+                    }
+                }
+                output.textContent = result || '(无输出)';
+            }catch(e){
+                output.classList.add('error');
+                output.textContent = '❌ 错误: ' + e.message;
+            }
+        }
+        function evaluateExpression(expr, vars){
+            expr = expr.trim().replace(/['"]/g,'');
+            // 处理字符串连接
+            if(expr.includes('+')){
+                let parts = expr.split('+').map(s=>s.trim());
+                return parts.map(p => vars[p] !== undefined ? vars[p] : p).join('');
+            }
+            // 处理变量
+            if(vars[expr] !== undefined) return vars[expr];
+            // 处理数字运算
+            try{
+                return eval(expr);
+            }catch{
+                return expr;
+            }
+        }
+        function clearOutput(){
+            document.getElementById('codeInput').value = '';
+            document.getElementById('output').textContent = '';
+        }
+    </script>
+</body>
+</html>

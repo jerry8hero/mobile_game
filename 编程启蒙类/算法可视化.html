@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算法可视化</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #2c3e50, #3498db); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+        .info-bar { display: flex; gap: 15px; margin-bottom: 10px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 15px; color: #fff; }
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 500px; width: 100%; }
+        .visualization { background: #1a1a2e; border-radius: 10px; padding: 15px; margin: 15px 0; min-height: 200px; }
+        .bars { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 150px; }
+        .bar { width: 25px; background: #3498db; border-radius: 3px 3px 0 0; transition: all 0.3s; display: flex; align-items: flex-end; justify-content: center; color: #fff; font-size: 0.7rem; padding-bottom: 3px; }
+        .bar.compare { background: #e74c3c; }
+        .bar.swap { background: #f39c12; }
+        .bar.sorted { background: #27ae60; }
+        .bar.pivot { background: #9b59b6; }
+        .bar.min { background: #e67e22; }
+        .code-display { background: #2d2d44; color: #fff; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; line-height: 1.6; margin: 10px 0; }
+        .keyword { color: #569cd6; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .algo-btn { padding: 10px 18px; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; background: #3498db; color: #fff; }
+        .algo-btn:hover { transform: scale(1.05); }
+        .algo-btn:disabled { opacity: 0.5; }
+        .hint { color: rgba(255,255,255,0.8); font-size: 0.85rem; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📊 算法可视化</h1>
+    <div class="info-bar">
+        <div class="info-item">算法: <span id="algoName">选择排序</span></div>
+        <div class="info-item">步骤: <span id="step">0</span></div>
+    </div>
+    <div class="game-container">
+        <div class="btn-group">
+            <button class="algo-btn" onclick="startSort('selection')">选择排序</button>
+            <button class="algo-btn" onclick="startSort('bubble')">冒泡排序</button>
+            <button class="algo-btn" onclick="startSort('insertion')">插入排序</button>
+            <button class="algo-btn" onclick="startSort('quick')">快速排序</button>
+        </div>
+        <div class="visualization"><div class="bars" id="bars"></div></div>
+        <div class="code-display" id="codeDisplay"></div>
+        <div class="btn-group">
+            <button class="algo-btn" style="background:#27ae60" onclick="generateNew()">🔄 新数据</button>
+        </div>
+    </div>
+    <p class="hint">选择不同算法，观察排序过程的动画！</p>
+    <script>
+        const codes = {
+            selection: `<span class="keyword">for</span> i = 0 <span class="keyword">to</span> n-1:<br>&nbsp;&nbsp;min = i<br>&nbsp;&nbsp;<span class="keyword">for</span> j = i+1 <span class="keyword">to</span> n:<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> arr[j] < arr[min]:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min = j<br>&nbsp;&nbsp;swap(arr[i], arr[min])`,
+            bubble: `<span class="keyword">for</span> i = 0 <span class="keyword">to</span> n-1:<br>&nbsp;&nbsp;<span class="keyword">for</span> j = 0 <span class="keyword">to</span> n-i-1:<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> arr[j] > arr[j+1]:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;swap(arr[j], arr[j+1])`,
+            insertion: `<span class="keyword">for</span> i = 1 <span class="keyword">to</span> n:<br>&nbsp;&nbsp;key = arr[i]<br>&nbsp;&nbsp;j = i - 1<br>&nbsp;&nbsp;<span class="keyword">while</span> j >= 0 <span class="keyword">and</span> arr[j] > key:<br>&nbsp;&nbsp;&nbsp;&nbsp;arr[j+1] = arr[j]<br>&nbsp;&nbsp;&nbsp;&nbsp;j = j - 1<br>&nbsp;&nbsp;arr[j+1] = key`,
+            quick: `<span class="keyword">def</span> quickSort(arr, low, high):<br>&nbsp;&nbsp;<span class="keyword">if</span> low < high:<br>&nbsp;&nbsp;&nbsp;&nbsp;p = partition(arr, low, high)<br>&nbsp;&nbsp;&nbsp;&nbsp;quickSort(arr, low, p-1)<br>&nbsp;&nbsp;&nbsp;&nbsp;quickSort(arr, p+1, high)`
+        };
+        let arr = []; let step = 0; let sorting = false;
+        function generateNew(){ arr = Array.from({length:10},()=>Math.floor(Math.random()*50)+5); renderBars(); }
+        function renderBars(compare=[], swap=[], sorted=[], pivot=-1, minIdx=-1){
+            const container = document.getElementById('bars'); step++;
+            document.getElementById('step').textContent = step;
+            container.innerHTML = arr.map((v,i)=>{
+                let cls = 'bar';
+                if(compare.includes(i)) cls+=' compare';
+                if(swap.includes(i)) cls+=' swap';
+                if(sorted.includes(i)) cls+=' sorted';
+                if(i===pivot) cls+=' pivot';
+                if(i===minIdx) cls+=' min';
+                return `<div class="${cls}" style="height:${v*2.5}px">${v}</div>`;
+            }).join('');
+        }
+        async function startSort(type){
+            if(sorting) return;
+            sorting = true; step = 0;
+            document.getElementById('algoName').textContent = {selection:'选择排序',bubble:'冒泡排序',insertion:'插入排序',quick:'快速排序'}[type];
+            document.getElementById('codeDisplay').innerHTML = codes[type];
+            document.querySelectorAll('.algo-btn').forEach(b=>b.disabled=true);
+            if(type==='selection') await selectionSort();
+            else if(type==='bubble') await bubbleSort();
+            else if(type==='insertion') await insertionSort();
+            else if(type==='quick') await quickSort(0,arr.length-1);
+            renderBars([],[],[...Array(arr.length).keys()]);
+            sorting = false;
+            document.querySelectorAll('.algo-btn').forEach(b=>b.disabled=false);
+        }
+        async function selectionSort(){
+            for(let i=0;i<arr.length;i++){
+                let minIdx=i;
+                for(let j=i+1;j<arr.length;j++){
+                    renderBars([j], [], [], -1, minIdx);
+                    await sleep(300);
+                    if(arr[j]<arr[minIdx]){ minIdx=j; renderBars([j], [], [], -1, minIdx); await sleep(300); }
+                }
+                if(minIdx!==i){ [arr[i],arr[minIdx]]=[arr[minIdx],arr[i]]; renderBars([], [i,minIdx], []); await sleep(400); }
+                renderBars([], [], [i]); await sleep(200);
+            }
+        }
+        async function bubbleSort(){
+            for(let i=0;i<arr.length;i++){
+                for(let j=0;j<arr.length-i-1;j++){
+                    renderBars([j,j+1], [], [...Array(arr.length-i).keys()].map(k=>arr.length-1-k));
+                    await sleep(250);
+                    if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; renderBars([], [j,j+1], []); await sleep(300); }
+                }
+            }
+        }
+        async function insertionSort(){
+            for(let i=1;i<arr.length;i++){
+                let key=arr[i], j=i-1;
+                renderBars([i], [], Array(i).fill(0).map((_,k)=>k));
+                await sleep(300);
+                while(j>=0 && arr[j]>key){ arr[j+1]=arr[j]; renderBars([j,j+1], [], Array(i).fill(0).map((_,k)=>k)); await sleep(300); j--; }
+                arr[j+1]=key; renderBars([j+1], [], Array(i+1).fill(0).map((_,k)=>k)); await sleep(300);
+            }
+        }
+        async function quickSort(low, high){
+            if(low<high){
+                let pi = await partition(low, high);
+                await quickSort(low, pi-1);
+                await quickSort(pi+1, high);
+            }
+        }
+        async function partition(low, high){
+            let pivot = arr[high];
+            renderBars([low,high], [], [], high);
+            await sleep(400);
+            let i = low - 1;
+            for(let j=low;j<high;j++){
+                renderBars([j,high], [i+1,j], [], high);
+                await sleep(300);
+                if(arr[j]<pivot){ i++; [arr[i],arr[j]]=[arr[j],arr[i]]; renderBars([j,high], [i,j], [], high); await sleep(300); }
+            }
+            [arr[i+1],arr[high]]=[arr[high],arr[i+1]];
+            renderBars([],[i+1,high],[],i+1);
+            await sleep(400);
+            return i+1;
+        }
+        function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+        generateNew();
+    </script>
+</body>
+</html>

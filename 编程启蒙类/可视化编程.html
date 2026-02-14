@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可视化编程</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #1a1a2e, #16213e); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 600px; width: 100%; }
+        .workspace { display: flex; gap: 15px; }
+        .palette { width: 140px; background: #f5f5f5; border-radius: 10px; padding: 10px; }
+        .palette-title { font-size: 0.85rem; color: #666; margin-bottom: 10px; font-weight: bold; }
+        .block { padding: 8px 12px; margin: 5px 0; border-radius: 8px; cursor: grab; font-size: 0.85rem; font-weight: bold; color: #fff; }
+        .block.event { background: #f39c12; }
+        .block.action { background: #3498db; }
+        .block.control { background: #9b59b6; }
+        .block.variable { background: #e74c3c; }
+        .coding-area { flex: 1; background: #2d2d44; border-radius: 10px; min-height: 300px; padding: 10px; }
+        .drop-zone { min-height: 280px; border: 2px dashed #555; border-radius: 8px; padding: 5px; }
+        .drop-zone .block { margin: 3px 0; display: inline-block; }
+        .canvas-area { width: 200px; background: #1a1a2e; border-radius: 10px; position: relative; overflow: hidden; }
+        #stage { width: 100%; height: 200px; }
+        .run-btn { width: 100%; padding: 12px; margin-top: 10px; background: #27ae60; color: #fff; border: none; border-radius: 20px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+        .run-btn:hover { background: #219a52; }
+        .clear-btn { width: 100%; padding: 10px; margin-top: 8px; background: #e74c3c; color: #fff; border: none; border-radius: 20px; cursor: pointer; }
+        .hint { color: rgba(255,255,255,0.8); font-size: 0.85rem; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧩 可视化编程</h1>
+    <div class="game-container">
+        <div class="workspace">
+            <div class="palette">
+                <div class="palette-title">🟠 事件</div>
+                <div class="block event" draggable="true" data-type="start">🎬 开始</div>
+                <div class="block event" draggable="true" data-type="click">👆 点击角色</div>
+                <div class="palette-title">🔵 动作</div>
+                <div class="block action" draggable="true" data-type="move">⬅️ 移动 10</div>
+                <div class="block action" draggable="true" data-type="turn">🔄 旋转 15</div>
+                <div class="block action" draggable="true" data-type="say">💬 说 Hello</div>
+                <div class="block action" draggable="true" data-type="jump">⬆️ 跳跃</div>
+                <div class="palette-title">🟣 控制</div>
+                <div class="block control" draggable="true" data-type="repeat">🔁 重复 3次</div>
+                <div class="palette-title">🔴 变量</div>
+                <div class="block variable" draggable="true" data-type="set">📦 设为 0</div>
+                <div class="block variable" draggable="true" data-type="change">➕ 增加 1</div>
+            </div>
+            <div class="coding-area">
+                <div class="palette-title" style="color:#aaa;">📝 程序区 (拖拽积木到这里)</div>
+                <div class="drop-zone" id="dropZone"></div>
+            </div>
+            <div class="canvas-area">
+                <canvas id="stage"></canvas>
+            </div>
+        </div>
+        <button class="run-btn" onclick="runCode()">▶️ 运行程序</button>
+        <button class="clear-btn" onclick="clearCode()">🗑️ 清空</button>
+    </div>
+    <p class="hint">拖拽积木到程序区，组合出有趣的程序！</p>
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 180; canvas.height = 180;
+        let character = {x:90, y:100, angle:0, saying:''};
+        let blocks = [];
+        let isRunning = false;
+
+        // 拖拽
+        document.querySelectorAll('.block').forEach(b => {
+            b.ondragstart = e => { e.dataTransfer.setData('type', b.dataset.type); e.dataTransfer.setData('text', b.textContent); };
+        });
+        document.getElementById('dropZone').ondragover = e => e.preventDefault();
+        document.getElementById('dropZone').ondrop = e => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            const text = e.dataTransfer.getData('text');
+            if(type) addBlock(type, text);
+        };
+
+        function addBlock(type, text){
+            blocks.push({type, text});
+            renderBlocks();
+        }
+
+        function renderBlocks(){
+            const zone = document.getElementById('dropZone');
+            zone.innerHTML = blocks.map((b,i)=>`<div class="block ${getBlockClass(b.type)}" onclick="removeBlock(${i})">${b.text}</div>`).join('');
+        }
+
+        function getBlockClass(type){
+            if(['start','click'].includes(type)) return 'event';
+            if(['move','turn','say','jump'].includes(type)) return 'action';
+            if(['repeat'].includes(type)) return 'control';
+            return 'variable';
+        }
+
+        function removeBlock(i){ blocks.splice(i,1); renderBlocks(); }
+        function clearCode(){ blocks = []; renderBlocks(); resetStage(); }
+
+        function resetStage(){ character = {x:90,y:100,angle:0,saying:''}; drawStage(); }
+        function drawStage(){
+            ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,180,180);
+            ctx.save();
+            ctx.translate(character.x, character.y);
+            ctx.rotate(character.angle*Math.PI/180);
+            ctx.font = '2.5rem'; ctx.textAlign='center'; ctx.fillText('🐱',0,10);
+            ctx.restore();
+            if(character.saying){
+                ctx.fillStyle='#fff'; ctx.font='0.8rem'; ctx.fillText(character.saying,character.x,character.y-40);
+            }
+        }
+
+        async function runCode(){
+            if(isRunning) return;
+            isRunning = true; resetStage();
+            for(let block of blocks){
+                await executeBlock(block);
+            }
+            isRunning = false;
+        }
+
+        function executeBlock(block){
+            return new Promise(resolve => {
+                switch(block.type){
+                    case 'start': resolve(); break;
+                    case 'move': character.x = Math.min(160,Math.max(20,character.x+10)); drawStage(); setTimeout(resolve,300); break;
+                    case 'turn': character.angle += 15; drawStage(); setTimeout(resolve,300); break;
+                    case 'jump': character.y = 70; drawStage(); setTimeout(()=>{character.y=100;drawStage();resolve();},300); break;
+                    case 'say': character.saying = block.text.replace('💬 说 ',''); drawStage(); setTimeout(()=>{character.saying='';drawStage();resolve();},1000); break;
+                    default: resolve();
+                }
+            });
+        }
+        drawStage();
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL数据库</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #2c3e50, #e74c3c); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 550px; width: 100%; }
+        .database { background: #1a1a2e; border-radius: 10px; padding: 15px; margin: 10px 0; }
+        .table-title { color: #f39c12; font-weight: bold; margin-bottom: 8px; }
+        .table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .table th { background: #333; color: #fff; padding: 8px; text-align: left; }
+        .table td { background: #2d2d44; color: #ddd; padding: 6px 8px; border: 1px solid #444; }
+        .query-area { background: #f5f5f5; border-radius: 10px; padding: 15px; margin: 10px 0; }
+        .query-input { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: monospace; font-size: 0.9rem; }
+        .result-area { background: #e8f5e9; border-radius: 10px; padding: 15px; margin: 10px 0; min-height: 80px; }
+        .result-area.error { background: #ffebee; }
+        .result-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .result-table th { background: #27ae60; color: #fff; padding: 6px; }
+        .result-table td { background: #fff; padding: 5px; border: 1px solid #ddd; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .hint-btn { padding: 8px 15px; border: none; border-radius: 15px; cursor: pointer; background: #3498db; color: #fff; font-size: 0.85rem; }
+        .hint { color: #666; font-size: 0.85rem; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🗄️ SQL数据库</h1>
+    <div class="game-container">
+        <div class="database">
+            <div class="table-title">📋 students 表 (学生表)</div>
+            <table class="table">
+                <tr><th>id</th><th>name</th><th>age</th><th>score</th></tr>
+                <tr><td>1</td><td>小明</td><td>7</td><td>95</td></tr>
+                <tr><td>2</td><td>小红</td><td>6</td><td>88</td></tr>
+                <tr><td>3</td><td>小华</td><td>7</td><td>92</td></tr>
+                <tr><td>4</td><td>小军</td><td>8</td><td>78</td></tr>
+                <tr><td>5</td><td>小林</td><td>6</td><td>85</td></tr>
+            </table>
+        </div>
+        <div class="query-area">
+            <div style="font-weight:bold;margin-bottom:8px;">💬 输入SQL查询:</div>
+            <input type="text" class="query-input" id="queryInput" placeholder="SELECT * FROM students">
+        </div>
+        <div class="btn-group">
+            <button class="hint-btn" onclick="runQuery()">🔍 执行查询</button>
+            <button class="hint-btn" onclick="showHint(1)">查询所有</button>
+            <button class="hint-btn" onclick="showHint(2)">按分数排序</button>
+            <button class="hint-btn" onclick="showHint(3)">年龄大于6</button>
+            <button class="hint-btn" onclick="showHint(4)">统计人数</button>
+        </div>
+        <div class="result-area" id="resultArea">
+            <div style="color:#666;">查询结果将显示在这里...</div>
+        </div>
+        <div class="hint">
+            💡 <b>SQL常用命令：</b><br>
+            SELECT 列 FROM 表 WHERE 条件 ORDER BY 列<br>
+            SELECT COUNT(*) FROM 表 WHERE 条件
+        </div>
+    </div>
+    <script>
+        const students = [
+            {id:1,name:'小明',age:7,score:95},
+            {id:2,name:'小红',age:6,score:88},
+            {id:3,name:'小华',age:7,score:92},
+            {id:4,name:'小军',age:8,score:78},
+            {id:5,name:'小林',age:6,score:85}
+        ];
+        function runQuery(){
+            const input = document.getElementById('queryInput').value.trim().toLowerCase();
+            const resultArea = document.getElementById('resultArea');
+            resultArea.classList.remove('error');
+            try{
+                let result;
+                if(input==='select * from students' || input==='select * from students order by id'){
+                    result = students;
+                }else if(input==='select * from students order by score desc'){
+                    result = [...students].sort((a,b)=>b.score-a.score);
+                }else if(input==='select * from students where age>6'){
+                    result = students.filter(s=>s.age>6);
+                }else if(input==='select * from students where score>=90'){
+                    result = students.filter(s=>s.score>=90);
+                }else if(input==='select count(*) from students'){
+                    result = [{count:students.length}];
+                }else if(input.includes('select name from students')){
+                    result = students.map(s=>({name:s.name}));
+                }else if(input.includes('select avg(score) from students')){
+                    const avg = students.reduce((a,b)=>a+b.score,0)/students.length;
+                    result = [{avg_score:avg.toFixed(1)}];
+                }else{
+                    throw new Error('支持的查询：\n1. SELECT * FROM students\n2. SELECT * FROM students ORDER BY score DESC\n3. SELECT * FROM students WHERE age>6\n4. SELECT * FROM students WHERE score>=90\n5. SELECT COUNT(*) FROM students\n6. SELECT name FROM students\n7. SELECT AVG(score) FROM students');
+                }
+                showResult(result);
+            }catch(e){
+                resultArea.classList.add('error');
+                resultArea.innerHTML = '<div style="color:#c62828;">'+e.message.replace(/\n/g,'<br>')+'</div>';
+            }
+        }
+        function showResult(data){
+            const resultArea = document.getElementById('resultArea');
+            if(!data||data.length===0){ resultArea.innerHTML='<div>查询结果为空</div>'; return; }
+            const keys = Object.keys(data[0]);
+            let html = '<table class="result-table"><tr>';
+            keys.forEach(k=>html+='<th>'+k+'</th>');
+            html+='</tr>';
+            data.forEach(row=>{
+                html+='<tr>';
+                keys.forEach(k=>html+='<td>'+row[k]+'</td>');
+                html+='</tr>';
+            });
+            html+='</table>';
+            resultArea.innerHTML = html;
+        }
+        function showHint(n){
+            const hints = ['select * from students','select * from students order by score desc','select * from students where age>6','select count(*) from students'];
+            document.getElementById('queryInput').value = hints[n-1];
+        }
+        document.getElementById('queryInput').addEventListener('keypress',e=>{if(e.key==='Enter')runQuery()});
+    </script>
+</body>
+</html>
