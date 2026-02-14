@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>变量小仓库</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 450px;
+        }
+
+        .warehouse {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .boxes {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .box {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .box-name {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .box-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .code-area {
+            background: #2d2d44;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            color: #fff;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .keyword { color: #569cd6; }
+        .variable { color: #9cdcfe; }
+        .number { color: #b5cea8; }
+        .string { color: #ce9178; }
+
+        .task-area {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .task-title {
+            color: #856404;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .task-question {
+            color: #856404;
+            font-size: 1.1rem;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .input-box {
+            width: 60px;
+            height: 50px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .input-box:focus {
+            border-color: #764ba2;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.action-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover { transform: translateY(-2px); }
+        .btn-check { background: #27ae60; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+        .btn-next { background: #3498db; color: #fff; }
+
+        .result {
+            display: none;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .result.show { display: block; }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.fail { background: #f8d7da; color: #721c24; }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📦 变量小仓库</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="warehouse">
+            <div class="task-area">
+                <div class="task-title">📝 题目</div>
+                <div class="task-question" id="taskQuestion">盒子里现在放了什么？</div>
+            </div>
+
+            <div class="boxes" id="boxes">
+                <!-- 箱子由JS生成 -->
+            </div>
+
+            <div class="code-area" id="codeArea">
+                <!-- 代码由JS生成 -->
+            </div>
+
+            <div class="input-area">
+                <input type="text" class="input-box" id="answer1" maxlength="3" placeholder="?">
+                <input type="text" class="input-box" id="answer2" maxlength="3" placeholder="?" style="display:none;">
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="action-btn btn-reset" onclick="resetLevel()">🔄 重置</button>
+            <button class="action-btn btn-check" onclick="checkAnswer()">✅ 检查</button>
+        </div>
+
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+        </div>
+
+        <div class="buttons" id="nextButtons" style="display:none;">
+            <button class="action-btn btn-next" onclick="nextLevel()">下一关 →</button>
+        </div>
+
+        <p class="hint">
+            变量就像盒子，可以存放东西！<br>
+            等号=表示把东西放进盒子里
+        </p>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let score = 0;
+
+        const levels = [
+            {
+                boxes: { 'a': 5 },
+                code: '<span class="variable">a</span> = <span class="number">5</span><br>print(<span class="variable">a</span>)',
+                question: 'a的值是多少？',
+                answer: '5',
+                answerCount: 1
+            },
+            {
+                boxes: { 'a': 3, 'b': 7 },
+                code: '<span class="variable">a</span> = <span class="number">3</span><br><span class="variable">b</span> = <span class="number">7</span><br>print(<span class="variable">a</span> + <span class="variable">b</span>)',
+                question: 'a + b 的结果是多少？',
+                answer: '10',
+                answerCount: 1
+            },
+            {
+                boxes: { 'x': 10 },
+                code: '<span class="variable">x</span> = <span class="number">10</span><br><span class="variable">x</span> = <span class="number">20</span><br>print(<span class="variable">x</span>)',
+                question: 'x最终的值是多少？',
+                answer: '20',
+                answerCount: 1
+            },
+            {
+                boxes: { '苹果': 3, '梨': 2 },
+                code: '<span class="variable">苹果</span> = <span class="number">3</span><br><span class="variable">梨</span> = <span class="number">2</span><br>print(<span class="variable">苹果</span> + <span class="variable">梨</span>)',
+                question: '苹果 + 梨 = ?',
+                answer: '5',
+                answerCount: 1
+            },
+            {
+                boxes: { 'a': 5, 'b': 3 },
+                code: '<span class="variable">a</span> = <span class="number">5</span><br><span class="variable">b</span> = <span class="number">3</span><br><span class="variable">c</span> = <span class="variable">a</span> + <span class="variable">b</span><br>print(<span class="variable">c</span>)',
+                question: 'c的值是多少？',
+                answer: '8',
+                answerCount: 1
+            },
+            {
+                boxes: { 'score': 100 },
+                code: '<span class="variable">score</span> = <span class="number">100</span><br><span class="variable">score</span> = <span class="variable">score</span> + <span class="number">50</span><br>print(<span class="variable">score</span>)',
+                question: 'score最终是多少？',
+                answer: '150',
+                answerCount: 1
+            }
+        ];
+
+        function initGame() {
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+
+            document.getElementById('level').textContent = levelIndex + 1;
+            document.getElementById('taskQuestion').textContent = level.question;
+
+            // 显示箱子
+            const boxesContainer = document.getElementById('boxes');
+            boxesContainer.innerHTML = '';
+
+            Object.entries(level.boxes).forEach(([name, value]) => {
+                const box = document.createElement('div');
+                box.className = 'box';
+                box.innerHTML = `
+                    <div class="box-name">${name}</div>
+                    <div class="box-value">?</div>
+                `;
+                boxesContainer.appendChild(box);
+            });
+
+            // 显示代码
+            document.getElementById('codeArea').innerHTML = level.code;
+
+            // 输入框
+            const input2 = document.getElementById('answer2');
+            if (level.answerCount === 2) {
+                input2.style.display = 'block';
+            } else {
+                input2.style.display = 'none';
+            }
+
+            // 重置
+            document.getElementById('answer1').value = '';
+            document.getElementById('answer2').value = '';
+            document.getElementById('result').classList.remove('show', 'success', 'fail');
+            document.getElementById('nextButtons').style.display = 'none';
+        }
+
+        function checkAnswer() {
+            const level = levels[currentLevel];
+            let userAnswer = document.getElementById('answer1').value.trim();
+
+            const result = document.getElementById('result');
+
+            if (userAnswer === level.answer) {
+                score += 20;
+                document.getElementById('score').textContent = score;
+
+                result.classList.remove('fail');
+                result.classList.add('show', 'success');
+                document.getElementById('resultTitle').textContent = '🎉 答对了！';
+                document.getElementById('resultMessage').textContent = `变量 ${level.answer} 存储成功！`;
+
+                document.getElementById('nextButtons').style.display = 'flex';
+            } else {
+                result.classList.remove('success');
+                result.classList.add('show', 'fail');
+                document.getElementById('resultTitle').textContent = '❌ 不对哦';
+                document.getElementById('resultMessage').textContent = '再想想变量的值是多少？';
+            }
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜完成所有关卡！得分: ' + score);
+            }
+            loadLevel(currentLevel);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

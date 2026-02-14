@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>循环挑战</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 450px;
+        }
+
+        .challenge-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .task-area {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .task-title {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .task-question {
+            font-size: 1.3rem;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .code-display {
+            background: #2d2d44;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            color: #fff;
+            font-size: 1rem;
+            line-height: 2;
+        }
+
+        .keyword { color: #569cd6; }
+        .number { color: #b5cea8; }
+        .comment { color: #6a9955; }
+
+        .animation-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            min-height: 80px;
+            margin: 20px 0;
+        }
+
+        .emoji-display {
+            font-size: 3rem;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: #666;
+        }
+
+        .count-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fa709a;
+            background: #fff0f5;
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .input-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .input-label {
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .answer-input {
+            width: 80px;
+            height: 50px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 3px solid #fa709a;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .answer-input:focus {
+            border-color: #fee140;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.action-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover { transform: translateY(-2px); }
+        .btn-run { background: #fa709a; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+        .btn-next { background: #3498db; color: #fff; }
+
+        .result {
+            display: none;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .result.show { display: block; }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.fail { background: #f8d7da; color: #721c24; }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 循环挑战</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="challenge-panel">
+            <div class="task-area">
+                <div class="task-title">📝 数一数：共打印了几个emoji？</div>
+                <div class="task-question" id="taskQuestion">循环3次打印🍎</div>
+            </div>
+
+            <div class="code-display" id="codeDisplay">
+                <span class="keyword">for</span> i <span class="keyword">in</span> <span class="keyword">range</span>(<span class="number">3</span>):<br>
+                &nbsp;&nbsp;print(<span class="number">🍎</span>)
+            </div>
+
+            <div class="animation-area">
+                <div class="emoji-display" id="emojiDisplay">🍎</div>
+                <div class="arrow">×</div>
+                <div class="count-display" id="countDisplay">?</div>
+            </div>
+
+            <div class="input-area">
+                <span class="input-label">答案：</span>
+                <input type="number" class="answer-input" id="answerInput">
+                <span class="input-label">个</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="action-btn btn-run" onclick="runAndCheck()">▶️ 运行并检查</button>
+            <button class="action-btn btn-reset" onclick="resetLevel()">🔄 重置</button>
+        </div>
+
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+        </div>
+
+        <div class="buttons" id="nextButtons" style="display:none;">
+            <button class="action-btn btn-next" onclick="nextLevel()">下一关 →</button>
+        </div>
+
+        <p class="hint">
+            range(3) 表示循环3次<br>
+            每次循环打印一个emoji
+        </p>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let score = 0;
+
+        const levels = [
+            {
+                code: 'for i in range(3):\n    print(🍎)',
+                emoji: '🍎',
+                times: 3,
+                answer: 3
+            },
+            {
+                code: 'for i in range(5):\n    print(⭐)',
+                emoji: '⭐',
+                times: 5,
+                answer: 5
+            },
+            {
+                code: 'for i in range(2):\n    print(🐱)',
+                emoji: '🐱',
+                times: 2,
+                answer: 2
+            },
+            {
+                code: 'for i in range(4):\n    print(🎈)',
+                emoji: '🎈',
+                times: 4,
+                answer: 4
+            },
+            {
+                code: 'for i in range(7):\n    print(🌟)',
+                emoji: '🌟',
+                times: 7,
+                answer: 7
+            },
+            {
+                code: 'for i in range(6):\n    print(🎉)',
+                emoji: '🎉',
+                times: 6,
+                answer: 6
+            },
+            {
+                code: 'for i in range(10):\n    print(💎)',
+                emoji: '💎',
+                times: 10,
+                answer: 10
+            }
+        ];
+
+        function initGame() {
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+
+            document.getElementById('level').textContent = levelIndex + 1;
+
+            // 显示任务
+            const times = level.times;
+            let emojiText = level.emoji;
+            document.getElementById('taskQuestion').textContent = `循环${times}次打印${emojiText}`;
+
+            // 显示代码
+            const codeHtml = `<span class="keyword">for</span> i <span class="keyword">in</span> <span class="keyword">range</span>(<span class="number">${times}</span>):<br>&nbsp;&nbsp;print(${emojiText})`;
+            document.getElementById('codeDisplay').innerHTML = codeHtml;
+
+            // 显示emoji
+            document.getElementById('emojiDisplay').textContent = level.emoji;
+            document.getElementById('countDisplay').textContent = '?';
+
+            // 输入框
+            document.getElementById('answerInput').value = '';
+
+            // 重置状态
+            document.getElementById('result').classList.remove('show', 'success', 'fail');
+            document.getElementById('nextButtons').style.display = 'none';
+        }
+
+        function runAndCheck() {
+            const level = levels[currentLevel];
+            const userAnswer = parseInt(document.getElementById('answerInput').value);
+
+            // 动画显示
+            let count = 0;
+            const display = document.getElementById('countDisplay');
+            const interval = setInterval(() => {
+                count++;
+                display.textContent = count;
+                if (count >= level.answer) {
+                    clearInterval(interval);
+
+                    // 检查答案
+                    const result = document.getElementById('result');
+
+                    if (userAnswer === level.answer) {
+                        score += 15;
+                        document.getElementById('score').textContent = score;
+
+                        result.classList.remove('fail');
+                        result.classList.add('show', 'success');
+                        document.getElementById('resultTitle').textContent = '🎉 答对了！';
+                        document.getElementById('resultMessage').textContent = `循环${level.times}次 × 1个${level.emoji} = ${level.answer}个`;
+
+                        document.getElementById('nextButtons').style.display = 'flex';
+                    } else {
+                        result.classList.remove('success');
+                        result.classList.add('show', 'fail');
+                        document.getElementById('resultTitle').textContent = '❌ 不对哦';
+                        document.getElementById('resultMessage').textContent = `正确答案：${level.answer}`;
+                    }
+                }
+            }, 300);
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜完成所有循环挑战！得分: ' + score);
+            }
+            loadLevel(currentLevel);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

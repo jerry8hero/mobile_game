@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>函数工厂</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 450px;
+        }
+
+        .factory-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .machine {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .input-box {
+            background: #e3f2fd;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            border: 3px solid #2196f3;
+        }
+
+        .machine-body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 20px 30px;
+            border-radius: 15px;
+            color: #fff;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .machine-body::before {
+            content: '⚙️';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 1.5rem;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .arrow-right {
+            font-size: 2rem;
+            color: #667eea;
+        }
+
+        .output-box {
+            background: #fff3e0;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e65100;
+            border: 3px solid #ff9800;
+        }
+
+        .function-area {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .function-title {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .function-code {
+            background: #2d2d44;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .keyword { color: #569cd6; }
+        .function-name { color: #dcdcaa; }
+        .param { color: #9cdcfe; }
+
+        .input-field {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .input-field input {
+            width: 80px;
+            height: 45px;
+            font-size: 1.3rem;
+            text-align: center;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .input-field input:focus {
+            border-color: #764ba2;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.action-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover { transform: translateY(-2px); }
+        .btn-run { background: #667eea; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+        .btn-next { background: #3498db; color: #fff; }
+
+        .result {
+            display: none;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .result.show { display: block; }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.fail { background: #f8d7da; color: #721c24; }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏭 函数工厂</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="factory-panel">
+            <div class="function-area">
+                <div class="function-title">📋 工厂规则（函数）</div>
+                <div class="function-code" id="functionCode">
+                    <span class="keyword">def</span> <span class="function-name">加工</span>(<span class="param">x</span>):<br>
+                    &nbsp;&nbsp;<span class="keyword">return</span> x × 2
+                </div>
+            </div>
+
+            <div class="machine">
+                <div class="input-box" id="inputDisplay">5</div>
+                <div class="arrow-right">➡️</div>
+                <div class="machine-body">加工</div>
+                <div class="arrow-right">➡️</div>
+                <div class="output-box" id="outputDisplay">?</div>
+            </div>
+
+            <div class="input-field">
+                <span>输入：</span>
+                <input type="number" id="userInput" value="5">
+                <button class="action-btn btn-run" onclick="runFunction()">▶️ 运行</button>
+            </div>
+        </div>
+
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+        </div>
+
+        <div class="buttons" id="nextButtons" style="display:none;">
+            <button class="action-btn btn-next" onclick="nextLevel()">下一关 →</button>
+        </div>
+
+        <p class="hint">
+            函数就像加工机器<br>
+            输入原材料，输出加工后的产品
+        </p>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let score = 0;
+
+        const levels = [
+            {
+                name: '加倍',
+                param: 'x',
+                formula: 'x × 2',
+                func: x => x * 2,
+                input: 5,
+                answer: 10
+            },
+            {
+                name: '加3',
+                param: 'x',
+                formula: 'x + 3',
+                func: x => x + 3,
+                input: 7,
+                answer: 10
+            },
+            {
+                name: '平方',
+                param: 'x',
+                formula: 'x × x',
+                func: x => x * x,
+                input: 4,
+                answer: 16
+            },
+            {
+                name: '减5',
+                param: 'x',
+                formula: 'x - 5',
+                func: x => x - 5,
+                input: 12,
+                answer: 7
+            },
+            {
+                name: '加10',
+                param: 'x',
+                formula: 'x + 10',
+                func: x => x + 10,
+                input: 8,
+                answer: 18
+            },
+            {
+                name: '翻3倍',
+                param: 'x',
+                formula: 'x × 3',
+                func: x => x * 3,
+                input: 6,
+                answer: 18
+            }
+        ];
+
+        function initGame() {
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+
+            document.getElementById('level').textContent = levelIndex + 1;
+
+            // 显示函数
+            const codeHtml = `<span class="keyword">def</span> <span class="function-name">${level.name}</span>(<span class="param">${level.param}</span>):<br>&nbsp;&nbsp;<span class="keyword">return</span> ${level.formula}`;
+            document.getElementById('functionCode').innerHTML = codeHtml;
+
+            // 显示输入
+            document.getElementById('inputDisplay').textContent = level.input;
+            document.getElementById('userInput').value = level.input;
+            document.getElementById('outputDisplay').textContent = '?';
+
+            // 重置状态
+            document.getElementById('result').classList.remove('show', 'success', 'fail');
+            document.getElementById('nextButtons').style.display = 'none';
+        }
+
+        function runFunction() {
+            const level = levels[currentLevel];
+            const userAnswer = parseInt(document.getElementById('userInput').value);
+
+            // 计算结果
+            const result = level.func(userAnswer);
+
+            // 显示结果动画
+            let display = document.getElementById('outputDisplay');
+            let count = 0;
+            const target = result;
+
+            const interval = setInterval(() => {
+                count += 1;
+                display.textContent = count;
+                if (count >= target) {
+                    clearInterval(interval);
+
+                    // 检查答案
+                    const resultDiv = document.getElementById('result');
+
+                    if (result === level.answer) {
+                        score += 20;
+                        document.getElementById('score').textContent = score;
+
+                        resultDiv.classList.remove('fail');
+                        resultDiv.classList.add('show', 'success');
+                        document.getElementById('resultTitle').textContent = '🎉 答对了！';
+                        document.getElementById('resultMessage').textContent = `${level.input} ${level.formula} = ${result}`;
+
+                        document.getElementById('nextButtons').style.display = 'flex';
+                    } else {
+                        resultDiv.classList.remove('success');
+                        resultDiv.classList.add('show', 'fail');
+                        document.getElementById('resultTitle').textContent = '❌ 不对哦';
+                        document.getElementById('resultMessage').textContent = `正确答案：${level.answer}`;
+                    }
+                }
+            }, 50);
+        }
+
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜完成所有函数挑战！得分: ' + score);
+            }
+            loadLevel(currentLevel);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
