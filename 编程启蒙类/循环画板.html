@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>循环画板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .canvas-container {
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 10px;
+        }
+
+        #gameCanvas {
+            background: #fff;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 200px;
+        }
+
+        .control-panel {
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .panel-title {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 18px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-draw { background: #3498db; color: #fff; }
+        .btn-loop { background: #9b59b6; color: #fff; }
+        .btn-clear { background: #e74c3c; color: #fff; }
+        .btn-run { background: #27ae60; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+
+        .loop-panel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .loop-panel input {
+            width: 50px;
+            padding: 5px;
+            border: none;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .instructions {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 300px;
+            line-height: 1.5;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .target-shape {
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .target-shape canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            .game-area { flex-direction: column; align-items: center; }
+            .controls { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 循环画板</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="canvas-container">
+            <canvas id="gameCanvas" width="300" height="300"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-panel">
+                <div class="panel-title">🎯 目标图案</div>
+                <div class="target-shape">
+                    <canvas id="targetCanvas" width="80" height="80"></canvas>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="panel-title">🖊️ 画笔指令</div>
+                <div class="btn-row">
+                    <button class="btn-draw" onclick="addCommand('forward')">⬆️ 前进</button>
+                    <button class="btn-draw" onclick="addCommand('right')">➡️ 右转</button>
+                </div>
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn-draw" onclick="addCommand('left')">⬅️ 左转</button>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="panel-title">🔄 循环指令</div>
+                <div class="loop-panel">
+                    <span>重复</span>
+                    <input type="number" id="loopCount" value="2" min="1" max="10">
+                    <span>次</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-loop" onclick="addLoop()">🔁 添加循环</button>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-run" onclick="runDrawing()">▶️ 画图</button>
+                <button class="btn-clear" onclick="clearCommands()">🗑️ 清空</button>
+            </div>
+
+            <div class="instructions">
+                使用前进和转向指令，画出与目标相同的图案！
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const targetCanvas = document.getElementById('targetCanvas');
+        const targetCtx = targetCanvas.getContext('2d');
+
+        // 游戏状态
+        let currentLevel = 0;
+        let score = 0;
+        let commands = [];
+        let isRunning = false;
+        let turtle = { x: 150, y: 280, angle: -90 };
+        let path = [];
+
+        // 关卡数据：每个关卡定义目标图案
+        const levels = [
+            // Level 1: 正方形
+            {
+                draw: (ctx) => {
+                    ctx.strokeStyle = '#3498db';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(50, 50);
+                    ctx.lineTo(250, 50);
+                    ctx.lineTo(250, 250);
+                    ctx.lineTo(50, 250);
+                    ctx.closePath();
+                    ctx.stroke();
+                },
+                hint: "画一个正方形：前进→右转→前进→右转→前进→右转→前进"
+            },
+            // Level 2: 三角形
+            {
+                draw: (ctx) => {
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(150, 40);
+                    ctx.lineTo(260, 220);
+                    ctx.lineTo(40, 220);
+                    ctx.closePath();
+                    ctx.stroke();
+                },
+                hint: "画一个三角形"
+            },
+            // Level 3: 房子
+            {
+                draw: (ctx) => {
+                    ctx.strokeStyle = '#27ae60';
+                    ctx.lineWidth = 3;
+                    // 房子
+                    ctx.beginPath();
+                    ctx.moveTo(50, 150);
+                    ctx.lineTo(150, 50);
+                    ctx.lineTo(250, 150);
+                    ctx.lineTo(250, 250);
+                    ctx.lineTo(50, 250);
+                    ctx.closePath();
+                    ctx.stroke();
+                },
+                hint: "画一个房子形状"
+            },
+            // Level 4: 星星
+            {
+                draw: (ctx) => {
+                    ctx.strokeStyle = '#f39c12';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    const cx = 150, cy = 150, r = 80;
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
+                        const x = cx + r * Math.cos(angle);
+                        const y = cy + r * Math.sin(angle);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                },
+                hint: "画一个五角星"
+            },
+            // Level 5: 圆圈
+            {
+                draw: (ctx) => {
+                    ctx.strokeStyle = '#9b59b6';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(150, 150, 80, 0, Math.PI * 2);
+                    ctx.stroke();
+                },
+                hint: "画一个大圆圈：用循环重复前进+右转"
+            }
+        ];
+
+        // 初始化
+        function initGame() {
+            loadLevel(currentLevel);
+            drawTarget();
+        }
+
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            resetTurtle();
+            commands = [];
+            isRunning = false;
+            document.getElementById('level').textContent = levelIndex + 1;
+        }
+
+        // 重置小乌龟
+        function resetTurtle() {
+            turtle = { x: 150, y: 280, angle: -90 };
+            path = [{x: turtle.x, y: turtle.y}];
+            drawPath();
+        }
+
+        // 绘制目标图案
+        function drawTarget() {
+            targetCtx.clearRect(0, 0, 80, 80);
+            targetCtx.save();
+            targetCtx.translate(40, 40);
+            targetCtx.scale(0.267, 0.267);
+            targetCtx.translate(-150, -150);
+            levels[currentLevel].draw(targetCtx);
+            targetCtx.restore();
+        }
+
+        // 绘制路径
+        function drawPath() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 画路径
+            if (path.length > 1) {
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(path[0].x, path[0].y);
+                for (let i = 1; i < path.length; i++) {
+                    ctx.lineTo(path[i].x, path[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // 画小乌龟
+            ctx.font = '2rem Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.save();
+            ctx.translate(turtle.x, turtle.y);
+            ctx.rotate((turtle.angle + 90) * Math.PI / 180);
+            ctx.fillText('🐢', 0, 0);
+            ctx.restore();
+        }
+
+        // 添加指令
+        function addCommand(cmd) {
+            if (isRunning) return;
+            commands.push(cmd);
+        }
+
+        // 添加循环
+        function addLoop() {
+            if (isRunning) return;
+            const count = parseInt(document.getElementById('loopCount').value) || 2;
+            commands.push({ type: 'loop', count: count, commands: [] });
+            // 简单处理：循环包含前面的所有指令
+            const loopCommands = commands.slice(0, -1);
+            commands[commands.length - 1].commands = [...loopCommands];
+        }
+
+        // 清空指令
+        function clearCommands() {
+            if (isRunning) return;
+            commands = [];
+            resetTurtle();
+        }
+
+        // 执行画图
+        async function runDrawing() {
+            if (isRunning) return;
+            if (commands.length === 0) return;
+
+            isRunning = true;
+            resetTurtle();
+
+            await executeCommands(commands);
+
+            // 检查结果
+            setTimeout(checkResult, 500);
+        }
+
+        // 执行指令
+        async function executeCommands(cmds) {
+            for (const cmd of cmds) {
+                if (cmd.type === 'loop') {
+                    for (let i = 0; i < cmd.count; i++) {
+                        await executeCommands(cmd.commands);
+                    }
+                } else {
+                    await executeCommand(cmd);
+                }
+            }
+        }
+
+        // 执行单条指令
+        function executeCommand(cmd) {
+            return new Promise(resolve => {
+                const step = 20;
+
+                if (cmd === 'forward') {
+                    const newX = turtle.x + Math.cos(turtle.angle * Math.PI / 180) * step;
+                    const newY = turtle.y + Math.sin(turtle.angle * Math.PI / 180) * step;
+                    turtle.x = newX;
+                    turtle.y = newY;
+                    path.push({x: newX, y: newY});
+                    drawPath();
+                } else if (cmd === 'left') {
+                    turtle.angle -= 90;
+                    drawPath();
+                } else if (cmd === 'right') {
+                    turtle.angle += 90;
+                    drawPath();
+                }
+
+                setTimeout(resolve, 300);
+            });
+        }
+
+        // 检查结果（简单比较）
+        function checkResult() {
+            // 简单判定：路径长度相近即可
+            const pathLength = path.length;
+            let targetLength = 0;
+
+            // 根据关卡估算目标长度
+            switch(currentLevel) {
+                case 0: targetLength = 16; break; // 正方形
+                case 1: targetLength = 12; break; // 三角形
+                case 2: targetLength = 20; break; // 房子
+                case 3: targetLength = 40; break; // 星星
+                case 4: targetLength = 36; break; // 圆
+            }
+
+            const diff = Math.abs(pathLength - targetLength);
+
+            if (diff <= 4) {
+                score += (5 - currentLevel) * 20;
+                document.getElementById('score').textContent = score;
+                alert(`🎉 画对了！得分 +${(5 - currentLevel) * 20}`);
+                nextLevel();
+            } else {
+                const hint = levels[currentLevel].hint;
+                alert(`画得不错！提示：${hint}\n再试试看？`);
+            }
+
+            isRunning = false;
+        }
+
+        // 下一关
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜通关所有关卡！');
+            }
+            loadLevel(currentLevel);
+            drawTarget();
+        }
+
+        // 绘制初始图案
+        function drawInitialPattern() {
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 画网格
+            ctx.strokeStyle = '#e9ecef';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 15; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 20, 0);
+                ctx.lineTo(i * 20, 300);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * 20);
+                ctx.lineTo(300, i * 20);
+                ctx.stroke();
+            }
+
+            // 画小乌龟
+            ctx.font = '2rem Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐢', 150, 280);
+        }
+
+        drawInitialPattern();
+    </script>
+</body>
+</html>
