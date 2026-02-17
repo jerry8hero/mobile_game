@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>换装小游戏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        h1 { color: #e84393; font-size: 1.8rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); }
+
+        .game-area {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .character {
+            position: relative;
+            width: 180px;
+            height: 280px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .character-base {
+            font-size: 8rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .clothes-layer {
+            position: absolute;
+            font-size: 5rem;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .wardrobe {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .category-title {
+            font-size: 1rem;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .items-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+        }
+
+        .item-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .item-btn:hover, .item-btn.selected {
+            transform: scale(1.1);
+            border-color: #e84393;
+            background: #ffeaa7;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .ctrl-btn:active { transform: scale(0.95); }
+        .random-btn { background: #e84393; color: #fff; }
+        .reset-btn { background: #74b9ff; color: #fff; }
+
+        .score {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            font-size: 1.1rem;
+            color: #e84393;
+            font-weight: bold;
+        }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.4rem; }
+            .character { width: 150px; height: 230px; }
+            .character-base { font-size: 6rem; }
+            .clothes-layer { font-size: 4rem; }
+            .item-btn { width: 40px; height: 40px; font-size: 1.2rem; }
+            .game-area { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <h1>👗 换装小游戏</h1>
+
+    <div class="game-area">
+        <div class="character">
+            <div class="character-base" id="characterBase">👧</div>
+            <div class="clothes-layer" id="clothesLayer"></div>
+        </div>
+
+        <div class="wardrobe">
+            <div>
+                <div class="category-title">👕 上衣</div>
+                <div class="items-row">
+                    <button class="item-btn" onclick="setClothes('top', '', this)">🚫</button>
+                    <button class="item-btn" onclick="setClothes('top', '👚', this)">👚</button>
+                    <button class="item-btn" onclick="setClothes('top', '👕', this)">👕</button>
+                    <button class="item-btn" onclick="setClothes('top', '🧥', this)">🧥</button>
+                    <button class="item-btn" onclick="setClothes('top', '👗', this)">👗</button>
+                </div>
+            </div>
+            <div>
+                <div class="category-title">👖 裤子/裙子</div>
+                <div class="items-row">
+                    <button class="item-btn" onclick="setClothes('bottom', '', this)">🚫</button>
+                    <button class="item-btn" onclick="setClothes('bottom', '👖', this)">👖</button>
+                    <button class="item-btn" onclick="setClothes('bottom', '🩳', this)">🩳</button>
+                    <button class="item-btn" onclick="setClothes('bottom', '👢', this)">👢</button>
+                </div>
+            </div>
+            <div>
+                <div class="category-title">👒 配饰</div>
+                <div class="items-row">
+                    <button class="item-btn" onclick="setClothes('hat', '', this)">🚫</button>
+                    <button class="item-btn" onclick="setClothes('hat', '👒', this)">👒</button>
+                    <button class="item-btn" onclick="setClothes('hat', '🎀', this)">🎀</button>
+                    <button class="item-btn" onclick="setClothes('hat', '👑', this)">👑</button>
+                    <button class="item-btn" onclick="setClothes('hat', '🎩', this)">🎩</button>
+                </div>
+            </div>
+            <div>
+                <div class="category-title">🎒 背包</div>
+                <div class="items-row">
+                    <button class="item-btn" onclick="setClothes('bag', '', this)">🚫</button>
+                    <button class="item-btn" onclick="setClothes('bag', '🎒', this)">🎒</button>
+                    <button class="item-btn" onclick="setClothes('bag', '👜', this)">👜</button>
+                    <button class="item-btn" onclick="setClothes('bag', '👛', this)">👛</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="ctrl-btn random-btn" onclick="randomOutfit()">🎲 随机搭配</button>
+        <button class="ctrl-btn reset-btn" onclick="resetOutfit()">🔄 重置</button>
+    </div>
+
+    <div class="score">✨ 今日造型师 ✨</div>
+
+    <script>
+        const characters = ['👧', '👦', '👩', '👨', '👵', '🧓', '🧙', '🧚'];
+        const clothes = {
+            top: ['', '👚', '👕', '🧥', '👗', '🎽', '🥼'],
+            bottom: ['', '👖', '🩳', '👢'],
+            hat: ['', '👒', '🎀', '👑', '🎩', '🧢', '🎓'],
+            bag: ['', '🎒', '👜', '👛', '🎒']
+        };
+
+        let currentOutfit = {
+            character: '👧',
+            top: '',
+            bottom: '',
+            hat: '',
+            bag: ''
+        };
+
+        function setClothes(type, value, btn) {
+            // 清除同类型选中状态
+            const row = btn.parentElement;
+            row.querySelectorAll('.item-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            currentOutfit[type] = value;
+            updateCharacter();
+        }
+
+        function updateCharacter() {
+            document.getElementById('characterBase').textContent = currentOutfit.character;
+
+            let layerHTML = '';
+            if (currentOutfit.hat) {
+                layerHTML += `<div style="position:absolute; top: 5px; left: 50%; transform: translateX(-50%); font-size: 3rem;">${currentOutfit.hat}</div>`;
+            }
+            if (currentOutfit.top) {
+                layerHTML += `<div style="position:absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 4rem;">${currentOutfit.top}</div>`;
+            }
+            if (currentOutfit.bottom) {
+                layerHTML += `<div style="position:absolute; top: 160px; left: 50%; transform: translateX(-50%); font-size: 3.5rem;">${currentOutfit.bottom}</div>`;
+            }
+            if (currentOutfit.bag) {
+                layerHTML += `<div style="position:absolute; top: 100px; right: 10px; font-size: 2.5rem;">${currentOutfit.bag}</div>`;
+            }
+            document.getElementById('clothesLayer').innerHTML = layerHTML;
+        }
+
+        function randomOutfit() {
+            currentOutfit.character = characters[Math.floor(Math.random() * characters.length)];
+            currentOutfit.top = clothes.top[Math.floor(Math.random() * clothes.top.length)];
+            currentOutfit.bottom = clothes.bottom[Math.floor(Math.random() * clothes.bottom.length)];
+            currentOutfit.hat = clothes.hat[Math.floor(Math.random() * clothes.hat.length)];
+            currentOutfit.bag = clothes.bag[Math.floor(Math.random() * clothes.bag.length)];
+            updateCharacter();
+            updateButtons();
+        }
+
+        function resetOutfit() {
+            currentOutfit = {
+                character: '👧',
+                top: '',
+                bottom: '',
+                hat: '',
+                bag: ''
+            };
+            updateCharacter();
+            updateButtons();
+        }
+
+        function updateButtons() {
+            document.querySelectorAll('.item-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                const onclick = btn.getAttribute('onclick');
+                if (onclick) {
+                    const match = onclick.match(/setClothes\('(\w+)', '([^']+)'/);
+                    if (match) {
+                        const [, type, value] = match;
+                        if (currentOutfit[type] === value) {
+                            btn.classList.add('selected');
+                        }
+                    }
+                }
+            });
+        }
+
+        // 初始化
+        updateCharacter();
+    </script>
+</body>
+</html>

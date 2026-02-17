@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>钓鱼达人</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #87CEEB 0%, #48dbfb 50%, #48dbfb 50%, #F4A460 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            overflow: hidden;
+        }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            height: 450px;
+            background: linear-gradient(180deg, #87CEEB 0%, #48dbfb 50%, #48dbfb 50%, #228B22 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .water {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(72,219,251,0.8), rgba(30,144,255,0.9));
+            animation: wave 3s ease-in-out infinite;
+        }
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        .fishing-line {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 2px;
+            background: #fff;
+            transform-origin: top center;
+            z-index: 5;
+            transition: height 0.3s;
+        }
+
+        .fishing-rod {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 2.5rem;
+            transform: rotate(-30deg);
+            z-index: 6;
+        }
+
+        .hook {
+            position: absolute;
+            font-size: 1.5rem;
+            z-index: 5;
+        }
+
+        .bobber {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b 40%, #fff 40%);
+            border-radius: 50%;
+            z-index: 4;
+            transition: top 0.3s;
+        }
+
+        .fish {
+            position: absolute;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 3;
+            animation: swim 4s ease-in-out infinite;
+        }
+        @keyframes swim {
+            0%, 100% { transform: translateX(0) scaleX(1); }
+            50% { transform: translateX(20px) scaleX(1); }
+        }
+        .fish:hover { transform: scale(1.2); }
+        .fish.right { animation-direction: normal; }
+        .fish.left { animation-direction: reverse; transform: scaleX(-1); }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            display: none;
+            z-index: 20;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0); }
+            to { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .cast-btn {
+            margin-top: 15px;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+            transition: transform 0.2s;
+        }
+        .cast-btn:hover { transform: scale(1.05); }
+        .cast-btn:active { transform: scale(0.95); }
+        .cast-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .collection {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            max-width: 380px;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+        }
+        .collection-item {
+            font-size: 1.5rem;
+            animation: pop 0.3s ease;
+        }
+        @keyframes pop {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.4rem; }
+            .game-area { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎣 钓鱼达人</h1>
+
+    <div class="info-bar">
+        <div class="info-item">🎣 次数: <span id="casts">10</span></div>
+        <div class="info-item">⭐ 得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+        <div class="water"></div>
+        <div class="fishing-rod">🎣</div>
+        <div class="fishing-line" id="fishingLine"></div>
+        <div class="hook" id="hook">🪝</div>
+        <div class="bobber" id="bobber"></div>
+    </div>
+
+    <button class="cast-btn" id="castBtn" onclick="castLine()">🎣 抛竿</button>
+
+    <div class="collection" id="collection">
+        <span style="font-size: 0.9rem; width: 100%; text-align: center; color: #666;">钓到的鱼：</span>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        const fishes = [
+            { emoji: '🐟', name: '小鱼', points: 10 },
+            { emoji: '🐠', name: '热带鱼', points: 20 },
+            { emoji: '🐡', name: '河豚', points: 30 },
+            { emoji: '🦈', name: '鲨鱼', points: 100 },
+            { emoji: '🐙', name: '章鱼', points: 50 },
+            { emoji: '🦀', name: '螃蟹', points: 40 },
+            { emoji: '🦑', name: '鱿鱼', points: 35 },
+            { emoji: '🐬', name: '海豚', points: 80 },
+            { emoji: '🐳', name: '鲸鱼', points: 150 },
+            { emoji: '🦞', name: '龙虾', points: 45 }
+        ];
+
+        let casts = 10;
+        let score = 0;
+        let caughtFishes = new Set();
+        let isCasting = false;
+        let isReeling = false;
+        let fishElements = [];
+        let hookedFish = null;
+
+        const gameArea = document.getElementById('gameArea');
+        const fishingLine = document.getElementById('fishingLine');
+        const hook = document.getElementById('hook');
+        const bobber = document.getElementById('bobber');
+        const castBtn = document.getElementById('castBtn');
+
+        // 生成鱼
+        function spawnFish() {
+            for (let i = 0; i < 5; i++) {
+                const fish = document.createElement('div');
+                fish.className = 'fish ' + (Math.random() > 0.5 ? 'right' : 'left');
+                fish.textContent = fishes[Math.floor(Math.random() * fishes.length)].emoji;
+                fish.style.top = (150 + Math.random() * 150) + 'px';
+                fish.style.left = Math.random() > 0.5 ? '-50px' : (gameArea.offsetWidth + 50) + 'px';
+
+                const fishData = fishes.find(f => f.emoji === fish.textContent);
+                fish.dataset.name = fishData.name;
+                fish.dataset.points = fishData.points;
+
+                fish.addEventListener('click', () => catchFish(fish));
+
+                gameArea.appendChild(fish);
+                fishElements.push(fish);
+
+                animateFish(fish);
+            }
+        }
+
+        function animateFish(fish) {
+            const direction = fish.classList.contains('right') ? 1 : -1;
+            const speed = 2 + Math.random() * 2;
+            let pos = parseFloat(fish.style.left);
+
+            setInterval(() => {
+                if (!fish.parentNode) return;
+                pos += speed * direction;
+                if (pos > gameArea.offsetWidth + 50) pos = -50;
+                if (pos < -50) pos = gameArea.offsetWidth + 50;
+                fish.style.left = pos + 'px';
+            }, 50);
+        }
+
+        function castLine() {
+            if (isCasting || casts <= 0) return;
+            isCasting = true;
+            casts--;
+            document.getElementById('casts').textContent = casts;
+            castBtn.disabled = true;
+
+            // 抛竿动画
+            let lineLength = 0;
+            const castInterval = setInterval(() => {
+                lineLength += 5;
+                fishingLine.style.height = lineLength + 'px';
+                hook.style.top = (30 + lineLength) + 'px';
+                bobber.style.top = (20 + lineLength) + 'px';
+
+                if (lineLength >= 180) {
+                    clearInterval(castInterval);
+                    // 等待鱼上钩
+                    setTimeout(tryCatch, 1000 + Math.random() * 2000);
+                }
+            }, 20);
+        }
+
+        function tryCatch() {
+            if (!isCasting) return;
+
+            // 随机决定是否钓到鱼
+            if (Math.random() > 0.4) {
+                // 鱼上钩！
+                const randomFish = fishes[Math.floor(Math.random() * fishes.length)];
+                showMessage(`🐟 钓到了 ${randomFish.name}！`, true);
+                score += randomFish.points;
+                document.getElementById('score').textContent = score;
+
+                if (!caughtFishes.has(randomFish.emoji)) {
+                    caughtFishes.add(randomFish.emoji);
+                    const collection = document.getElementById('collection');
+                    const item = document.createElement('span');
+                    item.className = 'collection-item';
+                    item.textContent = randomFish.emoji;
+                    item.title = randomFish.name;
+                    collection.appendChild(item);
+                }
+            } else {
+                showMessage('到...', false);
+            }
+
+           🐟 没有钓 setTimeout(reelIn, 1500);
+        }
+
+        function showMessage(text, success) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.display = 'block';
+            msg.style.color = success ? '#1dd1a1' : '#ff6b6b';
+            setTimeout(() => msg.style.display = 'none', 1500);
+        }
+
+        function catchFish(fishElement) {
+            if (!isCasting || hookedFish) return;
+
+            hookedFish = fishElement;
+            const fishData = fishes.find(f => f.emoji === fishElement.textContent);
+
+            // 拉上来
+            let lineLength = parseInt(fishingLine.style.height || 180);
+            const reelInterval = setInterval(() => {
+                lineLength -= 8;
+                fishingLine.style.height = lineLength + 'px';
+                hook.style.top = (30 + lineLength) + 'px';
+                bobber.style.top = (20 + lineLength) + 'px';
+
+                if (lineLength <= 0) {
+                    clearInterval(reelInterval);
+                    fishElement.remove();
+
+                    score += parseInt(fishData.points);
+                    document.getElementById('score').textContent = score;
+
+                    if (!caughtFishes.has(fishData.emoji)) {
+                        caughtFishes.add(fishData.emoji);
+                        const collection = document.getElementById('collection');
+                        const item = document.createElement('span');
+                        item.className = 'collection-item';
+                        item.textContent = fishData.emoji;
+                        item.title = fishData.name;
+                        collection.appendChild(item);
+                    }
+
+                    showMessage(`🎉 钓到了 ${fishData.name}！+${fishData.points}分`, true);
+                    hookedFish = null;
+                }
+            }, 20);
+        }
+
+        function reelIn() {
+            isReeling = true;
+            let lineLength = parseInt(fishingLine.style.height || 180);
+
+            const reelInterval = setInterval(() => {
+                lineLength -= 10;
+                fishingLine.style.height = lineLength + 'px';
+                hook.style.top = (30 + lineLength) + 'px';
+                bobber.style.top = (20 + lineLength) + 'px';
+
+                if (lineLength <= 0) {
+                    clearInterval(reelInterval);
+                    isCasting = false;
+                    isReeling = false;
+                    if (casts > 0) {
+                        castBtn.disabled = false;
+                        castBtn.textContent = '🎣 抛竿';
+                    } else {
+                        castBtn.textContent = '🔚 游戏结束';
+                        setTimeout(() => alert(`游戏结束！最终得分: ${score}`), 500);
+                    }
+                }
+            }, 20);
+        }
+
+        // 初始化
+        spawnFish();
+    </script>
+</body>
+</html>

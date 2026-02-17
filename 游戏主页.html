@@ -3,52 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>儿童编程游戏合集</title>
+    <title>儿童游戏乐园</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { min-height: 100vh; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); font-family: 'Segoe UI', Tahoma, sans-serif; padding: 30px; }
-        h1 { color: #fff; font-size: 3rem; text-align: center; margin-bottom: 10px; text-shadow: 0 0 30px rgba(255,255,255,0.3); }
-        .subtitle { color: rgba(255,255,255,0.7); text-align: center; margin-bottom: 40px; font-size: 1.2rem; }
-        .category { margin-bottom: 40px; }
-        .category-title { color: #f39c12; font-size: 1.8rem; margin-bottom: 20px; padding-left: 20px; border-left: 4px solid #f39c12; display: flex; align-items: center; gap: 10px; }
-        .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .game-card { background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent; text-decoration: none; display: block; }
-        .game-card:hover { background: rgba(255,255,255,0.2); transform: translateY(-5px); border-color: #f39c12; }
-        .game-icon { font-size: 3rem; margin-bottom: 10px; }
-        .game-name { color: #fff; font-size: 1.1rem; font-weight: bold; }
-        .game-type { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 5px; }
-        .total { color: rgba(255,255,255,0.5); text-align: center; margin-top: 30px; }
-
-        /* PC端 */
-        @media (min-width: 768px) {
-            h1 { font-size: 3rem; }
-            .games { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 25%, #a1c4fd 50%, #c2e9fb 75%, #fbc2eb 100%);
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+            overflow-x: hidden;
         }
 
-        /* 移动端 */
+        /* 浮动装饰 */
+        .floating-decor {
+            position: fixed;
+            font-size: 2rem;
+            opacity: 0.3;
+            animation: float 6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .floating-decor:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+        .floating-decor:nth-child(2) { top: 30%; right: 8%; animation-delay: 1s; }
+        .floating-decor:nth-child(3) { top: 50%; left: 3%; animation-delay: 2s; }
+        .floating-decor:nth-child(4) { top: 70%; right: 5%; animation-delay: 3s; }
+        .floating-decor:nth-child(5) { top: 85%; left: 10%; animation-delay: 4s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        .mascot {
+            font-size: 4rem;
+            display: inline-block;
+            animation: bounce 1s ease infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            margin-bottom: 8px;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+        @keyframes titleGlow {
+            from { filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(255,255,255,0.8)); }
+        }
+        .subtitle {
+            color: #5f27cd;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        /* 分类样式 */
+        .category {
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 1;
+        }
+        .category-title {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 5px solid;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #222;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        .category:nth-child(2) .category-title { border-color: #ff6b6b; }
+        .category:nth-child(3) .category-title { border-color: #48dbfb; }
+        .category:nth-child(4) .category-title { border-color: #1dd1a1; }
+        .category:nth-child(5) .category-title { border-color: #feca57; }
+        .category:nth-child(6) .category-title { border-color: #ff9ff3; }
+        .category:nth-child(7) .category-title { border-color: #54a0ff; }
+        .category:nth-child(8) .category-title { border-color: #5f27cd; }
+        .category:nth-child(9) .category-title { border-color: #ee5a24; }
+        .category:nth-child(10) .category-title { border-color: #009432; }
+        .category:nth-child(11) .category-title { border-color: #ffc312; }
+        .category:nth-child(12) .category-title { border-color: #d63031; }
+        .category:nth-child(13) .category-title { border-color: #e84393; }
+        .category:nth-child(14) .category-title { border-color: #00cec9; }
+        .category:nth-child(15) .category-title { border-color: #fd79a8; }
+        .category:nth-child(16) .category-title { border-color: #a29bfe; }
+        .category:nth-child(17) .category-title { border-color: #fab1a0; }
+        .category:nth-child(18) .category-title { border-color: #ffeaa7; }
+
+        .games {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+        }
+
+        /* 游戏卡片 */
+        .game-card {
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 3px solid transparent;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+        .game-card:hover {
+            background: rgba(255,255,255,0.95);
+            transform: translateY(-8px) scale(1.02);
+            border-color: #ff6b6b;
+            box-shadow: 0 15px 35px rgba(255,107,107,0.3);
+        }
+        .game-card:active {
+            transform: translateY(-4px) scale(0.98);
+        }
+        .game-icon {
+            font-size: 2.8rem;
+            margin-bottom: 8px;
+            display: block;
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .game-name {
+            color: #333;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .game-type {
+            color: #888;
+            font-size: 0.75rem;
+        }
+
+        .total {
+            text-align: center;
+            margin-top: 25px;
+            padding: 15px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 20px;
+            font-size: 1.1rem;
+            color: #5f27cd;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* 响应式 */
         @media (max-width: 767px) {
-            body { padding: 15px; }
-            h1 { font-size: 1.5rem; margin-bottom: 5px; }
-            .subtitle { font-size: 0.9rem; margin-bottom: 20px; }
-            .category { margin-bottom: 25px; }
-            .category-title { font-size: 1.1rem; margin-bottom: 12px; padding-left: 12px; }
-            .games { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .game-card { padding: 12px; border-radius: 10px; }
-            .game-icon { font-size: 2rem; margin-bottom: 5px; }
+            body { padding: 12px; }
+            h1 { font-size: 1.8rem; }
+            .mascot { font-size: 3rem; }
+            .subtitle { font-size: 0.95rem; }
+            .category-title { font-size: 1.2rem; }
+            .games { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .game-card { padding: 10px; border-radius: 12px; }
+            .game-icon { font-size: 2rem; }
             .game-name { font-size: 0.85rem; }
-            .game-type { font-size: 0.7rem; }
-            .total { font-size: 0.8rem; margin-top: 20px; }
+            .game-type { font-size: 0.65rem; }
+            .floating-decor { font-size: 1.5rem; }
         }
 
-        /* 超小屏幕 */
         @media (max-width: 380px) {
-            body { padding: 10px; }
-            h1 { font-size: 1.2rem; }
-            .games { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            h1 { font-size: 1.4rem; }
+            .games { gap: 6px; }
             .game-card { padding: 8px; }
-            .game-icon { font-size: 1.8rem; }
+            .game-icon { font-size: 1.6rem; }
             .game-name { font-size: 0.75rem; }
-            .game-type { font-size: 0.65rem; }
         }
 
         /* 触摸优化 */
@@ -59,60 +200,96 @@
     </style>
 </head>
 <body>
-    <h1>🎮 儿童编程游戏合集</h1>
-    <p class="subtitle">激发孩子编程学习兴趣的趣味游戏</p>
+    <!-- 浮动装饰 -->
+    <div class="floating-decor">⭐</div>
+    <div class="floating-decor">🌟</div>
+    <div class="floating-decor">✨</div>
+    <div class="floating-decor">💫</div>
+    <div class="floating-decor">🌈</div>
+
+    <div class="header">
+        <div class="mascot">🎈</div>
+        <h1>儿童游戏乐园</h1>
+        <p class="subtitle">🎮 好玩有趣的儿童游戏集合 🎮</p>
+    </div>
+
+    <!-- 新增：创意艺术类 -->
+    <div class="category">
+        <div class="category-title">🎨 创意艺术 (3)</div>
+        <div class="games">
+            <a href="创意艺术类/魔法画板.html" class="game-card"><span class="game-icon">🎨</span><div class="game-name">魔法画板</div><div class="game-type">创意绘画</div></a>
+            <a href="创意艺术类/换装小游戏.html" class="game-card"><span class="game-icon">👗</span><div class="game-name">换装小游戏</div><div class="game-type">搭配服装</div></a>
+            <a href="创意艺术类/积木搭建.html" class="game-card"><span class="game-icon">🏰</span><div class="game-name">积木搭建</div><div class="game-type">搭建建筑</div></a>
+        </div>
+    </div>
+
+    <!-- 新增：模拟体验类 -->
+    <div class="category">
+        <div class="category-title">🎢 模拟体验 (3)</div>
+        <div class="games">
+            <a href="模拟体验类/钓鱼达人.html" class="game-card"><span class="game-icon">🎣</span><div class="game-name">钓鱼达人</div><div class="game-type">欢乐钓鱼</div></a>
+            <a href="模拟体验类/小小厨神.html" class="game-card"><span class="game-icon">🍳</span><div class="game-name">小小厨神</div><div class="game-type">烹饪美食</div></a>
+            <a href="模拟体验类/恐龙乐园.html" class="game-card"><span class="game-icon">🦕</span><div class="game-name">恐龙乐园</div><div class="game-type">照顾恐龙</div></a>
+        </div>
+    </div>
+
+    <!-- 新增：运动竞技类 -->
+    <div class="category">
+        <div class="category-title">⚽ 运动竞技 (2)</div>
+        <div class="games">
+            <a href="运动竞技类/跑酷小英雄.html" class="game-card"><span class="game-icon">🏃</span><div class="game-name">跑酷小英雄</div><div class="game-type">躲避跑酷</div></a>
+            <a href="运动竞技类/投篮大赛.html" class="game-card"><span class="game-icon">🏀</span><div class="game-name">投篮大赛</div><div class="game-type">投篮挑战</div></a>
+        </div>
+    </div>
+
+    <!-- 新增：娱乐休闲类 -->
+    <div class="category">
+        <div class="category-title">🎪 娱乐休闲 (2)</div>
+        <div class="games">
+            <a href="娱乐休闲类/扭蛋机.html" class="game-card"><span class="game-icon">🎁</span><div class="game-name">扭蛋机</div><div class="game-type">收集扭蛋</div></a>
+            <a href="娱乐休闲类/幸运转盘.html" class="game-card"><span class="game-icon">🎡</span><div class="game-name">幸运转盘</div><div class="game-type">幸运抽奖</div></a>
+        </div>
+    </div>
 
     <!-- 益智类 -->
     <div class="category">
         <div class="category-title">🧩 益智类 (12)</div>
         <div class="games">
-            <a href="益智类/记忆配对.html" class="game-card"><div class="game-icon">🎴</div><div class="game-name">记忆配对</div><div class="game-type">翻牌找相同</div></a>
-            <a href="益智类/拼图游戏.html" class="game-card"><div class="game-icon">🧩</div><div class="game-name">拼图游戏</div><div class="game-type">移动拼图</div></a>
-            <a href="益智类/连连看.html" class="game-card"><div class="game-icon">🔗</div><div class="game-name">连连看</div><div class="game-type">图案配对</div></a>
-            <a href="益智类/24点.html" class="game-card"><div class="game-icon">🧮</div><div class="game-name">24点</div><div class="game-type">数学运算</div></a>
-            <a href="益智类/数字排序.html" class="game-card"><div class="game-icon">🔢</div><div class="game-name">数字排序</div><div class="game-type">从小到大排序</div></a>
-            <a href="益智类/猜数字.html" class="game-card"><div class="game-icon">🔢</div><div class="game-name">猜数字</div><div class="game-type">猜大小</div></a>
-            <a href="益智类/emoji消消乐.html" class="game-card"><div class="game-icon">💎</div><div class="game-name">宝石迷阵</div><div class="game-type">三消游戏</div></a>
-            <a href="益智类/汉诺塔.html" class="game-card"><div class="game-icon">🗼</div><div class="game-name">汉诺塔</div><div class="game-type">经典益智</div></a>
-            <a href="益智类/华容道.html" class="game-card"><div class="game-icon">🎯</div><div class="game-name">华容道</div><div class="game-type">三国经典</div></a>
-            <a href="益智类/扫雷.html" class="game-card"><div class="game-icon">💣</div><div class="game-name">扫雷</div><div class="game-type">经典扫雷</div></a>
-            <a href="益智类/停车场.html" class="game-card"><div class="game-icon">🚗</div><div class="game-name">停车场</div><div class="game-type">找对应位置</div></a>
-            <a href="益智类/平衡木.html" class="game-card"><div class="game-icon">🧱</div><div class="game-name">走迷宫</div><div class="game-type">路径规划</div></a>
+            <a href="益智类/记忆配对.html" class="game-card"><span class="game-icon">🎴</span><div class="game-name">记忆配对</div><div class="game-type">翻牌找相同</div></a>
+            <a href="益智类/拼图游戏.html" class="game-card"><span class="game-icon">🧩</span><div class="game-name">拼图游戏</div><div class="game-type">移动拼图</div></a>
+            <a href="益智类/连连看.html" class="game-card"><span class="game-icon">🔗</span><div class="game-name">连连看</div><div class="game-type">图案配对</div></a>
+            <a href="益智类/24点.html" class="game-card"><span class="game-icon">🧮</span><div class="game-name">24点</div><div class="game-type">数学运算</div></a>
+            <a href="益智类/数字排序.html" class="game-card"><span class="game-icon">🔢</span><div class="game-name">数字排序</div><div class="game-type">从小到大排序</div></a>
+            <a href="益智类/猜数字.html" class="game-card"><span class="game-icon">🎯</span><div class="game-name">猜数字</div><div class="game-type">猜大小</div></a>
+            <a href="益智类/emoji消消乐.html" class="game-card"><span class="game-icon">💎</span><div class="game-name">宝石迷阵</div><div class="game-type">三消游戏</div></a>
+            <a href="益智类/汉诺塔.html" class="game-card"><span class="game-icon">🗼</span><div class="game-name">汉诺塔</div><div class="game-type">经典益智</div></a>
+            <a href="益智类/华容道.html" class="game-card"><span class="game-icon">🎯</span><div class="game-name">华容道</div><div class="game-type">三国经典</div></a>
+            <a href="益智类/扫雷.html" class="game-card"><span class="game-icon">💣</span><div class="game-name">扫雷</div><div class="game-type">经典扫雷</div></a>
+            <a href="益智类/停车场.html" class="game-card"><span class="game-icon">🚗</span><div class="game-name">停车场</div><div class="game-type">找对应位置</div></a>
+            <a href="益智类/平衡木.html" class="game-card"><span class="game-icon">🧱</span><div class="game-name">走迷宫</div><div class="game-type">路径规划</div></a>
         </div>
     </div>
 
     <!-- 编程启蒙类 -->
     <div class="category">
-        <div class="category-title">🤖 编程启蒙类 (17)</div>
+        <div class="category-title">🤖 编程启蒙 (17)</div>
         <div class="games">
-            <a href="编程启蒙类/编程小火车.html" class="game-card"><div class="game-icon">🚂</div><div class="game-name">编程小火车</div><div class="game-type">规划路线</div></a>
-            <a href="编程启蒙类/机器人指令.html" class="game-card"><div class="game-icon">🤖</div><div class="game-name">机器人指令</div><div class="game-type">指令序列</div></a>
-            <a href="编程启蒙类/循环画板.html" class="game-card"><div class="game-icon">🎨</div><div class="game-name">循环画板</div><div class="game-type">循环画图</div></a>
-            <a href="编程启蒙类/迷宫探险.html" class="game-card"><div class="game-icon">🗺️</div><div class="game-name">迷宫探险</div><div class="game-type">路径规划</div></a>
-            <a href="编程启蒙类/指令排序.html" class="game-card"><div class="game-icon">📝</div><div class="game-name">指令排序</div><div class="game-type">逻辑排序</div></a>
-            <a href="编程启蒙类/条件小屋.html" class="game-card"><div class="game-icon">🏠</div><div class="game-name">条件小屋</div><div class="game-type">条件判断</div></a>
-            <a href="编程启蒙类/代码侦探.html" class="game-card"><div class="game-icon">🔍</div><div class="game-name">代码侦探</div><div class="game-type">找bug</div></a>
-            <a href="编程启蒙类/二进制农场.html" class="game-card"><div class="game-icon">🌾</div><div class="game-name">二进制农场</div><div class="game-type">二进制</div></a>
-            <a href="编程启蒙类/算法排序.html" class="game-card"><div class="game-icon">📊</div><div class="game-name">算法排序</div><div class="game-type">排序算法</div></a>
-            <a href="编程启蒙类/变量小仓库.html" class="game-card"><div class="game-icon">📦</div><div class="game-name">变量小仓库</div><div class="game-type">变量概念</div></a>
-            <a href="编程启蒙类/逻辑与或.html" class="game-card"><div class="game-icon">🔀</div><div class="game-name">逻辑与或</div><div class="game-type">逻辑运算</div></a>
-            <a href="编程启蒙类/循环挑战.html" class="game-card"><div class="game-icon">🔄</div><div class="game-name">循环挑战</div><div class="game-type">循环次数</div></a>
-            <a href="编程启蒙类/函数工厂.html" class="game-card"><div class="game-icon">🏭</div><div class="game-name">函数工厂</div><div class="game-type">函数概念</div></a>
-            <a href="编程启蒙类/可视化编程.html" class="game-card"><div class="game-icon">🧩</div><div class="game-name">可视化编程</div><div class="game-type">Scratch风</div></a>
-            <a href="编程启蒙类/算法可视化.html" class="game-card"><div class="game-icon">📈</div><div class="game-name">算法可视化</div><div class="game-type">高级算法</div></a>
-            <a href="编程启蒙类/代码执行器.html" class="game-card"><div class="game-icon">⚡</div><div class="game-name">代码执行器</div><div class="game-type">Python</div></a>
-        </div>
-    </div>
-
-    <!-- 街机类 -->
-    <div class="category">
-        <div class="category-title">🎮 街机类 (5)</div>
-        <div class="games">
-            <a href="街机类/贪吃蛇.html" class="game-card"><div class="game-icon">🐍</div><div class="game-name">贪吃蛇</div><div class="game-type">经典街机</div></a>
-            <a href="街机类/俄罗斯方块.html" class="game-card"><div class="game-icon">🧱</div><div class="game-name">俄罗斯方块</div><div class="game-type">方块消除</div></a>
-            <a href="街机类/打砖块.html" class="game-card"><div class="game-icon">🧱</div><div class="game-name">打砖块</div><div class="game-type">弹球击砖</div></a>
-            <a href="街机类/2048.html" class="game-card"><div class="game-icon">🔢</div><div class="game-name">2048</div><div class="game-type">数字合并</div></a>
-            <a href="街机类/挑战2048.html" class="game-card"><div class="game-icon">🧱</div><div class="game-name">堆塔游戏</div><div class="game-type">精准堆叠</div></a>
+            <a href="编程启蒙类/编程小火车.html" class="game-card"><span class="game-icon">🚂</span><div class="game-name">编程小火车</div><div class="game-type">规划路线</div></a>
+            <a href="编程启蒙类/机器人指令.html" class="game-card"><span class="game-icon">🤖</span><div class="game-name">机器人指令</div><div class="game-type">指令序列</div></a>
+            <a href="编程启蒙类/循环画板.html" class="game-card"><span class="game-icon">🎨</span><div class="game-name">循环画板</div><div class="game-type">循环画图</div></a>
+            <a href="编程启蒙类/迷宫探险.html" class="game-card"><span class="game-icon">🗺️</span><div class="game-name">迷宫探险</div><div class="game-type">路径规划</div></a>
+            <a href="编程启蒙类/指令排序.html" class="game-card"><span class="game-icon">📝</span><div class="game-name">指令排序</div><div class="game-type">逻辑排序</div></a>
+            <a href="编程启蒙类/条件小屋.html" class="game-card"><span class="game-icon">🏠</span><div class="game-name">条件小屋</div><div class="game-type">条件判断</div></a>
+            <a href="编程启蒙类/代码侦探.html" class="game-card"><span class="game-icon">🔍</span><div class="game-name">代码侦探</div><div class="game-type">找bug</div></a>
+            <a href="编程启蒙类/二进制农场.html" class="game-card"><span class="game-icon">🌾</span><div class="game-name">二进制农场</div><div class="game-type">二进制</div></a>
+            <a href="编程启蒙类/算法排序.html" class="game-card"><span class="game-icon">📊</span><div class="game-name">算法排序</div><div class="game-type">排序算法</div></a>
+            <a href="编程启蒙类/变量小仓库.html" class="game-card"><span class="game-icon">📦</span><div class="game-name">变量小仓库</div><div class="game-type">变量概念</div></a>
+            <a href="编程启蒙类/逻辑与或.html" class="game-card"><span class="game-icon">🔀</span><div class="game-name">逻辑与或</div><div class="game-type">逻辑运算</div></a>
+            <a href="编程启蒙类/循环挑战.html" class="game-card"><span class="game-icon">🔄</span><div class="game-name">循环挑战</div><div class="game-type">循环次数</div></a>
+            <a href="编程启蒙类/函数工厂.html" class="game-card"><span class="game-icon">🏭</span><div class="game-name">函数工厂</div><div class="game-type">函数概念</div></a>
+            <a href="编程启蒙类/可视化编程.html" class="game-card"><span class="game-icon">🧩</span><div class="game-name">可视化编程</div><div class="game-type">Scratch风</div></a>
+            <a href="编程启蒙类/算法可视化.html" class="game-card"><span class="game-icon">📈</span><div class="game-name">算法可视化</div><div class="game-type">高级算法</div></a>
+            <a href="编程启蒙类/代码执行器.html" class="game-card"><span class="game-icon">⚡</span><div class="game-name">代码执行器</div><div class="game-type">Python</div></a>
         </div>
     </div>
 
@@ -120,13 +297,25 @@
     <div class="category">
         <div class="category-title">⚡ 敏捷类 (7)</div>
         <div class="games">
-            <a href="敏捷类/接水果.html" class="game-card"><div class="game-icon">🍎</div><div class="game-name">接水果</div><div class="game-type">接住水果</div></a>
-            <a href="敏捷类/切水果.html" class="game-card"><div class="game-icon">🔪</div><div class="game-name">切水果</div><div class="game-type">挥刀切水果</div></a>
-            <a href="敏捷类/打地鼠.html" class="game-card"><div class="game-icon">🐹</div><div class="game-name">打地鼠</div><div class="game-type">敲打地鼠</div></a>
-            <a href="敏捷类/接鸡蛋.html" class="game-card"><div class="game-icon">🥚</div><div class="game-name">接鸡蛋</div><div class="game-type">用篮子接</div></a>
-            <a href="敏捷类/疯狂套牛.html" class="game-card"><div class="game-icon">🐄</div><div class="game-name">套牛游戏</div><div class="game-type">抛圈套牛</div></a>
-            <a href="敏捷类/见缝插针.html" class="game-card"><div class="game-icon">📍</div><div class="game-name">见缝插针</div><div class="game-type">精准插入</div></a>
-            <a href="敏捷类/测试反应.html" class="game-card"><div class="game-icon">⚡</div><div class="game-name">反应测试</div><div class="game-type">测试反应速度</div></a>
+            <a href="敏捷类/接水果.html" class="game-card"><span class="game-icon">🍎</span><div class="game-name">接水果</div><div class="game-type">接住水果</div></a>
+            <a href="敏捷类/切水果.html" class="game-card"><span class="game-icon">🔪</span><div class="game-name">切水果</div><div class="game-type">挥刀切水果</div></a>
+            <a href="敏捷类/打地鼠.html" class="game-card"><span class="game-icon">🐹</span><div class="game-name">打地鼠</div><div class="game-type">敲打地鼠</div></a>
+            <a href="敏捷类/接鸡蛋.html" class="game-card"><span class="game-icon">🥚</span><div class="game-name">接鸡蛋</div><div class="game-type">用篮子接</div></a>
+            <a href="敏捷类/疯狂套牛.html" class="game-card"><span class="game-icon">🐄</span><div class="game-name">套牛游戏</div><div class="game-type">抛圈套牛</div></a>
+            <a href="敏捷类/见缝插针.html" class="game-card"><span class="game-icon">📍</span><div class="game-name">见缝插针</div><div class="game-type">精准插入</div></a>
+            <a href="敏捷类/测试反应.html" class="game-card"><span class="game-icon">⚡</span><div class="game-name">反应测试</div><div class="game-type">测试反应</div></a>
+        </div>
+    </div>
+
+    <!-- 街机类 -->
+    <div class="category">
+        <div class="category-title">🎮 街机类 (5)</div>
+        <div class="games">
+            <a href="街机类/贪吃蛇.html" class="game-card"><span class="game-icon">🐍</span><div class="game-name">贪吃蛇</div><div class="game-type">经典街机</div></a>
+            <a href="街机类/俄罗斯方块.html" class="game-card"><span class="game-icon">🧱</span><div class="game-name">俄罗斯方块</div><div class="game-type">方块消除</div></a>
+            <a href="街机类/打砖块.html" class="game-card"><span class="game-icon">🧱</span><div class="game-name">打砖块</div><div class="game-type">弹球击砖</div></a>
+            <a href="街机类/2048.html" class="game-card"><span class="game-icon">🔢</span><div class="game-name">2048</div><div class="game-type">数字合并</div></a>
+            <a href="街机类/挑战2048.html" class="game-card"><span class="game-icon">🧱</span><div class="game-name">堆塔游戏</div><div class="game-type">精准堆叠</div></a>
         </div>
     </div>
 
@@ -134,22 +323,42 @@
     <div class="category">
         <div class="category-title">📚 知识类 (16)</div>
         <div class="games">
-            <a href="知识类/数学问答.html" class="game-card"><div class="game-icon">🧮</div><div class="game-name">数学问答</div><div class="game-type">答题闯关</div></a>
-            <a href="知识类/数学练习.html" class="game-card"><div class="game-icon">➕</div><div class="game-name">数学练习</div><div class="game-type">加减乘除</div></a>
-            <a href="知识类/拼音学习.html" class="game-card"><div class="game-icon">📖</div><div class="game-name">拼音学习</div><div class="game-type">拼音乐园</div></a>
-            <a href="知识类/英语单词.html" class="game-card"><div class="game-icon">🔤</div><div class="game-name">英语单词</div><div class="game-type">单词学习</div></a>
-            <a href="知识类/emoji猜谜.html" class="game-card"><div class="game-icon">🧩</div><div class="game-name">emoji猜谜</div><div class="game-type">看图猜答案</div></a>
-            <a href="知识类/单词速记.html" class="game-card"><div class="game-icon">📝</div><div class="game-name">单词速记</div><div class="game-type">英语单词</div></a>
-            <a href="知识类/打字练习.html" class="game-card"><div class="game-icon">⌨️</div><div class="game-name">打字练习</div><div class="game-type">英文打字</div></a>
-            <a href="知识类/找不同.html" class="game-card"><div class="game-icon">🔍</div><div class="game-name">找不同</div><div class="game-type">观察找茬</div></a>
-            <a href="知识类/SQL数据库.html" class="game-card"><div class="game-icon">🗄️</div><div class="game-name">SQL数据库</div><div class="game-type">数据库入门</div></a>
-            <a href="知识类/网络模拟器.html" class="game-card"><div class="game-icon">🌐</div><div class="game-name">网络模拟器</div><div class="game-type">互联网原理</div></a>
-            <a href="知识类/图形认知.html" class="game-card"><div class="game-icon">🔷</div><div class="game-name">图形认知</div><div class="game-type">认识形状</div></a>
-            <a href="知识类/时间认知.html" class="game-card"><div class="game-icon">🕐</div><div class="game-name">时间认知</div><div class="game-type">认识时钟</div></a>
-            <a href="知识类/汉字学习.html" class="game-card"><div class="game-icon">📖</div><div class="game-name">汉字学习</div><div class="game-type">汉字认知</div></a>
-            <a href="知识类/常识问答.html" class="game-card"><div class="game-icon">🧠</div><div class="game-name">常识问答</div><div class="game-type">科普知识</div></a>
-            <a href="知识类/历史问答.html" class="game-card"><div class="game-icon">📜</div><div class="game-name">历史问答</div><div class="game-type">古今历史</div></a>
-            <a href="知识类/地理问答.html" class="game-card"><div class="game-icon">🌍</div><div class="game-name">地理问答</div><div class="game-type">山川湖海</div></a>
+            <a href="知识类/数学问答.html" class="game-card"><span class="game-icon">🧮</span><div class="game-name">数学问答</div><div class="game-type">答题闯关</div></a>
+            <a href="知识类/数学练习.html" class="game-card"><span class="game-icon">➕</span><div class="game-name">数学练习</div><div class="game-type">加减乘除</div></a>
+            <a href="知识类/拼音学习.html" class="game-card"><span class="game-icon">📖</span><div class="game-name">拼音学习</div><div class="game-type">拼音乐园</div></a>
+            <a href="知识类/英语单词.html" class="game-card"><span class="game-icon">🔤</span><div class="game-name">英语单词</div><div class="game-type">单词学习</div></a>
+            <a href="知识类/emoji猜谜.html" class="game-card"><span class="game-icon">🧩</span><div class="game-name">emoji猜谜</div><div class="game-type">看图猜答案</div></a>
+            <a href="知识类/单词速记.html" class="game-card"><span class="game-icon">📝</span><div class="game-name">单词速记</div><div class="game-type">英语单词</div></a>
+            <a href="知识类/打字练习.html" class="game-card"><span class="game-icon">⌨️</span><div class="game-name">打字练习</div><div class="game-type">英文打字</div></a>
+            <a href="知识类/找不同.html" class="game-card"><span class="game-icon">🔍</span><div class="game-name">找不同</div><div class="game-type">观察找茬</div></a>
+            <a href="知识类/SQL数据库.html" class="game-card"><span class="game-icon">🗄️</span><div class="game-name">SQL数据库</div><div class="game-type">数据库入门</div></a>
+            <a href="知识类/网络模拟器.html" class="game-card"><span class="game-icon">🌐</span><div class="game-name">网络模拟器</div><div class="game-type">互联网原理</div></a>
+            <a href="知识类/图形认知.html" class="game-card"><span class="game-icon">🔷</span><div class="game-name">图形认知</div><div class="game-type">认识形状</div></a>
+            <a href="知识类/时间认知.html" class="game-card"><span class="game-icon">🕐</span><div class="game-name">时间认知</div><div class="game-type">认识时钟</div></a>
+            <a href="知识类/汉字学习.html" class="game-card"><span class="game-icon">📖</span><div class="game-name">汉字学习</div><div class="game-type">汉字认知</div></a>
+            <a href="知识类/常识问答.html" class="game-card"><span class="game-icon">🧠</span><div class="game-name">常识问答</div><div class="game-type">科普知识</div></a>
+            <a href="知识类/历史问答.html" class="game-card"><span class="game-icon">📜</span><div class="game-name">历史问答</div><div class="game-type">古今历史</div></a>
+            <a href="知识类/地理问答.html" class="game-card"><span class="game-icon">🌍</span><div class="game-name">地理问答</div><div class="game-type">山川湖海</div></a>
+        </div>
+    </div>
+
+    <!-- 模拟经营 -->
+    <div class="category">
+        <div class="category-title">🏠 模拟经营 (3)</div>
+        <div class="games">
+            <a href="模拟经营/小小农场.html" class="game-card"><span class="game-icon">🌾</span><div class="game-name">小小农场</div><div class="game-type">种植收获</div></a>
+            <a href="模拟经营/小小餐厅.html" class="game-card"><span class="game-icon">🍽️</span><div class="game-name">小小餐厅</div><div class="game-type">经营餐厅</div></a>
+            <a href="模拟经营/宠物养成.html" class="game-card"><span class="game-icon">🐾</span><div class="game-name">宠物养成</div><div class="game-type">养宠物</div></a>
+        </div>
+    </div>
+
+    <!-- RPG冒险 -->
+    <div class="category">
+        <div class="category-title">⚔️ RPG冒险 (3)</div>
+        <div class="games">
+            <a href="RPG冒险/地下城探险.html" class="game-card"><span class="game-icon">🧙</span><div class="game-name">地下城探险</div><div class="game-type">打怪升级</div></a>
+            <a href="RPG冒险/仙剑奇侠.html" class="game-card"><span class="game-icon">⚔️</span><div class="game-name">仙剑奇侠</div><div class="game-type">仙侠冒险</div></a>
+            <a href="RPG冒险/勇者冒险.html" class="game-card"><span class="game-icon">🏰</span><div class="game-name">勇者冒险</div><div class="game-type">迷宫探索</div></a>
         </div>
     </div>
 
@@ -157,78 +366,8 @@
     <div class="category">
         <div class="category-title">♟️ 棋类 (2)</div>
         <div class="games">
-            <a href="棋类/井字棋.html" class="game-card"><div class="game-icon">⭕</div><div class="game-name">井字棋</div><div class="game-type">三子连珠</div></a>
-            <a href="棋类/五子棋.html" class="game-card"><div class="game-icon">♟️</div><div class="game-name">五子棋</div><div class="game-type">黑白棋</div></a>
-        </div>
-    </div>
-
-    <!-- 记忆类 -->
-    <div class="category">
-        <div class="category-title">🎨 记忆类 (2)</div>
-        <div class="games">
-            <a href="记忆类/颜色记忆.html" class="game-card"><div class="game-icon">🎨</div><div class="game-name">颜色记忆</div><div class="game-type">记住顺序</div></a>
-            <a href="记忆类/迷宫探险.html" class="game-card"><div class="game-icon">🗺️</div><div class="game-name">迷宫探险</div><div class="game-type">走出迷宫</div></a>
-        </div>
-    </div>
-
-    <!-- 射击类 -->
-    <div class="category">
-        <div class="category-title">✈️ 射击类 (1)</div>
-        <div class="games">
-            <a href="射击类/飞行射击.html" class="game-card"><div class="game-icon">✈️</div><div class="game-name">飞行射击</div><div class="game-type">战斗机游戏</div></a>
-        </div>
-    </div>
-
-    <!-- 运气类 -->
-    <div class="category">
-        <div class="category-title">🎰 运气类 (2)</div>
-        <div class="games">
-            <a href="运气类/翻牌21点.html" class="game-card"><div class="game-icon">🃏</div><div class="game-name">21点</div><div class="game-type">纸牌游戏</div></a>
-            <a href="运气类/抽卡比大小.html" class="game-card"><div class="game-icon">🎴</div><div class="game-name">抽卡比大小</div><div class="game-type">比大小</div></a>
-        </div>
-    </div>
-
-    <!-- 模拟经营类 -->
-    <div class="category">
-        <div class="category-title">🏠 模拟经营 (3)</div>
-        <div class="games">
-            <a href="模拟经营/小小农场.html" class="game-card"><div class="game-icon">🌾</div><div class="game-name">小小农场</div><div class="game-type">种植收获</div></a>
-            <a href="模拟经营/小小餐厅.html" class="game-card"><div class="game-icon">🍽️</div><div class="game-name">小小餐厅</div><div class="game-type">经营餐厅</div></a>
-            <a href="模拟经营/宠物养成.html" class="game-card"><div class="game-icon">🐾</div><div class="game-name">宠物养成</div><div class="game-type">养宠物</div></a>
-        </div>
-    </div>
-
-    <!-- 策略塔防类 -->
-    <div class="category">
-        <div class="category-title">🏰 策略塔防 (1)</div>
-        <div class="games">
-            <a href="策略塔防/塔防小阵地.html" class="game-card"><div class="game-icon">🏹</div><div class="game-name">塔防小阵地</div><div class="game-type">塔防游戏</div></a>
-        </div>
-    </div>
-
-    <!-- 放置挂机类 -->
-    <div class="category">
-        <div class="category-title">⏰ 放置挂机 (1)</div>
-        <div class="games">
-            <a href="放置挂机/放置矿工.html" class="game-card"><div class="game-icon">⛏️</div><div class="game-name">放置矿工</div><div class="game-type">挂机游戏</div></a>
-        </div>
-    </div>
-
-    <!-- 卡牌收集类 -->
-    <div class="category">
-        <div class="category-title">🃏 卡牌收集 (1)</div>
-        <div class="games">
-            <a href="卡牌收集/卡牌收集.html" class="game-card"><div class="game-icon">🎁</div><div class="game-name">卡牌收集</div><div class="game-type">抽卡养成</div></a>
-        </div>
-    </div>
-
-    <!-- RPG冒险类 -->
-    <div class="category">
-        <div class="category-title">⚔️ RPG冒险 (3)</div>
-        <div class="games">
-            <a href="RPG冒险/地下城探险.html" class="game-card"><div class="game-icon">🧙</div><div class="game-name">地下城探险</div><div class="game-type">打怪升级</div></a>
-            <a href="RPG冒险/仙剑奇侠.html" class="game-card"><div class="game-icon">⚔️</div><div class="game-name">仙剑奇侠</div><div class="game-type">仙侠冒险</div></a>
-            <a href="RPG冒险/勇者冒险.html" class="game-card"><div class="game-icon">🏰</div><div class="game-name">勇者冒险</div><div class="game-type">迷宫探索</div></a>
+            <a href="棋类/井字棋.html" class="game-card"><span class="game-icon">⭕</span><div class="game-name">井字棋</div><div class="game-type">三子连珠</div></a>
+            <a href="棋类/五子棋.html" class="game-card"><span class="game-icon">♟️</span><div class="game-name">五子棋</div><div class="game-type">黑白棋</div></a>
         </div>
     </div>
 
@@ -236,10 +375,60 @@
     <div class="category">
         <div class="category-title">🎵 音乐类 (1)</div>
         <div class="games">
-            <a href="音乐类/钢琴.html" class="game-card"><div class="game-icon">🎹</div><div class="game-name">小小钢琴</div><div class="game-type">弹奏乐曲</div></a>
+            <a href="音乐类/钢琴.html" class="game-card"><span class="game-icon">🎹</span><div class="game-name">小小钢琴</div><div class="game-type">弹奏乐曲</div></a>
         </div>
     </div>
 
-    <p class="total">共 72 个游戏 | 直接点击即可开始游戏</p>
+    <!-- 射击类 -->
+    <div class="category">
+        <div class="category-title">✈️ 射击类 (1)</div>
+        <div class="games">
+            <a href="射击类/飞行射击.html" class="game-card"><span class="game-icon">✈️</span><div class="game-name">飞行射击</div><div class="game-type">战斗机游戏</div></a>
+        </div>
+    </div>
+
+    <!-- 运气类 -->
+    <div class="category">
+        <div class="category-title">🎰 运气类 (2)</div>
+        <div class="games">
+            <a href="运气类/翻牌21点.html" class="game-card"><span class="game-icon">🃏</span><div class="game-name">21点</div><div class="game-type">纸牌游戏</div></a>
+            <a href="运气类/抽卡比大小.html" class="game-card"><span class="game-icon">🎴</span><div class="game-name">抽卡比大小</div><div class="game-type">比大小</div></a>
+        </div>
+    </div>
+
+    <!-- 策略塔防 -->
+    <div class="category">
+        <div class="category-title">🏰 策略塔防 (1)</div>
+        <div class="games">
+            <a href="策略塔防/塔防小阵地.html" class="game-card"><span class="game-icon">🏹</span><div class="game-name">塔防小阵地</div><div class="game-type">塔防游戏</div></a>
+        </div>
+    </div>
+
+    <!-- 放置挂机 -->
+    <div class="category">
+        <div class="category-title">⏰ 放置挂机 (1)</div>
+        <div class="games">
+            <a href="放置挂机/放置矿工.html" class="game-card"><span class="game-icon">⛏️</span><div class="game-name">放置矿工</div><div class="game-type">挂机游戏</div></a>
+        </div>
+    </div>
+
+    <!-- 卡牌收集 -->
+    <div class="category">
+        <div class="category-title">🃏 卡牌收集 (1)</div>
+        <div class="games">
+            <a href="卡牌收集/卡牌收集.html" class="game-card"><span class="game-icon">🎁</span><div class="game-name">卡牌收集</div><div class="game-type">抽卡养成</div></a>
+        </div>
+    </div>
+
+    <!-- 记忆类 -->
+    <div class="category">
+        <div class="category-title">🎨 记忆类 (2)</div>
+        <div class="games">
+            <a href="记忆类/颜色记忆.html" class="game-card"><span class="game-icon">🎨</span><div class="game-name">颜色记忆</div><div class="game-type">记住顺序</div></a>
+            <a href="记忆类/迷宫探险.html" class="game-card"><span class="game-icon">🗺️</span><div class="game-name">迷宫探险</div><div class="game-type">走出迷宫</div></a>
+        </div>
+    </div>
+
+    <p class="total">🎉 共 90 个游戏 🎉</p>
 </body>
 </html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>积木搭建</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+        .game-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .blocks-palette {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+
+        .palette-title {
+            font-size: 1rem;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .blocks-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .block {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            user-select: none;
+        }
+        .block:hover { transform: scale(1.1); }
+        .block:active { cursor: grabbing; }
+
+        .block.red { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .block.blue { background: linear-gradient(135deg, #48dbfb, #0abde3); }
+        .block.green { background: linear-gradient(135deg, #1dd1a1, #10ac84); }
+        .block.yellow { background: linear-gradient(135deg, #feca57, #f39c12); }
+        .block.purple { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
+        .block.orange { background: linear-gradient(135deg, #fab1a0, #e17055); }
+
+        .building-area {
+            position: relative;
+            width: 300px;
+            height: 350px;
+            background: linear-gradient(180deg, #87ceeb 60%, #90EE90 60%);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(180deg, #90EE90, #228B22);
+            border-radius: 0 0 20px 20px;
+        }
+
+        .placed-block {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            cursor: grab;
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+        .placed-block:hover { transform: scale(1.05); }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .ctrl-btn:active { transform: scale(0.95); }
+        .clear-btn { background: #ff6b6b; color: #fff; }
+        .undo-btn { background: #feca57; color: #333; }
+
+        .tips {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.4rem; }
+            .building-area { width: 280px; height: 320px; }
+            .block { width: 40px; height: 40px; font-size: 1.4rem; }
+            .placed-block { width: 40px; height: 40px; font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🏰 积木搭建</h1>
+
+    <div class="game-container">
+        <div class="blocks-palette">
+            <div class="palette-title">选择积木</div>
+            <div class="blocks-row">
+                <div class="block red" draggable="true" data-type="red">🟥</div>
+                <div class="block blue" draggable="true" data-type="blue">🟦</div>
+                <div class="block green" draggable="true" data-type="green">🟩</div>
+                <div class="block yellow" draggable="true" data-type="yellow">🟨</div>
+                <div class="block purple" draggable="true" data-type="purple">🟪</div>
+                <div class="block orange" draggable="true" data-type="orange">🟧</div>
+            </div>
+            <div class="palette-title" style="margin-top:10px;">特殊积木</div>
+            <div class="blocks-row">
+                <div class="block" draggable="true" data-type="tree">🌲</div>
+                <div class="block" draggable="true" data-type="flower">🌸</div>
+                <div class="block" draggable="true" data-type="star">⭐</div>
+                <div class="block" draggable="true" data-type="heart">❤️</div>
+            </div>
+        </div>
+
+        <div class="building-area" id="buildingArea">
+            <div class="ground"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="ctrl-btn clear-btn" onclick="clearBuilding()">🗑️ 清除</button>
+        <button class="ctrl-btn undo-btn" onclick="undoBlock()">↩️ 撤销</button>
+    </div>
+
+    <div class="tips">💡 拖拽积木到上方区域搭建，可以叠放在一起！</div>
+
+    <script>
+        const buildingArea = document.getElementById('buildingArea');
+        let placedBlocks = [];
+        let draggedType = null;
+        let draggedElement = null;
+
+        // 拖拽事件
+        document.querySelectorAll('.block').forEach(block => {
+            block.addEventListener('dragstart', (e) => {
+                draggedType = block.dataset.type;
+                draggedElement = block;
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+
+        // 放置区域事件
+        buildingArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        buildingArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const rect = buildingArea.getBoundingClientRect();
+            const x = e.clientX - rect.left - 25;
+            const y = e.clientY - rect.top - 25;
+
+            if (y < rect.height - 60) { // 不超过地面
+                placeBlock(x, y, draggedType);
+            }
+        });
+
+        // 触摸支持
+        let touchDragType = null;
+        document.querySelectorAll('.block').forEach(block => {
+            block.addEventListener('touchstart', (e) => {
+                touchDragType = block.dataset.type;
+            });
+        });
+
+        buildingArea.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        buildingArea.addEventListener('touchend', (e) => {
+            if (touchDragType) {
+                const rect = buildingArea.getBoundingClientRect();
+                const touch = e.changedTouches[0];
+                const x = touch.clientX - rect.left - 25;
+                const y = touch.clientY - rect.top - 25;
+
+                if (y < rect.height - 60 && y > 0 && x > 0 && x < rect.width - 50) {
+                    placeBlock(x, y, touchDragType);
+                }
+                touchDragType = null;
+            }
+        });
+
+        function placeBlock(x, y, type) {
+            const block = document.createElement('div');
+            block.className = `placed-block ${type}`;
+            block.style.left = x + 'px';
+            block.style.top = y + 'px';
+
+            const emojis = {
+                red: '🟥', blue: '🟦', green: '🟩', yellow: '🟨', purple: '🟪', orange: '🟧',
+                tree: '🌲', flower: '🌸', star: '⭐', heart: '❤️'
+            };
+            block.textContent = emojis[type] || '🟥';
+
+            // 删除功能
+            block.addEventListener('dblclick', () => {
+                block.remove();
+                placedBlocks = placedBlocks.filter(b => b.element !== block);
+            });
+
+            buildingArea.appendChild(block);
+            placedBlocks.push({ type, element: block });
+        }
+
+        function clearBuilding() {
+            placedBlocks.forEach(b => b.element.remove());
+            placedBlocks = [];
+        }
+
+        function undoBlock() {
+            if (placedBlocks.length > 0) {
+                const last = placedBlocks.pop();
+                last.element.remove();
+            }
+        }
+    </script>
+</body>
+</html>

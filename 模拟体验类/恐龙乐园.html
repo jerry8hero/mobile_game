@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恐龙乐园</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #55efc4 0%, #81ecec 50%, #74b9ff 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        h1 { color: #00b894; font-size: 1.8rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); }
+
+        .info-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .game-area {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .park {
+            position: relative;
+            width: 320px;
+            height: 380px;
+            background: linear-gradient(180deg, #87CEEB 0%, #55efc4 40%, #00b894 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(180deg, #55efc4, #00b894);
+            border-radius: 0 0 20px 20px;
+        }
+
+        .dino {
+            position: absolute;
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            animation: dinoBounce 2s ease-in-out infinite;
+        }
+        @keyframes dinoBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .dino:hover { transform: scale(1.2); }
+
+        .dino-stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            z-index: 20;
+        }
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 3px 0;
+        }
+        .stat-bar {
+            width: 60px;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .stat-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .stat-fill.hunger { background: #ff6b6b; }
+        .stat-fill.happiness { background: #feca57; }
+        .stat-fill.energy { background: #48dbfb; }
+
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+        .action-btn:hover { transform: scale(1.1); }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .food-panel {
+            display: none;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+        }
+        .food-panel.show { display: block; }
+
+        .dino-collection {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+            max-width: 350px;
+        }
+        .dino-item {
+            font-size: 1.5rem;
+            animation: pop 0.3s ease;
+        }
+        @keyframes pop {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.4rem; }
+            .park { width: 280px; height: 340px; }
+            .dino { font-size: 2.5rem; }
+            .action-btn { padding: 10px 14px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🦕 恐龙乐园</h1>
+
+    <div class="info-bar">
+        <div class="info-item">⭐ 等级: <span id="level">1</span></div>
+        <div class="info-item">💎 经验: <span id="exp">0</span>/100</div>
+    </div>
+
+    <div class="game-area">
+        <div class="park">
+            <div class="ground"></div>
+            <div class="dino-stats">
+                <div class="stat-row">
+                    <span>🍖</span>
+                    <div class="stat-bar"><div class="stat-fill hunger" id="hungerBar" style="width: 80%"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>😊</span>
+                    <div class="stat-bar"><div class="stat-fill happiness" id="happinessBar" style="width: 80%"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>⚡</span>
+                    <div class="stat-bar"><div class="stat-fill energy" id="energyBar" style="width: 80%"></div></div>
+                </div>
+            </div>
+            <div class="dino" id="dino" onclick="petDino()">🦖</div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="panel-title">照顾恐龙</div>
+            <div class="action-row">
+                <button class="action-btn" onclick="showFood()" title="喂食">🍖</button>
+                <button class="action-btn" onclick="playWithDino()" title="玩耍">🎾</button>
+                <button class="action-btn" onclick="letDinoSleep()" title="睡觉">😴</button>
+                <button class="action-btn" onclick="petDino()" title="抚摸">❤️</button>
+            </div>
+
+            <div class="food-panel" id="foodPanel">
+                <div class="panel-title">选择食物</div>
+                <div class="action-row">
+                    <button class="action-btn" onclick="feed('🥩')">🥩</button>
+                    <button class="action-btn" onclick="feed('🍖')">🍖</button>
+                    <button class="action-btn" onclick="feed('🌿')">🌿</button>
+                    <button class="action-btn" onclick="feed('🍎')">🍎</button>
+                    <button class="action-btn" onclick="feed('🥚')">🥚</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dino-collection" id="dinoCollection">
+        <span style="font-size: 0.8rem; width: 100%; text-align: center; color: #666;">恐龙图鉴：</span>
+    </div>
+
+    <script>
+        const dino = document.getElementById('dino');
+        const foodPanel = document.getElementById('foodPanel');
+
+        // 恐龙属性
+        let stats = {
+            hunger: 80,    // 饥饿度
+            happiness: 80,  // 快乐度
+            energy: 80     // 精力
+        };
+
+        // 经验等级
+        let level = 1;
+        let exp = 0;
+
+        // 恐龙外观
+        const dinos = ['🦖', '🦕', '🐲', '🐉'];
+        let unlockedDinos = new Set(['🦖']);
+
+        // 随机事件
+        const randomEvents = [
+            { text: '恐龙发现了一个惊喜蛋！', emoji: '🥚', exp: 20 },
+            { text: '恐龙学会了新技能！', emoji: '⭐', exp: 15 },
+            { text: '恐龙遇到了朋友！', emoji: '🦕', exp: 10 },
+        ];
+
+        // 属性自动下降
+        setInterval(() => {
+            stats.hunger = Math.max(0, stats.hunger - 2);
+            stats.happiness = Math.max(0, stats.happiness - 1);
+            stats.energy = Math.max(0, stats.energy - 1);
+            updateStats();
+
+            // 检查是否需要特殊照顾
+            if (stats.hunger < 20) {
+                dino.textContent = '😫';
+                dino.style.animation = 'none';
+            } else if (stats.happiness < 20) {
+                dino.textContent = '😢';
+            } else {
+                dino.textContent = '🦖';
+                dino.style.animation = 'dinoBounce 2s ease-in-out infinite';
+            }
+        }, 5000);
+
+        function updateStats() {
+            document.getElementById('hungerBar').style.width = stats.hunger + '%';
+            document.getElementById('happinessBar').style.width = stats.happiness + '%';
+            document.getElementById('energyBar').style.width = stats.energy + '%';
+        }
+
+        function addExp(amount) {
+            exp += amount;
+            if (exp >= 100) {
+                level++;
+                exp = exp - 100;
+                document.getElementById('level').textContent = level;
+                alert(`🎉 升级了！现在是 ${level} 级！`);
+
+                // 随机解锁新恐龙
+                const newDino = dinos[Math.floor(Math.random() * dinos.length)];
+                if (!unlockedDinos.has(newDino)) {
+                    unlockedDinos.add(newDino);
+                    dino.textContent = newDino;
+                    const collection = document.getElementById('dinoCollection');
+                    const item = document.createElement('span');
+                    item.className = 'dino-item';
+                    item.textContent = newDino;
+                    item.title = getDinoName(newDino);
+                    collection.appendChild(item);
+                    alert(`🎁 解锁新恐龙: ${newDino} ${getDinoName(newDino)}！`);
+                }
+            }
+            document.getElementById('exp').textContent = exp;
+        }
+
+        function getDinoName(emoji) {
+            const names = { '🦖': '霸王龙', '🦕': '腕龙', '🐲': '青龙', '🐉': '火龙' };
+            return names[emoji] || '恐龙';
+        }
+
+        function showFood() {
+            foodPanel.classList.toggle('show');
+        }
+
+        function feed(food) {
+            if (stats.hunger >= 100) {
+                alert('恐龙已经饱了！');
+                return;
+            }
+            stats.hunger = Math.min(100, stats.hunger + 20);
+            updateStats();
+            showAction('😋 好吃！', food);
+            addExp(10);
+            foodPanel.classList.remove('show');
+        }
+
+        function playWithDino() {
+            if (stats.energy < 20) {
+                alert('恐龙太累了，让它休息一下吧！');
+                return;
+            }
+            stats.happiness = Math.min(100, stats.happiness + 25);
+            stats.energy = Math.max(0, stats.energy - 15);
+            updateStats();
+            showAction('🎾 好玩！', '🎾');
+            addExp(15);
+        }
+
+        function letDinoSleep() {
+            stats.energy = Math.min(100, stats.energy + 40);
+            stats.hunger = Math.max(0, stats.hunger - 10);
+            updateStats();
+            showAction('😴 晚安...', '💤');
+            addExp(5);
+        }
+
+        function petDino() {
+            stats.happiness = Math.min(100, stats.happiness + 15);
+            updateStats();
+            showAction('❤️ 喜欢你！', '❤️');
+            addExp(10);
+
+            // 随机事件
+            if (Math.random() < 0.2) {
+                const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                setTimeout(() => {
+                    alert(event.text);
+                    addExp(event.exp);
+                }, 1000);
+            }
+        }
+
+        function showAction(text, emoji) {
+            const action = document.createElement('div');
+            action.style.cssText = `
+                position: absolute;
+                font-size: 2rem;
+                animation: floatUp 1s ease forwards;
+                z-index: 100;
+                pointer-events: none;
+            `;
+            action.textContent = emoji;
+
+            const rect = dino.getBoundingClientRect();
+            action.style.left = rect.left + 'px';
+            action.style.top = rect.top + 'px';
+
+            document.body.appendChild(action);
+            setTimeout(() => action.remove(), 1000);
+        }
+
+        // 添加浮动动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes floatUp {
+                0% { transform: translateY(0); opacity: 1; }
+                100% { transform: translateY(-50px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 初始化图鉴
+        const collection = document.getElementById('dinoCollection');
+        unlockedDinos.forEach(d => {
+            const item = document.createElement('span');
+            item.className = 'dino-item';
+            item.textContent = d;
+            item.title = getDinoName(d);
+            collection.appendChild(item);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运转盘</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 50%, #f39c12 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        h1 { color: #d63031; font-size: 1.8rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transition: transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            left: 0;
+            top: 0;
+            clip-path: polygon(0 100%, 100% 0, 100% 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wheel-segment span {
+            position: absolute;
+            transform: rotate(45deg) translate(30px, 30px);
+            font-size: 1.8rem;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            z-index: 10;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+            animation: pointerBounce 1s ease-in-out infinite;
+        }
+        @keyframes pointerBounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        .spin-btn {
+            margin-top: 25px;
+            padding: 18px 50px;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #d63031, #e17055);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(214,48,49,0.4);
+            transition: transform 0.2s;
+        }
+        .spin-btn:hover { transform: scale(1.05); }
+        .spin-btn:active { transform: scale(0.95); }
+        .spin-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #d63031, #b71c1c);
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .prizes-list {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            max-width: 350px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 20px;
+        }
+        .prize-item {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #fff, #f5f5f5);
+            padding: 30px 40px;
+            border-radius: 30px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            display: none;
+        }
+        .result-popup.show {
+            display: block;
+            animation: resultShow 0.5s ease forwards;
+        }
+        @keyframes resultShow {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        .result-popup h2 {
+            color: #d63031;
+            margin-bottom: 10px;
+        }
+        .result-popup .emoji {
+            font-size: 4rem;
+            margin: 15px 0;
+        }
+        .result-popup .prize-name {
+            font-size: 1.3rem;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .result-popup button {
+            padding: 12px 30px;
+            background: #d63031;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        .overlay.show { display: block; }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.4rem; }
+            .wheel-container { width: 280px; height: 280px; }
+            .spin-btn { padding: 15px 40px; font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎡 幸运转盘</h1>
+
+    <div class="info-bar">
+        <div class="info-item">🎯 次数: <span id="spins">5</span></div>
+        <div class="info-item">⭐ 得分: <span id="score">0</span></div>
+    </div>
+
+    <div class="wheel-container">
+        <div class="pointer">🔻</div>
+        <div class="wheel" id="wheel">
+            <div class="wheel-segment" style="background: #ff6b6b; transform: rotate(0deg);">
+                <span>🎁</span>
+            </div>
+            <div class="wheel-segment" style="background: #feca57; transform: rotate(45deg);">
+                <span>⭐</span>
+            </div>
+            <div class="wheel-segment" style="background: #48dbfb; transform: rotate(90deg);">
+                <span>💎</span>
+            </div>
+            <div class="wheel-segment" style="background: #1dd1a1; transform: rotate(135deg);">
+                <span>🎀</span>
+            </div>
+            <div class="wheel-segment" style="background: #ff9ff3; transform: rotate(180deg);">
+                <span>🎈</span>
+            </div>
+            <div class="wheel-segment" style="background: #a29bfe; transform: rotate(225deg);">
+                <span>🌟</span>
+            </div>
+            <div class="wheel-segment" style="background: #fd79a8; transform: rotate(270deg);">
+                <span>🎉</span>
+            </div>
+            <div class="wheel-segment" style="background: #fab1a0; transform: rotate(315deg);">
+                <span>🎊</span>
+            </div>
+        </div>
+        <div class="center-circle">?</div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn" onclick="spin()">🎰 开始抽奖</button>
+
+    <div class="prizes-list">
+        <div class="prize-item">🎁 神秘礼包 x1</div>
+        <div class="prize-item">⭐ 星星 x5</div>
+        <div class="prize-item">💎 钻石 x3</div>
+        <div class="prize-item">🎀 蝴蝶结</div>
+        <div class="prize-item">🎈 气球</div>
+        <div class="prize-item">🌟 幸运星</div>
+        <div class="prize-item">🎉 彩带</div>
+        <div class="prize-item">🎊 彩球</div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeResult()"></div>
+    <div class="result-popup" id="resultPopup">
+        <h2>🎉 恭喜!</h2>
+        <div class="emoji" id="resultEmoji">🎁</div>
+        <div class="prize-name" id="resultName">神秘礼包</div>
+        <button onclick="closeResult()">确定</button>
+    </div>
+
+    <script>
+        const prizes = [
+            { emoji: '🎁', name: '神秘礼包 x1', points: 50 },
+            { emoji: '⭐', name: '星星 x5', points: 30 },
+            { emoji: '💎', name: '钻石 x3', points: 40 },
+            { emoji: '🎀', name: '蝴蝶结', points: 20 },
+            { emoji: '🎈', name: '气球', points: 15 },
+            { emoji: '🌟', name: '幸运星', points: 25 },
+            { emoji: '🎉', name: '彩带', points: 10 },
+            { emoji: '🎊', name: '彩球', points: 10 },
+        ];
+
+        let spins = 5;
+        let score = 0;
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+
+        function spin() {
+            if (isSpinning || spins <= 0) {
+                if (spins <= 0) alert('抽奖次数用完了！');
+                return;
+            }
+
+            isSpinning = true;
+            spins--;
+            document.getElementById('spins').textContent = spins;
+            spinBtn.disabled = true;
+
+            // 随机旋转角度
+            const prizeIndex = Math.floor(Math.random() * prizes.length);
+            const segmentAngle = 360 / 8;
+            const targetAngle = 360 * 5 + (360 - prizeIndex * segmentAngle - segmentAngle / 2);
+            currentRotation += targetAngle;
+
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            // 动画结束后显示结果
+            setTimeout(() => {
+                const prize = prizes[prizeIndex];
+                score += prize.points;
+                document.getElementById('score').textContent = score;
+
+                document.getElementById('resultEmoji').textContent = prize.emoji;
+                document.getElementById('resultName').textContent = prize.name;
+                document.getElementById('overlay').classList.add('show');
+                document.getElementById('resultPopup').classList.add('show');
+
+                isSpinning = false;
+                if (spins > 0) {
+                    spinBtn.disabled = false;
+                } else {
+                    spinBtn.textContent = '🔚 次数用完';
+                }
+            }, 5000);
+        }
+
+        function closeResult() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('resultPopup').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
