@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点球大战</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .score-board {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .score-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .score-box span {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .vs {
+            color: #f39c12;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .game-container {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #f39c12;
+        }
+
+        #gameCanvas {
+            display: block;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #27ae60 0%, #2ecc71 30%, #82e0aa 100%);
+            cursor: crosshair;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .control-hint {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .btn-restart {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(243, 156, 18, 0.4);
+        }
+
+        .message-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .message-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #f39c12;
+        }
+
+        .message-content h2 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .message-content p {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .goal { color: #2ecc71; }
+        .miss { color: #e74c3c; }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* PC端 */
+        @media (min-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            #gameCanvas { width: 500px; height: 350px; }
+        }
+
+        /* 移动端 */
+        @media (max-width: 767px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.5rem; margin-bottom: 10px; }
+            .info-bar { gap: 15px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+            .info-item { padding: 6px 12px; font-size: 0.85rem; }
+            .game-container { padding: 10px; }
+            #gameCanvas { width: 320px; height: 250px; }
+            .control-hint { font-size: 0.8rem; margin-bottom: 10px; }
+            .btn-restart { padding: 10px 20px; font-size: 0.9rem; }
+            .score-box span { font-size: 1.5rem; }
+        }
+
+        /* 超小屏幕 */
+        @media (max-width: 380px) {
+            #gameCanvas { width: 280px; height: 220px; }
+            h1 { font-size: 1.2rem; }
+            .info-item { padding: 5px 10px; font-size: 0.75rem; }
+        }
+
+        /* 触摸优化 */
+        .btn-restart {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚽ 点球大战</h1>
+
+    <div class="info-bar">
+        <div class="score-board">
+            <div class="score-box">
+                <div style="font-size: 0.8rem; color: #aaa;">你</div>
+                <span id="playerScore" style="color: #2ecc71;">0</span>
+            </div>
+            <div class="vs">VS</div>
+            <div class="score-box">
+                <div style="font-size: 0.8rem; color: #aaa;">电脑</div>
+                <span id="cpuScore" style="color: #e74c3c;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-bar">
+        <div class="info-item">回合: <span id="round">1</span>/5</div>
+        <div class="info-item" id="turnIndicator">🗣️ 你的射门</div>
+    </div>
+
+    <div class="game-container">
+        <canvas id="gameCanvas" width="500" height="350"></canvas>
+    </div>
+
+    <div class="controls">
+        <p class="control-hint">点击球门区域射门 / 守门</p>
+        <button class="btn-restart" onclick="initGame()">🔄 重新开始</button>
+    </div>
+
+    <div class="message-overlay" id="messageOverlay">
+        <div class="message-content">
+            <h2 id="messageTitle">GOAL!</h2>
+            <p id="messageText">球进了!</p>
+            <button class="btn-restart" onclick="continueGame()">继续</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏状态
+        let playerScore = 0;
+        let cpuScore = 0;
+        let round = 1;
+        let isPlayerTurn = true; // true = 玩家射门, false = 玩家守门
+        let isAnimating = false;
+        let ball = { x: 0, y: 0, targetX: 0, targetY: 0, moving: false };
+        let goalKeeper = { x: 250, y: 100, width: 60, height: 40, targetX: 250 };
+        let shots = 0;
+        let maxShots = 10; // 5轮，每轮玩家和电脑各一次
+
+        // 球门区域
+        const goal = {
+            x: 100,
+            y: 50,
+            width: 300,
+            height: 120
+        };
+
+        function initGame() {
+            playerScore = 0;
+            cpuScore = 0;
+           ;
+            isPlayerTurn = true;
+            isAnimating = false;
+            shots = 0;
+
+            ball = { x: 250, y: 300, targetX: 0, targetY: 0, moving: false };
+            goalKeeper = { x: 250, y: 100, width: 60, height: 40, targetX: 250 };
+
+            updateUI();
+            draw();
+        }
+
+        function updateUI() {
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('cpuScore').textContent = cpuScore;
+            document.getElementById('round').textContent = Math.ceil((shots + 1) / 2);
+            document.getElementById('turnIndicator').textContent = isPlayerTurn ? '🗣️ 你的射门' : '🛡️ 你的扑救';
+        }
+
+        function continueGame() {
+            document.getElementById('messageOverlay').style.display = 'none';
+            isAnimating = false;
+            ball = { x: 250, y: 300, targetX: 0, targetY: 0, moving: false };
+            goalKeeper = { x: 250, y: 100, width: 60, height: 40, targetX: 250 };
+
+            shots++;
+            if (shots >= maxShots) {
+                // 游戏结束
+                let resultText = '';
+                if (playerScore > cpuScore) {
+                    resultText = '🎉 你赢了!';
+                } else if (playerScore < cpuScore) {
+                    resultText = '😢 你输了!';
+                } else {
+                    resultText = '🤝 平局!';
+                }
+                document.getElementById('messageTitle').textContent = resultText;
+                document.getElementById('messageText').textContent = `最终比分: ${playerScore} - ${cpuScore}`;
+                document.getElementById('messageOverlay').style.display = 'flex';
+                return;
+            }
+
+            isPlayerTurn = !isPlayerTurn;
+            updateUI();
+            draw();
+        }
+
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 草地背景
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#27ae60');
+            gradient.addColorStop(0.3, '#2ecc71');
+            gradient.addColorStop(1, '#82e0aa');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 草地线条
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 10; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 60, 0);
+                ctx.lineTo(i * 60 - 100, canvas.height);
+                ctx.stroke();
+            }
+
+            // 禁区
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(50, goal.y, 400, 180);
+
+            // 小禁区
+            ctx.strokeRect(120, goal.y, 260, 80);
+
+            // 球门
+            ctx.fillStyle = '#fff';
+            // 门柱
+            ctx.fillRect(goal.x, goal.y, 10, goal.height);
+            ctx.fillRect(goal.x + goal.width - 10, goal.y, 10, goal.height);
+            // 门梁
+            ctx.fillRect(goal.x, goal.y, goal.width, 10);
+            // 球门网格
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            for (let i = goal.x; i <= goal.x + goal.width; i += 15) {
+                ctx.beginPath();
+                ctx.moveTo(i, goal.y + 10);
+                ctx.lineTo(i, goal.y + goal.height);
+                ctx.stroke();
+            }
+            for (let i = goal.y + 10; i <= goal.y + goal.height; i += 15) {
+                ctx.beginPath();
+                ctx.moveTo(goal.x, i);
+                ctx.lineTo(goal.x + goal.width, i);
+                ctx.stroke();
+            }
+
+            // 守门员
+            drawGoalkeeper();
+
+            // 球
+            drawBall();
+
+            // 射门/扑救提示
+            if (!isAnimating && !isPlayerTurn) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('点击球门扑救!', canvas.width / 2, 200);
+            }
+        }
+
+        function drawGoalkeeper() {
+            const gk = goalKeeper;
+
+            // 身体
+            ctx.fillStyle = '#f39c12';
+            ctx.fillRect(gk.x - 20, gk.y, 40, 30);
+
+            // 头
+            ctx.fillStyle = '#e17055';
+            ctx.beginPath();
+            ctx.arc(gk.x, gk.y - 5, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 手臂
+            ctx.fillStyle = '#f39c12';
+            ctx.fillRect(gk.x - 35, gk.y + 5, 15, 8);
+            ctx.fillRect(gk.x + 20, gk.y + 5, 15, 8);
+
+            // 腿
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(gk.x - 15, gk.y + 30, 10, 15);
+            ctx.fillRect(gk.x + 5, gk.y + 30, 10, 15);
+
+            // 手套
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(gk.x - 35, gk.y + 9, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(gk.x + 35, gk.y + 9, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawBall() {
+            const b = ball;
+
+            // 阴影
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(b.x, b.y + 8, 12, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 球
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 球的花纹
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(b.x - 8, b.y - 6, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(b.x + 6, b.y + 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (isAnimating) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            if (isPlayerTurn) {
+                // 玩家射门
+                if (x >= goal.x && x <= goal.x + goal.width &&
+                    y >= goal.y && y <= goal.y + goal.height) {
+                    shoot(x, y);
+                }
+            } else {
+                // 玩家扑救 - 移动守门员到点击位置
+                if (x >= goal.x && x <= goal.x + goal.width) {
+                    goalKeeper.targetX = Math.max(goal.x + 30, Math.min(goal.x + goal.width - 30, x));
+                    cpuShoot();
+                }
+            }
+        });
+
+        function shoot(targetX, targetY) {
+            isAnimating = true;
+            ball.targetX = targetX;
+            ball.targetY = targetY;
+
+            // 电脑守门员AI
+            const randomOffset = (Math.random() - 0.5) * 100;
+            goalKeeper.targetX = targetX + randomOffset;
+            goalKeeper.targetX = Math.max(goal.x + 30, Math.min(goal.x + goal.width - 30, goalKeeper.targetX));
+
+            animateShot();
+        }
+
+        function cpuShoot() {
+            isAnimating = true;
+
+            // 电脑随机射门
+            ball.targetX = goal.x + 30 + Math.random() * (goal.width - 60);
+            ball.targetY = goal.y + 30 + Math.random() * (goal.height - 60);
+
+            animateShot();
+        }
+
+        function animateShot() {
+            let frames = 0;
+            const totalFrames = 20;
+
+            const animate = () => {
+                frames++;
+
+                // 移动球
+                const progress = frames / totalFrames;
+                ball.x = ball.x + (ball.targetX - 250) / totalFrames;
+                ball.y = ball.y + (ball.targetY - 300) / totalFrames;
+
+                // 移动守门员
+                const gkSpeed = (goalKeeper.targetX - goalKeeper.x) / totalFrames;
+                goalKeeper.x += gkSpeed;
+
+                // 球旋转效果
+                ball.x += (Math.random() - 0.5) * 3;
+
+                draw();
+
+                if (frames < totalFrames) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // 判定结果
+                    checkGoal();
+                }
+            };
+
+            animate();
+        }
+
+        function checkGoal() {
+            // 检查是否进球
+            const inGoal = ball.targetX > goal.x + 10 &&
+                          ball.targetX < goal.x + goal.width - 10 &&
+                          ball.targetY > goal.y + 10 &&
+                          ball.targetY < goal.y + goal.height;
+
+            // 检查是否被扑住
+            const saved = Math.abs(ball.targetX - goalKeeper.x) < 40;
+
+            let title, text, isGoal;
+
+            if (isPlayerTurn) {
+                if (inGoal && !saved) {
+                    playerScore++;
+                    title = '⚽ GOAL!';
+                    text = '球进了!';
+                    isGoal = true;
+                } else {
+                    title = '❌ 扑住了!';
+                    text = saved ? '守门员把球扑住了!' : '射门偏了!';
+                    isGoal = false;
+                }
+            } else {
+                if (inGoal && !saved) {
+                    cpuScore++;
+                    title = '⚽ 进球了!';
+                    text = '电脑进球了!';
+                    isGoal = true;
+                } else {
+                    title = '🛡️ 扑住了!';
+                    text = saved ? '你把球扑住了!' : '电脑射门偏了!';
+                    isGoal = false;
+                }
+            }
+
+            document.getElementById('messageTitle').textContent = title;
+            document.getElementById('messageTitle').className = isGoal ? 'goal' : 'miss';
+            document.getElementById('messageText').textContent = text;
+            document.getElementById('messageOverlay').style.display = 'flex';
+            updateUI();
+        }
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>
