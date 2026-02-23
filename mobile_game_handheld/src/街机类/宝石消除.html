@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝石消除</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+        }
+        h1 { text-align: center; color: #e94560; margin-bottom: 10px; }
+        .score-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            background: #222;
+            padding: 8px;
+            border-radius: 10px;
+        }
+        .cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            background: rgba(255,255,255,0.05);
+        }
+        .cell:active { transform: scale(0.9); }
+        .cell.selected { border: 3px solid #e94560; }
+        .cell.matched { animation: pop 0.3s; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(0); }
+        }
+        .hint {
+            text-align: center;
+            color: #aaa;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>💎 宝石消除</h1>
+        <div class="score-bar">
+            <div>得分: <span id="score">0</span></div>
+            <div>连击: <span id="combo">0</span></div>
+        </div>
+        <div id="grid"></div>
+        <p class="hint">点击两个相邻宝石交换位置，三个以上相同即可消除</p>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const gems = ['💎', '🔴', '🟢', '🔵', '🟡', '💜'];
+        const size = 8;
+        let grid = [];
+        let selected = null;
+        let score = 0;
+        let combo = 0;
+
+        function init() {
+            grid = [];
+            for (let i = 0; i < size * size; i++) {
+                grid.push(gems[Math.floor(Math.random() * gems.length)]);
+            }
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('grid');
+            container.innerHTML = grid.map((gem, i) =>
+                `<div class="cell ${selected === i ? 'selected' : ''}"
+                     onclick="clickCell(${i})">${gem}</div>`
+            ).join('');
+        }
+
+        function clickCell(index) {
+            if (selected === null) {
+                selected = index;
+            } else if (selected === index) {
+                selected = null;
+            } else {
+                if (isAdjacent(selected, index)) {
+                    swap(selected, index);
+                    if (!match()) {
+                        swap(selected, index); // 换回来
+                    }
+                    selected = null;
+                } else {
+                    selected = index;
+                }
+            }
+            render();
+        }
+
+        function isAdjacent(a, b) {
+            const rowA = Math.floor(a / size), colA = a % size;
+            const rowB = Math.floor(b / size), colB = b % size;
+            return Math.abs(rowA - rowB) + Math.abs(colA - colB) === 1;
+        }
+
+        function swap(a, b) {
+            [grid[a], grid[b]] = [grid[b], grid[a]];
+        }
+
+        function match() {
+            let matched = false;
+            combo = 0;
+
+            // 检查行
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size - 2; c++) {
+                    const i = r * size + c;
+                    if (grid[i] && grid[i] === grid[i+1] && grid[i] === grid[i+2]) {
+                        matched = true;
+                        combo++;
+                        score += 30 * combo;
+                        grid[i] = grid[i+1] = grid[i+2] = null;
+                    }
+                }
+            }
+
+            // 检查列
+            for (let c = 0; c < size; c++) {
+                for (let r = 0; r < size - 2; r++) {
+                    const i = r * size + c;
+                    if (grid[i] && grid[i] === grid[i+size] && grid[i] === grid[i+size*2]) {
+                        matched = true;
+                        combo++;
+                        score += 30 * combo;
+                        grid[i] = grid[i+size] = grid[i+size*2] = null;
+                    }
+                }
+            }
+
+            if (matched) {
+                setTimeout(() => {
+                    drop();
+                    setTimeout(match, 200);
+                }, 100);
+            }
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('combo').textContent = combo;
+            return matched;
+        }
+
+        function drop() {
+            for (let c = 0; c < size; c++) {
+                let empty = [];
+                for (let r = size - 1; r >= 0; r--) {
+                    const i = r * size + c;
+                    if (grid[i] === null) empty.push(i);
+                    else if (empty.length > 0) {
+                        grid[empty.pop()] = grid[i];
+                        grid[i] = null;
+                        empty.push(i);
+                    }
+                }
+                empty.forEach(i => grid[i] = gems[Math.floor(Math.random() * gems.length)]);
+            }
+            render();
+        }
+
+        init();
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            let cursor = 0;
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'up') cursor = Math.max(0, cursor - size);
+                if (btn === 'down') cursor = Math.min(size*size-1, cursor + size);
+                if (btn === 'left') cursor = Math.max(0, cursor - 1);
+                if (btn === 'right') cursor = Math.min(size*size-1, cursor + 1);
+                if (btn === 'a') clickCell(cursor);
+                document.querySelectorAll('.cell')[cursor]?.classList.add('selected');
+            });
+        }
+    </script>
+</body>
+</html>

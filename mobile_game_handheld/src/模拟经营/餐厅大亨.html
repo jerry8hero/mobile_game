@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>餐厅大亨</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        #game {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        h1 { text-align: center; color: #e94560; margin-bottom: 15px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-icon { font-size: 1.5rem; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; }
+        .restaurant {
+            background: #222;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 200px;
+        }
+        .tables {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .table {
+            width: 80px;
+            height: 80px;
+            background: #333;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        .table.occupied { background: #4a3520; }
+        .table.waiting { background: #2a4a3a; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-hire { background: #4ecdc4; color: #fff; }
+        .btn-upgrade { background: #feca57; color: #000; }
+        .btn-buy { background: #e94560; color: #fff; }
+        .log {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>🍳 餐厅大亨</h1>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="money">500</div>
+            </div>
+            <div class="stat">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="reputation">5</div>
+            </div>
+            <div class="stat">
+                <div class="stat-icon">👨‍🍳</div>
+                <div class="stat-value" id="chefs">1</div>
+            </div>
+        </div>
+        <div class="restaurant">
+            <h3 style="margin-bottom:10px">餐厅座位 (<span id="tables">3</span>/3)</h3>
+            <div class="tables" id="tablesContainer"></div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-hire" onclick="hireChef()">👨‍🍳 雇佣厨师 (100)</button>
+            <button class="btn btn-upgrade" onclick="upgradeTable()">🪑 扩建座位 (200)</button>
+            <button class="btn btn-buy" onclick="buyIngredient()">🥬 购买食材 (50)</button>
+            <button class="btn btn-hire" onclick="advertise()">📢 广告宣传 (100)</button>
+        </div>
+        <div class="log" id="log"></div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        let money = 500;
+        let reputation = 5;
+        let chefs = 1;
+        let tables = 3;
+        let ingredients = 10;
+        let tableStates = [null, null, null];
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            logEl.innerHTML = msg + '<br>' + logEl.innerHTML;
+        }
+
+        function updateUI() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('reputation').textContent = reputation;
+            document.getElementById('chefs').textContent = chefs;
+            document.getElementById('tables').textContent = tables;
+
+            const container = document.getElementById('tablesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < tables; i++) {
+                const state = tableStates[i] || 'empty';
+                let icon = '🪑';
+                let cls = '';
+                if (state === 'waiting') { icon = '😋'; cls = 'waiting'; }
+                else if (state === 'eating') { icon = '🍽️'; cls = 'occupied'; }
+                container.innerHTML += `<div class="table ${cls}">${icon}</div>`;
+            }
+        }
+
+        function hireChef() {
+            if (money >= 100) {
+                money -= 100;
+                chefs++;
+                log('✅ 雇佣了新厨师！');
+                updateUI();
+            } else {
+                log('❌ 金币不足！');
+            }
+        }
+
+        function upgradeTable() {
+            const cost = tables * 200;
+            if (money >= cost) {
+                money -= cost;
+                tables++;
+                tableStates.push(null);
+                log('✅ 扩建了座位！');
+                updateUI();
+            } else {
+                log(`❌ 需要 ${cost} 金币！`);
+            }
+        }
+
+        function buyIngredient() {
+            if (money >= 50) {
+                money -= 50;
+                ingredients += 10;
+                log('✅ 购买了食材！');
+                updateUI();
+            } else {
+                log('❌ 金币不足！');
+            }
+        }
+
+        function advertise() {
+            if (money >= 100) {
+                money -= 100;
+                reputation = Math.min(10, reputation + 1);
+                log('📢 广告宣传成功！');
+                updateUI();
+            } else {
+                log('❌ 金币不足！');
+            }
+        }
+
+        function gameLoop() {
+            // 顾客到来
+            if (Math.random() < 0.3) {
+                const empty = tableStates.findIndex(t => t === null);
+                if (empty !== -1 && ingredients > 0) {
+                    tableStates[empty] = 'waiting';
+                    ingredients--;
+                    log('👋 新顾客到来！');
+                    updateUI();
+
+                    // 开始用餐
+                    setTimeout(() => {
+                        if (tableStates[empty] === 'waiting') {
+                            tableStates[empty] = 'eating';
+                            updateUI();
+
+                            // 用餐完成
+                            setTimeout(() => {
+                                const income = 20 + reputation * 5 + Math.floor(Math.random() * 10);
+                                money += income;
+                                tableStates[empty] = null;
+                                log(`💰 顾客离开，赚了 ${income} 金币！`);
+                                updateUI();
+                            }, 3000);
+                        }
+                    }, 1000);
+                }
+            }
+
+            // 补充食材自动
+            if (ingredients < 5 && money >= 20) {
+                money -= 20;
+                ingredients += 5;
+            }
+
+            updateUI();
+            setTimeout(gameLoop, 2000);
+        }
+
+        log('🍳 餐厅开业了！');
+        gameLoop();
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            let cursor = 0;
+            const actions = [hireChef, upgradeTable, buyIngredient, advertise];
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'a') actions[cursor]();
+                if (btn === 'down') cursor = Math.min(3, cursor + 1);
+                if (btn === 'up') cursor = Math.max(0, cursor - 1);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宠物咖啡厅</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        #game { max-width: 500px; margin: 0 auto; padding: 15px; }
+        h1 { text-align: center; color: #e94560; margin-bottom: 15px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .cafe {
+            background: #2a2a4a;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 250px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .pets {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .pet {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            animation: bounce 2s infinite;
+        }
+        .pet.hungry { animation: shake 0.5s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
+        .pet-name { font-size: 0.7rem; margin-top: 5px; }
+        .pet-happiness { font-size: 0.6rem; color: #4ecdc4; }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .btn-feed { background: #ff9f43; color: #000; }
+        .btn-play { background: #4ecdc4; color: #000; }
+        .btn-clean { background: #e94560; color: #fff; }
+        .btn-adopt { background: #9b59b6; color: #fff; }
+        .log {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            height: 80px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>🐱 宠物咖啡厅</h1>
+        <div class="stats">
+            <div class="stat">
+                <div>💰</div>
+                <div id="money">200</div>
+            </div>
+            <div class="stat">
+                <div>⭐</div>
+                <div id="happiness">50</div>
+            </div>
+            <div class="stat">
+                <div>🐾</div>
+                <div id="petCount">1</div>
+            </div>
+        </div>
+        <div class="cafe">
+            <div class="pets" id="petsContainer"></div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-feed" onclick="feedPet()">🍖 喂食 (20)</button>
+            <button class="btn btn-play" onclick="playWithPets()">🎾 玩耍 (10)</button>
+            <button class="btn btn-clean" onclick="cleanCafe()">🧹 打扫 (30)</button>
+            <button class="btn btn-adopt" onclick="adoptPet()">🏠 领养 (100)</button>
+        </div>
+        <div class="log" id="log"></div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const petTypes = [
+            { icon: '🐱', name: '小猫', cost: 50 },
+            { icon: '🐶', name: '小狗', cost: 50 },
+            { icon: '🐰', name: '小兔', cost: 60 },
+            { icon: '🐹', name: '仓鼠', cost: 40 },
+            { icon: '🦊', name: '狐狸', cost: 80 }
+        ];
+
+        let money = 200;
+        let totalHappiness = 50;
+        let pets = [{ ...petTypes[0], happiness: 80, hunger: 0 }];
+
+        function log(msg) {
+            document.getElementById('log').innerHTML = msg + '<br>' + document.getElementById('log').innerHTML;
+        }
+
+        function updateUI() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('happiness').textContent = totalHappiness;
+            document.getElementById('petCount').textContent = pets.length;
+
+            const container = document.getElementById('petsContainer');
+            container.innerHTML = pets.map((pet, i) => `
+                <div class="pet ${pet.hunger > 70 ? 'hungry' : ''}">
+                    <div>${pet.icon}</div>
+                    <div class="pet-name">${pet.name}</div>
+                    <div class="pet-happiness">❤️${pet.happiness}</div>
+                </div>
+            `).join('');
+        }
+
+        function feedPet() {
+            if (money >= 20) {
+                money -= 20;
+                pets.forEach(pet => {
+                    pet.hunger = Math.max(0, pet.hunger - 30);
+                    pet.happiness = Math.min(100, pet.happiness + 5);
+                });
+                log('🍖 宠物们吃饱了！');
+                updateUI();
+            } else log('💰 金币不足！');
+        }
+
+        function playWithPets() {
+            if (money >= 10) {
+                money -= 10;
+                pets.forEach(pet => {
+                    pet.happiness = Math.min(100, pet.happiness + 15);
+                });
+                log('🎾 和宠物们玩耍很开心！');
+                updateUI();
+            } else log('💰 金币不足！');
+        }
+
+        function cleanCafe() {
+            if (money >= 30) {
+                money -= 30;
+                pets.forEach(pet => {
+                    pet.happiness = Math.min(100, pet.happiness + 10);
+                });
+                log('🧹 咖啡厅打扫干净了！');
+                updateUI();
+            } else log('💰 金币不足！');
+        }
+
+        function adoptPet() {
+            if (pets.length >= 5) {
+                log('🏠 不能再领养更多宠物了！');
+                return;
+            }
+            if (money >= 100) {
+                money -= 100;
+                const newPet = { ...petTypes[Math.floor(Math.random() * petTypes.length)], happiness: 70, hunger: 20 };
+                pets.push(newPet);
+                log(`🏠 领养了 ${newPet.icon} ${newPet.name}！`);
+                updateUI();
+            } else log('💰 金币不足！');
+        }
+
+        function gameLoop() {
+            pets.forEach(pet => {
+                pet.hunger = Math.min(100, pet.hunger + 5);
+                pet.happiness = Math.max(0, pet.happiness - 2);
+
+                if (pet.hunger > 80) {
+                    pet.happiness = Math.max(0, pet.happiness - 5);
+                }
+            });
+
+            totalHappiness = Math.floor(pets.reduce((sum, p) => sum + p.happiness, 0) / pets.length);
+
+            // 顾客来访
+            if (Math.random() < 0.2 && totalHappiness > 60) {
+                const income = 15 + totalHappiness;
+                money += income;
+                log(`💰 顾客来访，赚了 ${income} 金币！`);
+            }
+
+            updateUI();
+            setTimeout(gameLoop, 3000);
+        }
+
+        log('🐱 宠物咖啡厅开业了！');
+        gameLoop();
+
+        if (window.GamepadHelper) {
+            const actions = [feedPet, playWithPets, cleanCafe, adoptPet];
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'a') actions[Math.floor(Math.random() * 4)]();
+            });
+        }
+    </script>
+</body>
+</html>

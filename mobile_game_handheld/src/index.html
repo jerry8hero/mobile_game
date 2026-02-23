@@ -88,13 +88,13 @@
     <script>
         // 游戏数据
         const gameCategories = [
-            { name: '益智类', icon: '🧩', count: 12, color: '#ff6b6b', dir: '益智类' },
-            { name: '街机类', icon: '🎮', count: 6, color: '#48dbfb', dir: '街机类' },
+            { name: '益智类', icon: '🧩', count: 14, color: '#ff6b6b', dir: '益智类' },
+            { name: '街机类', icon: '🎮', count: 8, color: '#48dbfb', dir: '街机类' },
             { name: '编程启蒙类', icon: '🤖', count: 17, color: '#1dd1a1', dir: '编程启蒙类' },
             { name: '知识类', icon: '📚', count: 16, color: '#feca57', dir: '知识类' },
             { name: 'RPG冒险', icon: '⚔️', count: 3, color: '#ff9ff3', dir: 'RPG冒险' },
-            { name: '敏捷类', icon: '⚡', count: 7, color: '#54a0ff', dir: '敏捷类' },
-            { name: '模拟经营', icon: '🏠', count: 4, color: '#5f27cd', dir: '模拟经营' },
+            { name: '敏捷类', icon: '⚡', count: 8, color: '#54a0ff', dir: '敏捷类' },
+            { name: '模拟经营', icon: '🏠', count: 6, color: '#5f27cd', dir: '模拟经营' },
             { name: '运动类', icon: '🏃', count: 4, color: '#ee5a24', dir: '运动类' },
             { name: '棋类', icon: '♟️', count: 2, color: '#009432', dir: '棋类' },
             { name: '创意艺术', icon: '🎨', count: 3, color: '#ffc312', dir: '创意艺术类' },
@@ -105,7 +105,11 @@
             { name: '策略塔防', icon: '🏰', count: 1, color: '#a29bfe', dir: '策略塔防' },
             { name: '放置挂机', icon: '⏰', count: 1, color: '#fab1a0', dir: '放置挂机' },
             { name: '卡牌收集', icon: '🃏', count: 1, color: '#ffeaa7', dir: '卡牌收集' },
-            { name: '记忆类', icon: '🎨', count: 2, color: '#74b9ff', dir: '记忆类' }
+            { name: '记忆类', icon: '🎨', count: 2, color: '#74b9ff', dir: '记忆类' },
+            { name: '卡牌策略', icon: '🃏', count: 1, color: '#9b59b6', dir: '卡牌策略' },
+            { name: '赛车游戏', icon: '🏎️', count: 1, color: '#e74c3c', dir: '赛车游戏' },
+            { name: '抽卡养成', icon: '🎰', count: 1, color: '#f39c12', dir: '抽卡养成' },
+            { name: '音乐节奏', icon: '🎵', count: 1, color: '#1abc9c', dir: '音乐节奏' }
         ];
 
         // 分类游戏映射（简化版）
@@ -121,14 +125,18 @@
                 { name: '数字排序', icon: '📊', type: '排序挑战', file: './益智类/数字排序.html' },
                 { name: '平衡木', icon: '⚖️', type: '平衡游戏', file: './益智类/平衡木.html' },
                 { name: '停车场', icon: '🅿️', type: '停车管理', file: './益智类/停车场.html' },
-                { name: 'Emoji消消乐', icon: '😀', type: '表情消除', file: './益智类/emoji消消乐.html' }
+                { name: 'Emoji消消乐', icon: '😀', type: '表情消除', file: './益智类/emoji消消乐.html' },
+                { name: '数字华容道', icon: '🔢', type: '滑块拼图', file: './益智类/数字华容道.html' },
+                { name: '一笔画', icon: '✏️', type: '一笔成型', file: './益智类/一笔画.html' }
             ],
             '街机类': [
                 { name: '俄罗斯方块', icon: '🧱', type: '经典方块', file: './街机类/俄罗斯方块.html' },
                 { name: '贪吃蛇', icon: '🐍', type: '贪吃蛇', file: './街机类/贪吃蛇.html' },
                 { name: '打砖块', icon: '🧱', type: '打砖块', file: './街机类/打砖块.html' },
                 { name: '2048', icon: '🔢', type: '数字合并', file: './街机类/2048.html' },
-                { name: '挑战2048', icon: '🏆', type: '2048挑战', file: './街机类/挑战2048.html' }
+                { name: '挑战2048', icon: '🏆', type: '2048挑战', file: './街机类/挑战2048.html' },
+                { name: '太空大战', icon: '🚀', type: '射击游戏', file: './街机类/太空大战.html' },
+                { name: '宝石消除', icon: '💎', type: '三消游戏', file: './街机类/宝石消除.html' }
             ],
             '编程启蒙类': [
                 { name: '可视化编程', icon: '💻', type: '编程入门', file: './编程启蒙/可视化编程.html' },
@@ -147,13 +155,16 @@
                 { name: '接水果', icon: '🧺', type: '接水果', file: './敏捷类/接水果.html' },
                 { name: '打地鼠', icon: '🔨', type: '打地鼠', file: './敏捷类/打地鼠.html' },
                 { name: '疯狂套牛', icon: '🐂', type: '套牛游戏', file: './敏捷类/疯狂套牛.html' },
-                { name: '见缝插针', icon: '📍', type: 'Timing游戏', file: './敏捷类/见缝插针.html' }
+                { name: '见缝插针', icon: '📍', type: 'Timing游戏', file: './敏捷类/见缝插针.html' },
+                { name: '弹球达人', icon: '🎯', type: '弹球游戏', file: './敏捷类/弹球达人.html' }
             ],
             '模拟经营': [
                 { name: '小小农场', icon: '🌾', type: '农场经营', file: './模拟经营/小小农场.html' },
                 { name: '小小餐厅', icon: '🍳', type: '餐厅经营', file: './模拟经营/小小餐厅.html' },
                 { name: '宠物养成', icon: '🐕', type: '宠物养成', file: './模拟经营/宠物养成.html' },
-                { name: '宠物综合训练师', icon: '🦮', type: '训练师', file: './模拟经营/宠物综合训练师.html' }
+                { name: '宠物综合训练师', icon: '🦮', type: '训练师', file: './模拟经营/宠物综合训练师.html' },
+                { name: '餐厅大亨', icon: '🍳', type: '餐厅管理', file: './模拟经营/餐厅大亨.html' },
+                { name: '宠物咖啡厅', icon: '🐱', type: '咖啡厅经营', file: './模拟经营/宠物咖啡厅.html' }
             ],
             '运动类': [
                 { name: '酷跑冒险', icon: '🏃', type: '跑酷游戏', file: './运动类/酷跑冒险.html' },
@@ -204,6 +215,18 @@
             '记忆类': [
                 { name: '颜色记忆', icon: '🎨', type: '记忆', file: './记忆类/颜色记忆.html' },
                 { name: '迷宫探险', icon: '🗺️', type: '迷宫', file: './记忆类/迷宫探险.html' }
+            ],
+            '卡牌策略': [
+                { name: '卡牌对战', icon: '🃏', type: '卡牌对战', file: './卡牌策略/卡牌对战.html' }
+            ],
+            '赛车游戏': [
+                { name: '极速赛车', icon: '🏎️', type: '赛车竞速', file: './赛车游戏/极速赛车.html' }
+            ],
+            '抽卡养成': [
+                { name: '抽卡召唤', icon: '🎰', type: '抽卡养成', file: './抽卡养成/抽卡召唤.html' }
+            ],
+            '音乐节奏': [
+                { name: '节奏大师', icon: '🎵', type: '音乐节奏', file: './音乐节奏/节奏大师.html' }
             ]
         };
 

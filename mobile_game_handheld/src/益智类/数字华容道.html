@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字华容道</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        h1 { color: #e94560; margin-bottom: 15px; }
+        .info {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            background: #333;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .tile {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #4ecdc4, #26de81);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .tile:active { transform: scale(0.95); }
+        .tile.empty { background: transparent; cursor: default; }
+        .tile.correct { background: linear-gradient(135deg, #feca57, #ff9f43); }
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <h1>🔢 数字华容道</h1>
+    <div class="info">
+        <div>步数: <span id="moves">0</span></div>
+        <div>时间: <span id="time">0:00</span></div>
+    </div>
+    <div id="board"></div>
+    <button class="btn" onclick="init()">🔄 重新开始</button>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const size = 4;
+        let board = [];
+        let moves = 0;
+        let time = 0;
+        let timer = null;
+        let emptyPos = 15;
+
+        function init() {
+            moves = 0;
+            time = 0;
+            clearInterval(timer);
+            timer = setInterval(() => { time++; updateTime(); }, 1000);
+
+            // 生成有序数组
+            board = Array.from({length: size * size}, (_, i) => i);
+            // 随机打乱（确保可解）
+            do {
+                for (let i = 0; i < 100; i++) {
+                    const neighbors = getNeighbors(emptyPos);
+                    const rand = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    [board[emptyPos], board[rand]] = [board[rand], board[emptyPos]];
+                    emptyPos = rand;
+                }
+            } while (isSolved());
+
+            render();
+        }
+
+        function getNeighbors(pos) {
+            const row = Math.floor(pos / size);
+            const col = pos % size;
+            const neighbors = [];
+            if (row > 0) neighbors.push(pos - size);
+            if (row < size - 1) neighbors.push(pos + size);
+            if (col > 0) neighbors.push(pos - 1);
+            if (col < size - 1) neighbors.push(pos + 1);
+            return neighbors;
+        }
+
+        function clickTile(pos) {
+            const neighbors = getNeighbors(emptyPos);
+            if (neighbors.includes(pos)) {
+                [board[emptyPos], board[pos]] = [board[pos], board[emptyPos]];
+                emptyPos = pos;
+                moves++;
+                render();
+                if (isSolved()) {
+                    clearInterval(timer);
+                    setTimeout(() => alert(`🎉 恭喜！用时 ${document.getElementById('time').textContent}，步数 ${moves}`), 100);
+                }
+            }
+        }
+
+        function isSolved() {
+            return board.every((val, i) => val === i);
+        }
+
+        function render() {
+            document.getElementById('moves').textContent = moves;
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = board.map((val, i) => {
+                if (val === 0) return '<div class="tile empty"></div>';
+                return `<div class="tile ${val === i + 1 ? 'correct' : ''}" onclick="clickTile(${i})">${val}</div>`;
+            }).join('');
+        }
+
+        function updateTime() {
+            const m = Math.floor(time / 60);
+            const s = time % 60;
+            document.getElementById('time').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        init();
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            let cursor = 0;
+            GamepadHelper.on('onButtonDown', btn => {
+                const row = Math.floor(cursor / size), col = cursor % size;
+                if (btn === 'up') cursor = Math.max(0, cursor - size);
+                if (btn === 'down') cursor = Math.min(size*size-1, cursor + size);
+                if (btn === 'left') cursor = Math.max(0, cursor - 1);
+                if (btn === 'right') cursor = Math.min(size*size-1, cursor + 1);
+                if (btn === 'a') clickTile(cursor);
+            });
+        }
+    </script>
+</body>
+</html>

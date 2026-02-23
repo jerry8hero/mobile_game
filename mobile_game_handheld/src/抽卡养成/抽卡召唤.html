@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽卡召唤</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        #game {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #e94560; margin-bottom: 20px; }
+        .resource-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .resource { text-align: center; }
+        .resource-icon { font-size: 1.5rem; }
+        .resource-value { font-size: 1.2rem; font-weight: bold; }
+        .gacha-area {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .card-display {
+            width: 150px;
+            height: 200px;
+            background: linear-gradient(135deg, #2d2d44, #1f1f3a);
+            border: 3px solid #4ecdc4;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            animation: none;
+            transition: all 0.3s;
+        }
+        .card-display.rarity-common { border-color: #aaa; }
+        .card-display.rarity-rare { border-color: #4ecdc4; box-shadow: 0 0 20px rgba(78,205,196,0.5); }
+        .card-display.rarity-epic { border-color: #9b59b6; box-shadow: 0 0 30px rgba(155,89,182,0.6); }
+        .card-display.rarity-legendary { border-color: #feca57; box-shadow: 0 0 40px rgba(254,202,87,0.8); animation: glow 1s infinite; }
+        @keyframes glow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .card-icon { font-size: 4rem; margin-bottom: 10px; }
+        .card-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
+        .card-rarity { font-size: 0.9rem; opacity: 0.8; }
+        .card-stats { margin-top: 10px; font-size: 0.8rem; color: #aaa; }
+        .btn-area {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-single { background: #4ecdc4; color: #fff; }
+        .btn-multi { background: #e94560; color: #fff; }
+        .collection-area {
+            margin-top: 20px;
+        }
+        .collection-area h3 { margin-bottom: 10px; color: #4ecdc4; }
+        .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+        .collection-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .collection-item.locked { opacity: 0.3; }
+        .collection-item .icon { font-size: 2rem; }
+        .collection-item .name { font-size: 0.7rem; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>🎰 抽卡召唤</h1>
+        <div class="resource-bar">
+            <div class="resource">
+                <div class="resource-icon">💰</div>
+                <div class="resource-value" id="coins">1000</div>
+            </div>
+            <div class="resource">
+                <div class="resource-icon">💎</div>
+                <div class="resource-value" id="gems">10</div>
+            </div>
+            <div class="resource">
+                <div class="resource-icon">🎫</div>
+                <div class="resource-value" id="tickets">5</div>
+            </div>
+        </div>
+        <div class="gacha-area">
+            <div id="cardDisplay" class="card-display">
+                <div class="card-icon">❓</div>
+                <div class="card-name">?</div>
+                <div class="card-rarity">点击抽卡</div>
+            </div>
+            <p id="message">准备召唤你的第一个角色！</p>
+        </div>
+        <div class="btn-area">
+            <button class="btn btn-single" onclick="gacha(1)">🎫 单抽 (100)</button>
+            <button class="btn btn-multi" onclick="gacha(10)">💎 十连 (900)</button>
+        </div>
+        <div class="collection-area">
+            <h3>📚 图鉴 (<span id="collectionCount">0</span>/20)</h3>
+            <div class="collection-grid" id="collection"></div>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        // 角色数据
+        const characters = [
+            { id: 1, name: '勇者', icon: '🗡️', rarity: 'common', power: 100 },
+            { id: 2, name: '法师', icon: '🔮', rarity: 'common', power: 90 },
+            { id: 3, name: '弓箭手', icon: '🏹', rarity: 'common', power: 95 },
+            { id: 4, name: '骑士', icon: '🛡️', rarity: 'rare', power: 150 },
+            { id: 5, name: '刺客', icon: '🗡️', rarity: 'rare', power: 160 },
+            { id: 6, name: '祭司', icon: '✨', rarity: 'rare', power: 140 },
+            { id: 7, name: '龙骑士', icon: '🐉', rarity: 'epic', power: 250 },
+            { id: 8, name: '大法师', icon: '🧙', rarity: 'epic', power: 280 },
+            { id: 9, name: '天使', icon: '👼', rarity: 'epic', power: 300 },
+            { id: 10, name: '死神', icon: '💀', rarity: 'legendary', power: 500 },
+            { id: 11, name: '神龙', icon: '🐲', rarity: 'legendary', power: 600 },
+            { id: 12, name: '创世神', icon: '🌟', rarity: 'legendary', power: 999 },
+        ];
+
+        let coins = 1000;
+        let gems = 10;
+        let tickets = 5;
+        let collection = [];
+
+        // 抽卡概率
+        const rates = {
+            common: 60,
+            rare: 30,
+            epic: 9,
+            legendary: 1
+        };
+
+        function gacha(count) {
+            const cost = count === 1 ? 100 : 900;
+            const useTickets = Math.min(tickets, count);
+            const useCoins = cost - (useTickets * 10);
+
+            if (useTickets === 0 && coins < cost) {
+                showMessage('💰 金币不足！');
+                return;
+            }
+
+            tickets -= useTickets;
+            coins -= useCoins;
+            updateUI();
+
+            // 抽卡动画
+            const display = document.getElementById('cardDisplay');
+            display.style.animation = 'none';
+
+            let delay = 0;
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const char = randomCharacter();
+                    displayCharacter(char);
+
+                    if (!collection.includes(char.id)) {
+                        collection.push(char.id);
+                        showMessage(`🎉 获得新角色: ${char.icon} ${char.name}！`);
+                    } else {
+                        showMessage(`获得重复角色: ${char.icon} ${char.name}`);
+                    }
+
+                    if (i === count - 1) {
+                        updateCollection();
+                    }
+                }, delay);
+                delay += 300;
+            }
+        }
+
+        function randomCharacter() {
+            const rand = Math.random() * 100;
+            let rarity;
+            if (rand < rates.legendary) rarity = 'legendary';
+            else if (rand < rates.legendary + rates.epic) rarity = 'epic';
+            else if (rarity = rates.legendary + rates.epic + rates.rare) rarity = 'rare';
+            else rarity = 'common';
+
+            const filtered = characters.filter(c => c.rarity === rarity);
+            return filtered[Math.floor(Math.random() * filtered.length)];
+        }
+
+        function displayCharacter(char) {
+            const display = document.getElementById('cardDisplay');
+            display.className = `card-display rarity-${char.rarity}`;
+            display.innerHTML = `
+                <div class="card-icon">${char.icon}</div>
+                <div class="card-name">${char.name}</div>
+                <div class="card-rarity">${getRarityText(char.rarity)}</div>
+                <div class="card-stats">战力: ${char.power}</div>
+            `;
+        }
+
+        function getRarityText(rarity) {
+            const texts = { common: '普通', rare: '稀有', epic: '史诗', legendary: '传说' };
+            return texts[rarity];
+        }
+
+        function showMessage(msg) {
+            document.getElementById('message').textContent = msg;
+        }
+
+        function updateUI() {
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('gems').textContent = gems;
+            document.getElementById('tickets').textContent = tickets;
+        }
+
+        function updateCollection() {
+            const container = document.getElementById('collection');
+            document.getElementById('collectionCount').textContent = collection.length;
+
+            container.innerHTML = characters.map(char => {
+                const owned = collection.includes(char.id);
+                return `
+                    <div class="collection-item ${owned ? '' : 'locked'}">
+                        <div class="icon">${owned ? char.icon : '❓'}</div>
+                        <div class="name">${owned ? char.name : '???'}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', (btn) => {
+                if (btn === 'a') gacha(1);
+                if (btn === 'b') gacha(10);
+            });
+        }
+
+        updateCollection();
+    </script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一笔画</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+        h1 { color: #e94560; margin-bottom: 10px; }
+        .info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        #game {
+            position: relative;
+        }
+        canvas {
+            background: #222;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .levels {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .level-btn {
+            padding: 8px 16px;
+            background: #333;
+            color: #fff;
+            border: 2px solid #4ecdc4;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .level-btn.active { background: #4ecdc4; }
+        .btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>✏️ 一笔画</h1>
+    <div class="levels">
+        <button class="level-btn active" onclick="setLevel(0)">简单</button>
+        <button class="level-btn" onclick="setLevel(1)">中等</button>
+        <button class="level-btn" onclick="setLevel(2)">困难</button>
+    </div>
+    <div class="info">
+        <div>关卡: <span id="level">1</span></div>
+        <div>步数: <span id="moves">0</span></div>
+    </div>
+    <div id="game">
+        <canvas id="canvas" width="320" height="320"></canvas>
+    </div>
+    <button class="btn" onclick="reset()">🔄 重来</button>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const levels = [
+            { nodes: [[100,80],[220,80],[160,160],[100,240],[220,240]], edges: [[0,1],[1,2],[2,3],[3,4],[4,2],[2,0]] },
+            { nodes: [[80,80],[160,50],[240,80],[80,160],[160,160],[240,160],[80,240],[160,250],[240,240]], edges: [[0,1],[1,2],[2,5],[5,8],[8,7],[7,6],[6,3],[3,0],[0,4],[4,7],[1,4],[2,4],[4,5]] },
+            { nodes: [[60,60],[160,40],[260,60],[60,160],[160,160],[260,160],[60,260],[160,280],[260,260]], edges: [[0,1],[1,2],[2,5],[5,8],[8,7],[7,6],[6,3],[3,0],[0,4],[4,8],[1,7],[2,6],[3,4],[4,5]] }
+        ];
+
+        let currentLevel = 0;
+        let nodes = [];
+        let edges = [];
+        let path = [];
+        let moves = 0;
+
+        function setLevel(level) {
+            currentLevel = level;
+            document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === level);
+            });
+            init();
+        }
+
+        function init() {
+            const level = levels[currentLevel];
+            nodes = level.nodes.map(([x, y]) => ({x, y, visited: false}));
+            edges = level.edges;
+            path = [0];
+            nodes[0].visited = true;
+            moves = 0;
+            document.getElementById('level').textContent = currentLevel + 1;
+            document.getElementById('moves').textContent = moves;
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 画边
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 3;
+            edges.forEach(([a, b]) => {
+                ctx.beginPath();
+                ctx.moveTo(nodes[a].x, nodes[a].y);
+                ctx.lineTo(nodes[b].x, nodes[b].y);
+                ctx.stroke();
+            });
+
+            // 画路径
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            path.forEach((n, i) => {
+                if (i === 0) ctx.moveTo(nodes[n].x, nodes[n].y);
+                else ctx.lineTo(nodes[n].x, nodes[n].y);
+            });
+            ctx.stroke();
+
+            // 画节点
+            nodes.forEach((node, i) => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+                ctx.fillStyle = node.visited ? '#4ecdc4' : '#666';
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(i + 1, node.x, node.y);
+            });
+        }
+
+        function clickNode(index) {
+            const last = path[path.length - 1];
+            if (path.includes(index)) return;
+
+            // 检查是否有边相连
+            const connected = edges.some(([a, b]) =>
+                (a === last && b === index) || (a === index && b === last)
+            );
+
+            if (connected) {
+                path.push(index);
+                nodes[index].visited = true;
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                draw();
+
+                // 检查是否完成
+                if (path.length === nodes.length) {
+                    setTimeout(() => alert('🎉 完成！'), 100);
+                }
+            }
+        }
+
+        function reset() {
+            init();
+        }
+
+        canvas.addEventListener('click', e => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            nodes.forEach((node, i) => {
+                const dist = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                if (dist < 20) clickNode(i);
+            });
+        });
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            let cursor = 0;
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'a') clickNode(cursor);
+                if (btn === 'left') cursor = Math.max(0, cursor - 1);
+                if (btn === 'right') cursor = Math.min(nodes.length - 1, cursor + 1);
+                if (btn === 'b') reset();
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

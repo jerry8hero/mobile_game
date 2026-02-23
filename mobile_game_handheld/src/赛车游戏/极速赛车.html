@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极速赛车</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #111;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            background: #222;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            z-index: 10;
+        }
+        #gameOverScreen { display: none; }
+        h1 { font-size: 2rem; margin-bottom: 20px; color: #e94560; }
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover { background: #ff6b6b; }
+        .controls {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        #score { color: #4ecdc4; }
+        #speed { color: #feca57; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div>得分: <span id="score">0</span></div>
+            <div>速度: <span id="speed">0</span> km/h</div>
+        </div>
+        <div id="startScreen">
+            <h1>🏎️ 极速赛车</h1>
+            <button class="btn" onclick="startGame()">开始游戏</button>
+            <div class="controls">
+                ← → 方向键控制<br>
+                A键 / 空格 加速
+            </div>
+        </div>
+        <div id="gameOverScreen">
+            <h1>💥 游戏结束</h1>
+            <p>最终得分: <span id="finalScore">0</span></p>
+            <button class="btn" onclick="restartGame()">再来一次</button>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let gameRunning = false;
+        let score = 0;
+        let speed = 0;
+        let maxSpeed = 200;
+        let playerX = 175;
+        let roadOffset = 0;
+        let obstacles = [];
+        let coins = [];
+        let lastObstacleTime = 0;
+
+        const player = {
+            x: playerX,
+            y: 500,
+            width: 50,
+            height: 80
+        };
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            speed = 0;
+            obstacles = [];
+            coins = [];
+            playerX = 175;
+            gameLoop();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+        }
+
+        function spawnObstacle() {
+            const types = [
+                { type: 'car', icon: '🚗', width: 50, height: 80 },
+                { type: 'truck', icon: '🚚', width: 60, height: 100 },
+                { type: 'rock', icon: '🪨', width: 40, height: 40 }
+            ];
+            const type = types[Math.floor(Math.random() * types.length)];
+            obstacles.push({
+                x: Math.random() * (canvas.width - type.width),
+                y: -type.height,
+                ...type
+            });
+        }
+
+        function spawnCoin() {
+            coins.push({
+                x: Math.random() * (canvas.width - 30),
+                y: -30,
+                width: 30,
+                height: 30
+            });
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // 加速
+            if (speed < maxSpeed) speed += 0.5;
+
+            // 道路移动
+            roadOffset += speed * 0.1;
+            if (roadOffset > 60) roadOffset = 0;
+
+            // 生成障碍物和金币
+            const now = Date.now();
+            if (now - lastObstacleTime > 2000 - speed * 5) {
+                spawnObstacle();
+                if (Math.random() > 0.5) spawnCoin();
+                lastObstacleTime = now;
+            }
+
+            // 更新障碍物
+            obstacles.forEach((obs, i) => {
+                obs.y += speed * 0.15;
+
+                // 碰撞检测
+                if (player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y) {
+                    gameOver();
+                }
+
+                // 移除屏幕外的障碍物
+                if (obs.y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                }
+            });
+
+            // 更新金币
+            coins.forEach((coin, i) => {
+                coin.y += speed * 0.15;
+
+                // 收集金币
+                if (player.x < coin.x + coin.width &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + coin.height &&
+                    player.y + player.height > coin.y) {
+                    coins.splice(i, 1);
+                    score += 50;
+                }
+
+                if (coin.y > canvas.height) {
+                    coins.splice(i, 1);
+                }
+            });
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('speed').textContent = Math.floor(speed);
+        }
+
+        function draw() {
+            // 背景
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 道路
+            ctx.fillStyle = '#333';
+            ctx.fillRect(50, 0, 300, canvas.height);
+
+            // 道路边缘
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(50, 0, 5, canvas.height);
+            ctx.fillRect(345, 0, 5, canvas.height);
+
+            // 道路标线
+            ctx.fillStyle = '#feca57';
+            for (let i = -60; i < canvas.height; i += 60) {
+                ctx.fillRect(195, i + roadOffset, 10, 30);
+            }
+
+            // 障碍物
+            obstacles.forEach(obs => {
+                ctx.font = `${obs.height * 0.8}px Arial`;
+                ctx.fillText(obs.icon, obs.x, obs.y + obs.height);
+            });
+
+            // 金币
+            coins.forEach(coin => {
+                ctx.font = '24px Arial';
+                ctx.fillText('🪙', coin.x, coin.y + coin.height);
+            });
+
+            // 玩家赛车
+            ctx.font = '60px Arial';
+            ctx.fillText('🏎️', player.x, player.y + player.height);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            if (e.key === 'ArrowLeft' && player.x > 55) player.x -= 20;
+            if (e.key === 'ArrowRight' && player.x < 295) player.x += 20;
+            if (e.key === ' ' || e.key === 'a') speed = Math.min(speed + 20, maxSpeed);
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === ' ' || e.key === 'a') speed = Math.max(speed - 20, 50);
+        });
+
+        // 触摸控制
+        let touchStartX = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            speed = Math.min(speed + 30, maxSpeed);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const diff = e.touches[0].clientX - touchStartX;
+            player.x = Math.max(55, Math.min(295, player.x + diff * 0.5));
+            touchStartX = e.touches[0].clientX;
+        });
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', (btn) => {
+                if (btn === 'left' && player.x > 55) player.x -= 20;
+                if (btn === 'right' && player.x < 295) player.x += 20;
+                if (btn === 'a') speed = Math.min(speed + 20, maxSpeed);
+            });
+            GamepadHelper.on('onButtonUp', (btn) => {
+                if (btn === 'a') speed = Math.max(speed - 20, 50);
+            });
+        }
+
+        // 初始绘制
+        draw();
+    </script>
+</body>
+</html>

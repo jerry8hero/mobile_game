@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡牌对战</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
+        }
+        #game {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 { text-align: center; margin-bottom: 10px; color: #e94560; }
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .player-score, .enemy-score {
+            text-align: center;
+        }
+        .player-score h3, .enemy-score h3 { color: #4ecdc4; }
+        .score-value { font-size: 2rem; font-weight: bold; }
+        .battle-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .enemy-hand, .player-hand {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            min-height: 120px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        .enemy-hand { opacity: 0.7; }
+        .card {
+            width: 80px;
+            height: 110px;
+            background: linear-gradient(135deg, #2d2d44, #1f1f3a);
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .card:hover { transform: translateY(-10px); }
+        .card.enemy { background: linear-gradient(135deg, #442222, #2a1515); border-color: #ff6b6b; }
+        .card-icon { font-size: 2rem; margin-bottom: 5px; }
+        .card-name { font-size: 0.7rem; text-align: center; }
+        .card-attack, .card-defense {
+            position: absolute;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .card-attack { top: 5px; left: 5px; background: #ff6b6b; }
+        .card-defense { bottom: 5px; right: 5px; background: #4ecdc4; }
+        .battle-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .vs { font-size: 3rem; color: #e94560; font-weight: bold; }
+        .message {
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 10px;
+            background: rgba(233,69,96,0.2);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+        .btn-area {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 15px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-draw { background: #4ecdc4; color: #fff; }
+        .btn-restart { background: #e94560; color: #fff; }
+        .energy-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .energy { font-size: 1.5rem; }
+        .energy-pips { display: flex; gap: 5px; }
+        .pip {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ecdc4;
+        }
+        .pip.used { background: #333; }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>🃏 卡牌对战</h1>
+        <div class="score-board">
+            <div class="player-score">
+                <h3>玩家</h3>
+                <div class="score-value" id="playerHP">20</div>
+            </div>
+            <div class="enemy-score">
+                <h3>对手</h3>
+                <div class="score-value" id="enemyHP">20</div>
+            </div>
+        </div>
+        <div class="energy-bar">
+            <span class="energy">⚡</span>
+            <div class="energy-pips" id="energyPips"></div>
+        </div>
+        <div class="battle-area">
+            <div class="enemy-hand" id="enemyHand"></div>
+            <div class="battle-center">
+                <div class="vs">VS</div>
+            </div>
+            <div class="message" id="message">点击抽牌开始游戏！</div>
+            <div class="player-hand" id="playerHand"></div>
+        </div>
+        <div class="btn-area">
+            <button class="btn btn-draw" onclick="drawCard()">🃏 抽牌</button>
+            <button class="btn btn-restart" onclick="restartGame()">🔄 重新开始</button>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        // 卡牌数据
+        const cardDatabase = [
+            { name: '骑士', icon: '🗡️', attack: 3, defense: 2, cost: 2 },
+            { name: '弓箭手', icon: '🏹', attack: 2, defense: 1, cost: 1 },
+            { name: '法师', icon: '🔮', attack: 4, defense: 1, cost: 3 },
+            { name: '巨龙', icon: '🐉', attack: 5, defense: 5, cost: 5 },
+            { name: '精灵', icon: '🧝', attack: 2, defense: 3, cost: 2 },
+            { name: '骷髅', icon: '💀', attack: 1, defense: 1, cost: 1 },
+            { name: '天使', icon: '👼', attack: 3, defense: 4, cost: 3 },
+            { name: '恶魔', icon: '😈', attack: 5, defense: 2, cost: 4 },
+            { name: '狼人', icon: '🐺', attack: 4, defense: 2, cost: 3 },
+            { name: '吸血鬼', icon: '🧛', attack: 3, defense: 3, cost: 3 },
+        ];
+
+        let playerHP = 20;
+        let enemyHP = 20;
+        let playerHand = [];
+        let enemyHand = [];
+        let playerDeck = [];
+        let enemyDeck = [];
+        let maxEnergy = 1;
+        let currentEnergy = 1;
+        let turn = 0;
+
+        function initDeck() {
+            playerDeck = [...cardDatabase].sort(() => Math.random() - 0.5);
+            enemyDeck = [...cardDatabase].sort(() => Math.random() - 0.5);
+        }
+
+        function drawCard() {
+            if (playerDeck.length === 0) {
+                document.getElementById('message').textContent = '牌库已空！';
+                return;
+            }
+            const card = playerDeck.pop();
+            playerHand.push(card);
+            renderHand();
+            document.getElementById('message').textContent = `抽到了 ${card.icon} ${card.name}！`;
+            enemyTurn();
+        }
+
+        function enemyTurn() {
+            setTimeout(() => {
+                if (enemyDeck.length > 0) {
+                    const card = enemyDeck.pop();
+                    enemyHand.push(card);
+                    renderEnemyHand();
+                    attackPlayer(card);
+                }
+            }, 800);
+        }
+
+        function attackPlayer(card) {
+            playerHP -= card.attack;
+            document.getElementById('playerHP').textContent = playerHP;
+            document.getElementById('message').textContent = `对手打出了 ${card.icon} ${card.name}，造成 ${card.attack} 点伤害！`;
+
+            if (playerHP <= 0) {
+                document.getElementById('message').textContent = '💀 你输了！';
+                disableGame();
+            }
+        }
+
+        function renderHand() {
+            const container = document.getElementById('playerHand');
+            container.innerHTML = playerHand.map((card, i) => `
+                <div class="card" onclick="playCard(${i})">
+                    <span class="card-attack">⚔️${card.attack}</span>
+                    <span class="card-defense">🛡️${card.defense}</span>
+                    <span class="card-icon">${card.icon}</span>
+                    <span class="card-name">${card.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderEnemyHand() {
+            const container = document.getElementById('enemyHand');
+            container.innerHTML = enemyHand.map(() => `<div class="card enemy">🃏</div>`).join('');
+        }
+
+        function playCard(index) {
+            const card = playerHand[index];
+            if (card.cost > currentEnergy) {
+                document.getElementById('message').textContent = '⚡                 return;
+            }
+            currentEnergy能量不足！';
+ -= card.cost;
+            playerHand.splice(index, 1);
+
+            enemyHP -= card.attack;
+            document.getElementById('enemyHP').textContent = enemyHP;
+            document.getElementById('message').textContent = `你打出了 ${card.icon} ${card.name}，造成 ${card.attack} 点伤害！`;
+
+            renderHand();
+            renderEnergy();
+
+            if (enemyHP <= 0) {
+                document.getElementById('message').textContent = '🏆 你赢了！';
+                disableGame();
+            }
+        }
+
+        function renderEnergy() {
+            const container = document.getElementById('energyPips');
+            let html = '';
+            for (let i = 0; i < maxEnergy; i++) {
+                html += `<div class="pip ${i < currentEnergy ? '' : 'used'}"></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function disableGame() {
+            document.querySelector('.btn-draw').disabled = true;
+        }
+
+        function restartGame() {
+            playerHP = 20;
+            enemyHP = 20;
+            playerHand = [];
+            enemyHand = [];
+            maxEnergy = 1;
+            currentEnergy = 1;
+            initDeck();
+            document.getElementById('playerHP').textContent = playerHP;
+            document.getElementById('enemyHP').textContent = enemyHP;
+            document.querySelector('.btn-draw').disabled = false;
+            document.getElementById('message').textContent = '点击抽牌开始游戏！';
+            renderHand();
+            renderEnemyHand();
+            renderEnergy();
+        }
+
+        // 手柄支持
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', (btn) => {
+                if (btn === 'a') drawCard();
+                if (btn === 'b') restartGame();
+            });
+        }
+
+        initDeck();
+        renderEnergy();
+    </script>
+</body>
+</html>

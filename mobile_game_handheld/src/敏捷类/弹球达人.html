@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹球达人</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #111;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game {
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 10px;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            color: #fff;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px #000;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            border-radius: 10px;
+        }
+        h1 { color: #4ecdc4; margin-bottom: 15px; }
+        .btn {
+            padding: 12px 30px;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <canvas id="canvas" width="400" height="500"></canvas>
+        <div id="ui">
+            <div>得分: <span id="score">0</span></div>
+            <div>生命: <span id="lives">❤️❤️❤️</span></div>
+        </div>
+        <div id="startScreen">
+            <h1>🎯 弹球达人</h1>
+            <button class="btn" onclick="startGame()">开始游戏</button>
+            <p style="margin-top:15px;color:#aaa">← → 控制挡板</p>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameRunning = false;
+        let score = 0;
+        let lives = 3;
+        let paddleX = 150;
+        let ball = { x: 200, y: 400, vx: 3, vy: -5 };
+        let bricks = [];
+
+        function initBricks() {
+            bricks = [];
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 7; c++) {
+                    bricks.push({
+                        x: 15 + c * 55,
+                        y: 30 + r * 25,
+                        width: 50,
+                        height: 20,
+                        alive: true
+                    });
+                }
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            lives = 3;
+            paddleX = 150;
+            ball = { x: 200, y: 400, vx: 3, vy: -5 };
+            initBricks();
+            update();
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // 移动球
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            // 墙壁碰撞
+            if (ball.x < 10 || ball.x > 390) ball.vx *= -1;
+            if (ball.y < 10) ball.vy *= -1;
+
+            // 挡板碰撞
+            if (ball.y > 460 && ball.y < 480 && ball.x > paddleX && ball.x < paddleX + 100) {
+                ball.vy = -Math.abs(ball.vy) * 1.05;
+                ball.vx += (ball.x - (paddleX + 50)) * 0.1;
+            }
+
+            // 掉落
+            if (ball.y > 500) {
+                lives--;
+                if (lives <= 0) {
+                    gameRunning = false;
+                    document.getElementById('startScreen').style.display = 'flex';
+                    document.querySelector('#startScreen h1').textContent = `游戏结束！得分: ${score}`;
+                } else {
+                    ball.x = 200;
+                    ball.y = 400;
+                    ball.vx = 3;
+                    ball.vy = -5;
+                }
+            }
+
+            // 砖块碰撞
+            bricks.forEach(brick => {
+                if (brick.alive &&
+                    ball.x > brick.x && ball.x < brick.x + brick.width &&
+                    ball.y > brick.y && ball.y < brick.y + brick.height) {
+                    brick.alive = false;
+                    ball.vy *= -1;
+                    score += 10;
+                }
+            });
+
+            // 胜利检测
+            if (bricks.every(b => !b.alive)) {
+                initBricks();
+                ball.vx *= 1.2;
+                ball.vy *= 1.2;
+            }
+
+            draw();
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = '❤️'.repeat(lives);
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, 400, 500);
+
+            // 砖块
+            bricks.forEach(brick => {
+                if (brick.alive) {
+                    ctx.fillStyle = '#4ecdc4';
+                    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+                }
+            });
+
+            // 挡板
+            ctx.fillStyle = '#e94560';
+            ctx.fillRect(paddleX, 470, 100, 15);
+
+            // 球
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#feca57';
+            ctx.fill();
+        }
+
+        // 控制
+        document.addEventListener('keydown', e => {
+            if (!gameRunning) return;
+            if (e.key === 'ArrowLeft') paddleX = Math.max(0, paddleX - 30);
+            if (e.key === 'ArrowRight') paddleX = Math.min(300, paddleX + 30);
+        });
+
+        canvas.addEventListener('touchmove', e => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches[0].clientX - rect.left;
+            paddleX = Math.max(0, Math.min(300, x - 50));
+        });
+
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'left') paddleX = Math.max(0, paddleX - 30);
+                if (btn === 'right') paddleX = Math.min(300, paddleX + 30);
+            });
+        }
+
+        initBricks();
+        draw();
+    </script>
+</body>
+</html>
