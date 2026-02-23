@@ -1,7 +1,118 @@
-# Tauri + Vanilla
+# 掌机游戏厅 - Switch 浏览器版
 
-This template should help get you started developing with Tauri in vanilla HTML, CSS and Javascript.
+通过 Nintendo Switch 浏览器即可游玩，无需越狱！
 
-## Recommended IDE Setup
+## 功能特点
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- 🎮 **90+ 款游戏** - 益智、街机、RPG、敏捷等多种类型
+- 👆 **触控操作** - 专为 Switch 优化的虚拟按键
+- 🎯 **手柄支持** - 支持 Joy-Con 和 Pro Controller
+- 📱 **PWA 支持** - 可添加到主屏幕离线游玩
+
+## Switch 使用方法
+
+### 方法一：添加到主屏幕（推荐）
+
+1. 打开 Switch 浏览器
+2. 访问部署的网站地址
+3. 点击浏览器菜单 (⋮)
+4. 选择「添加到主屏幕」
+5. 点击主屏幕图标即可启动
+
+### 方法二：直接浏览
+
+1. 打开 Switch 浏览器
+2. 访问网站地址
+3. 直接游玩
+
+## 虚拟按键说明
+
+```
+   左侧          右侧
+  ┌───┬───┬───┐   ┌───┬───┐
+  │ ▲ │   │ ▶ │   │ Y │ X │
+  ├───┼───┼───┤   ├───┼───┤
+  │ ◀ │ ● │ ▼ │   │ B │ A │
+  └───┴───┴───┘   └───┴───┘
+
+  底部: SELECT  START
+```
+
+- **A 键/点击** - 确认/进入游戏
+- **B 键** - 返回
+- **方向键** - 移动/选择
+
+## 按键映射
+
+| 虚拟按键 | 触屏点击 | 功能 |
+|---------|---------|------|
+| A | 红色按钮 | 确认 |
+| B | 青色按钮 | 返回/取消 |
+| X | 蓝色按钮 | 技能1 |
+| Y | 绿色按钮 | 技能2 |
+| 十字键 | 左侧方向 | 移动/选择 |
+| START | START | 暂停/全屏 |
+| SELECT | SELECT | 返回主页 |
+
+## 部署方法
+
+### 方式 1: GitHub Pages（免费推荐）
+
+```bash
+# 1. 将 src 目录内容推送到 GitHub 仓库
+# 2. 在仓库设置中启用 GitHub Pages
+# 3. 访问 your-username.github.io/repo-name
+```
+
+### 方式 2: Vercel（推荐）
+
+```bash
+# 1. 访问 vercel.com
+# 2. 导入 GitHub 仓库
+# 3. 自动部署，获得 HTTPS 地址
+```
+
+### 方式 3: Netlify
+
+```bash
+# 1. 访问 netlify.com
+# 2. 拖拽 src 文件夹到部署区域
+# 3. 自动部署完成
+```
+
+## 本地开发测试
+
+```bash
+cd mobile_game_handheld/src
+python3 -m http.server 8080
+# 浏览器访问 http://localhost:8080
+```
+
+## 支持的游戏类型
+
+- 🧩 益智类 - 拼图、连连看、扫雷
+- 🎮 街机类 - 俄罗斯方块、贪吃蛇、打砖块
+- ⚔️ RPG冒险 - 勇者冒险、地下城探险
+- ⚡ 敏捷类 - 切水果、打地鼠
+- 🏃 运动类 - 酷跑、赛车、投篮
+- ♟️ 棋类 - 井字棋、五子棋
+- 📚 知识类 - 打字练习、单词速记
+- 🎨 创意艺术 - 魔法画板
+
+## 注意事项
+
+1. ⚡ Switch 浏览器性能有限，部分复杂游戏可能卡顿
+2. 📡 需要网络连接才能首次加载游戏
+3. 🎮 建议使用触控操作体验最佳
+4. 🔋 长时间游玩请连接充电器
+
+## 技术栈
+
+- HTML5 + CSS3
+- Vanilla JavaScript
+- PWA (Service Worker + Manifest)
+- Canvas API
+
+---
+
+🎉 祝您游戏愉快！

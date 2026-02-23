@@ -49,5 +49,6 @@
         function selectWord(idx, el) { if (showing || el.classList.contains('correct') || el.classList.contains('missed')) return; if (wordList[idx]) { el.classList.remove('hidden'); el.classList.add('correct'); score += 10; document.getElementById('score').textContent = score; wordList[idx] = null; if (wordList.every(w=>w===null)) nextLevel(); } else { el.classList.add('missed'); score = Math.max(0, score-5); document.getElementById('score').textContent = score; } }
         function nextLevel() { if (currentLevel < wordLists.length - 1) { currentLevel++; document.getElementById('message').textContent = '🎉 过关!'; setTimeout(() => { wordList = []; startGame(); }, 1500); } else { document.getElementById('message').textContent = '🎉 全部完成!'; } }
     </script>
+<script src="../switch-controls.js"></script>
 </body>
 </html>
