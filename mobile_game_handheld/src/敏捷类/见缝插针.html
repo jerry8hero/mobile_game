@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>见缝插针</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+        }
+
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            width: 300px;
+            height: 450px;
+            background: white;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .stick {
+            position: absolute;
+            width: 8px;
+            background: #333;
+            transform-origin: bottom center;
+            transition: transform 0.3s ease;
+        }
+
+        .ball {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b);
+            border-radius: 50%;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .needle {
+            position: absolute;
+            width: 4px;
+            height: 200px;
+            background: linear-gradient(to bottom, #333 80%, transparent 80%);
+            left: 50%;
+            top: 250px;
+            transform-origin: top center;
+            transition: transform 0.5s ease;
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: white;
+            color: #ff5e62;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <h1>📍 见缝插针</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">剩余球: <span id="balls">10</span></div>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="ball" id="ball"></div>
+        <div class="needle" id="needle"></div>
+        <div class="message" id="message"></div>
+    </div>
+
+    <button class="btn" id="shootBtn" onclick="shoot()">发射!</button>
+    <button class="btn" onclick="initGame()" style="background:#3498db;color:white;">重新开始</button>
+
+    <script>
+        const container = document.getElementById('gameContainer');
+        const ball = document.getElementById('ball');
+        const needle = document.getElementById('needle');
+        const message = document.getElementById('message');
+
+        let score = 0;
+        let ballsLeft = 10;
+        let sticks = [];
+        let ballPosition = 0;
+        let gameOver = false;
+        let isMoving = false;
+
+        function initGame() {
+            score = 0;
+            ballsLeft = 10;
+            sticks = [];
+            ballPosition = 0;
+            gameOver = false;
+            isMoving = false;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('balls').textContent = '10';
+
+            message.style.display = 'none';
+
+            // 清除旧的针
+            document.querySelectorAll('.stick').forEach(s => s.remove());
+
+            // 初始旋转
+            needle.style.transform = `rotate(0deg)`;
+            updateBall();
+        }
+
+        function shoot() {
+            if (gameOver || isMoving || ballsLeft <= 0) return;
+
+            isMoving = true;
+            ballsLeft--;
+            document.getElementById('balls').textContent = ballsLeft;
+
+            // 获取当前角度
+            const style = needle.style.transform;
+            const match = style.match(/rotate\((-?\d+\)deg)/);
+            const currentAngle = match ? parseInt(match[1]) : 0;
+
+            // 创建新的针
+            const stick = document.createElement('div');
+            stick.className = 'stick';
+            stick.style.height = '200px';
+            stick.style.left = '146px';
+            stick.style.top = '50px';
+            stick.style.transform = `rotate(${currentAngle}deg)`;
+            container.appendChild(stick);
+            sticks.push({ element: stick, angle: currentAngle });
+
+            // 移动球
+            const moveInterval = setInterval(() => {
+                ballPosition += 5;
+                updateBall();
+
+                // 检测碰撞
+                for (const s of sticks) {
+                    const angle1 = (s.angle + 90) * Math.PI / 180;
+                    const angle2 = (currentAngle + 90) * Math.PI / 180;
+
+                    // 简单碰撞检测
+                    const diff = Math.abs(normalizeAngle(s.angle - currentAngle));
+
+                    if (ballPosition > 180 && ballPosition < 250) {
+                        if (Math.abs(diff) < 15) {
+                            // 撞到了
+                            clearInterval(moveInterval);
+                            gameOver = true;
+                            message.textContent = '游戏结束!';
+                            message.style.display = 'block';
+                            return;
+                        }
+                    }
+                }
+
+                if (ballPosition >= 280) {
+                    clearInterval(moveInterval);
+                    score += 10;
+                    document.getElementById('score').textContent = score;
+
+                    if (ballsLeft === 0) {
+                        gameOver = true;
+                        message.textContent = '恭喜通关!';
+                        message.style.color = '#27ae60';
+                        message.style.display = 'block';
+                    }
+
+                    isMoving = false;
+                }
+            }, 20);
+
+            // 旋转到新角度
+            const newAngle = (Math.random() - 0.5) * 120;
+            needle.style.transform = `rotate(${newAngle}deg)`;
+        }
+
+        function normalizeAngle(angle) {
+            while (angle > 180) angle -= 360;
+            while (angle < -180) angle += 360;
+            return angle;
+        }
+
+        function updateBall() {
+            ball.style.top = (350 - ballPosition) + 'px';
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

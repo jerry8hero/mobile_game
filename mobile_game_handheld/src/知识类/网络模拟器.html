@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络模拟器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #1a1a2e, #3498db); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 500px; width: 100%; }
+        .network-visual { background: #1a1a2e; border-radius: 10px; padding: 20px; margin: 15px 0; min-height: 250px; position: relative; }
+        .device { position: absolute; width: 60px; height: 60px; background: #2d2d44; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-size: 0.7rem; cursor: pointer; transition: all 0.3s; }
+        .device:hover { transform: scale(1.1); }
+        .device.active { background: #27ae60; }
+        .device.server { background: #e74c3c; }
+        .device-router { background: #9b59b6; }
+        .device-client { background: #3498db; }
+        .device-icon { font-size: 1.5rem; }
+        .packet { position: absolute; width: 20px; height: 20px; background: #f1c40f; border-radius: 50%; transition: all 0.3s; display: none; z-index: 10; }
+        .packet.active { display: block; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+        .log-area { background: #f5f5f5; border-radius: 8px; padding: 10px; max-height: 100px; overflow-y: auto; font-size: 0.8rem; font-family: monospace; }
+        .log { padding: 3px 0; border-bottom: 1px solid #eee; }
+        .log.sending { color: #3498db; }
+        .log.received { color: #27ae60; }
+        .log.error { color: #e74c3c; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+        .action-btn { padding: 10px 20px; border: none; border-radius: 20px; cursor: pointer; background: #3498db; color: #fff; font-weight: bold; }
+        .action-btn:hover { transform: scale(1.05); }
+        .action-btn:disabled { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <h1>🌐 网络模拟器</h1>
+    <div class="game-container">
+        <div class="network-visual" id="network">
+            <div class="device device-server" style="left:200px;top:20px;" id="server">
+                <div class="device-icon">🖥️</div>
+                <div>服务器</div>
+            </div>
+            <div class="device device-router" style="left:200px;top:100px;" id="router">
+                <div class="device-icon">📡</div>
+                <div>路由器</div>
+            </div>
+            <div class="device device-client" style="left:80px;top:180px;" id="client1">
+                <div class="device-icon">💻</div>
+                <div>电脑A</div>
+            </div>
+            <div class="device device-client" style="left:200px;top:180px;" id="client2">
+                <div class="device-icon">📱</div>
+                <div>手机B</div>
+            </div>
+            <div class="device device-client" style="left:320px;top:180px;" id="client3">
+                <div class="device-icon">📺</div>
+                <div>电视C</div>
+            </div>
+            <div class="packet" id="packet"></div>
+        </div>
+        <div class="log-area" id="logArea">
+            <div class="log">🌐 欢迎来到网络模拟器！</div>
+            <div class="log">点击设备发送数据</div>
+        </div>
+        <div class="btn-group">
+            <button class="action-btn" onclick="sendTo('client1','server')">💻→🖥️</button>
+            <button class="action-btn" onclick="sendTo('client2','server')">📱→🖥️</button>
+            <button class="action-btn" onclick="sendTo('client3','server')">📺→🖥️</button>
+            <button class="action-btn" onclick="pingAll()">🔔 广播</button>
+        </div>
+    </div>
+    <script>
+        const devices = { server:{x:230,y:50}, router:{x:230,y:130}, client1:{x:110,y:210}, client2:{x:230,y:210}, client3:{x:350,y:210} };
+        const connections = [
+            ['server','router'],['router','client1'],['router','client2'],['router','client3']
+        ];
+        let isSending = false;
+        function log(msg,type=''){
+            const div = document.createElement('div');
+            div.className = 'log '+type;
+            div.textContent = msg;
+            document.getElementById('logArea').insertBefore(div,document.getElementById('logArea').firstChild);
+            while(document.getElementById('logArea').children.length>15) document.getElementById('logArea').lastChild.remove();
+        }
+        function sendTo(from,to){
+            if(isSending) return;
+            isSending = true;
+            const names = {server:'服务器',router:'路由器',client1:'电脑A',client2:'手机B',client3:'电视C'};
+            log('📤 '+names[from]+' 准备发送数据...','sending');
+            document.getElementById(from).classList.add('active');
+            const packet = document.getElementById('packet');
+            const fromPos = devices[from];
+            const toPos = devices[to];
+            packet.style.left = fromPos.x+'px';
+            packet.style.top = fromPos.y+'px';
+            packet.classList.add('active');
+            log('📡 数据经过路由器...','sending');
+            setTimeout(()=>{
+                packet.style.left = toPos.x+'px';
+                packet.style.top = toPos.y+'px';
+            },500);
+            setTimeout(()=>{
+                packet.classList.remove('active');
+                document.getElementById(from).classList.remove('active');
+                document.getElementById(to).classList.add('active');
+                log('✅ '+names[to]+' 收到数据！','received');
+                setTimeout(()=>{
+                    document.getElementById(to).classList.remove('active');
+                    isSending = false;
+                },500);
+            },1000);
+        }
+        function pingAll(){
+            if(isSending) return;
+            isSending = true;
+            log('🔔 向所有设备发送广播...','sending');
+            ['client1','client2','client3'].forEach(c=>{
+                setTimeout(()=>sendTo('server',c),['client1','client2','client3'].indexOf(c)*800);
+            });
+            setTimeout(()=>isSending=false,2500);
+        }
+    </script>
+</body>
+</html>

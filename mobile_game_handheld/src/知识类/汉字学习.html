@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字学习</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #e74c3c, #f39c12); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 2rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 450px; width: 100%; text-align: center; }
+        .word-card { background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; padding: 40px; border-radius: 15px; margin: 20px 0; cursor: pointer; transition: all 0.3s; }
+        .word-card:hover { transform: scale(1.02); }
+        .word-char { font-size: 5rem; font-weight: bold; }
+        .word-pinyin { font-size: 1.5rem; opacity: 0.9; margin-top: 10px; }
+        .word-meaning { font-size: 1.2rem; margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .word-example { font-size: 1rem; margin-top: 10px; opacity: 0.8; }
+        .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+        .tab { padding: 8px 16px; border: none; border-radius: 20px; background: #f0f0f0; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .tab.active { background: #e74c3c; color: #fff; }
+        .nav-btns { display: flex; gap: 15px; justify-content: center; margin-top: 15px; }
+        .nav-btn { padding: 12px 25px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .prev-btn { background: #3498db; color: #fff; }
+        .next-btn { background: #27ae60; color: #fff; }
+        .random-btn { background: #f39c12; color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>📖 汉字学习</h1>
+    <div class="game-container">
+        <div class="tabs">
+            <button class="tab active" onclick="setCategory('basic')">基础汉字</button>
+            <button class="tab" onclick="setCategory('number')">数字</button>
+            <button class="tab" onclick="setCategory('animal')">动物</button>
+            <button class="tab" onclick="setCategory('nature')">自然</button>
+        </div>
+        <div class="word-card" onclick="toggleShow()">
+            <div class="word-char" id="wordChar">人</div>
+            <div class="word-pinyin" id="wordPinyin">rén</div>
+            <div class="word-meaning" id="wordMeaning" style="display:none;">人类，自己</div>
+            <div class="word-example" id="wordExample" style="display:none;">例：中国人</div>
+        </div>
+        <p style="color:#666;font-size:0.9rem;">点击卡片查看解释</p>
+        <div class="nav-btns">
+            <button class="nav-btn prev-btn" onclick="prev()">◀ 上一个</button>
+            <button class="nav-btn random-btn" onclick="random()">🎲 随机</button>
+            <button class="nav-btn next-btn" onclick="next()">下一个 ▶</button>
+        </div>
+    </div>
+    <script>
+        const words = {
+            basic: [
+                {char:'人',pinyin:'rén',meaning:'人类，自己',example:'中国人、人们'},
+                {char:'大',pinyin:'dà',meaning:'体积、面积大',example:'大人、大家'},
+                {char:'小',pinyin:'xiǎo',meaning:'体积小',example:'小孩、小心'},
+                {char:'上',pinyin:'shàng',meaning:'位置在高处',example:'上学、上面'},
+                {char:'下',pinyin:'xià',meaning:'位置在低处',example:'下雨、下面'},
+                {char:'中',pinyin:'zhōng',meaning:'中间',example:'中国、中学'},
+                {char:'口',pinyin:'kǒu',meaning:'嘴巴',example:'人口、口袋'},
+                {char:'日',pinyin:'rì',meaning:'太阳，日子',example:'今日、日历'},
+                {char:'月',pinyin:'yuè',meaning:'月亮，月份',example:'月亮、月份'},
+                {char:'水',pinyin:'shuǐ',meaning:'水',example:'水果、水杯'}
+            ],
+            number: [
+                {char:'一',pinyin:'yī',meaning:'数字1',example:'一个、一天'},
+                {char:'二',pinyin:'èr',meaning:'数字2',example:'二月、二哥'},
+                {char:'三',pinyin:'sān',meaning:'数字3',example:'三月、三次'},
+                {char:'四',pinyin:'sì',meaning:'数字4',example:'四季、四方'},
+                {char:'五',pinyin:'wǔ',meaning:'数字5',example:'五月、五星'},
+                {char:'六',pinyin:'liù',meaning:'数字6',example:'六月、六一'},
+                {char:'七',pinyin:'qī',meaning:'数字7',example:'七夕、七星'},
+                {char:'八',pinyin:'bā',meaning:'数字8',example:'八月、八卦'},
+                {char:'九',pinyin:'jiǔ',meaning:'数字9',example:'九月九州'},
+                {char:'十',pinyin:'shí',meaning:'数字10',example:'十月、十分'}
+            ],
+            animal: [
+                {char:'马',pinyin:'mǎ',meaning:'一种动物',example:'小马、马上'},
+                {char:'牛',pinyin:'niú',meaning:'一种动物',example:'小牛、水牛'},
+                {char:'羊',pinyin:'yáng',meaning:'一种动物',example:'小羊、山羊'},
+                {char:'鸟',pinyin:'niǎo',meaning:'会飞的动物',example:'小鸟、鸟儿'},
+                {char:'鱼',pinyin:'yú',meaning:'水里的动物',example:'小鱼、鱼儿'},
+                {char:'虫',pinyin:'chóng',meaning:'小虫子',example:'虫子、昆虫'},
+                {char:'狗',pinyin:'gǒu',meaning:'一种宠物',example:'小狗、黄狗'},
+                {char:'猫',pinyin:'māo',meaning:'一种宠物',example:'小猫、花猫'}
+            ],
+            nature: [
+                {char:'山',pinyin:'shān',meaning:'地面上高的地方',example:'高山、山上'},
+                {char:'石',pinyin:'shí',meaning:'硬硬的石头',example:'石头宝石'},
+                {char:'土',pinyin:'tǔ',meaning:'地上的泥',example:'土地、泥土'},
+                {char:'木',pinyin:'mù',meaning:'树',example:'树木、木头'},
+                {char:'田',pinyin:'tián',meaning:'种庄稼的地',example:'田地、农田'},
+                {char:'风',pinyin:'fēng',meaning:'空气流动',example:'大风、风雨'},
+                {char:'雨',pinyin:'yǔ',meaning:'天上的水',example:'下雨、雨伞'},
+                {char:'云',pinyin:'yún',meaning:'天上的白云',example:'白云、云朵'}
+            ]
+        };
+        let category = 'basic', index = 0;
+        function setCategory(cat){ category = cat; index = 0; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); event.target.classList.add('active'); showWord(); }
+        function showWord(){ const w = words[category][index]; document.getElementById('wordChar').textContent = w.char; document.getElementById('wordPinyin').textContent = w.pinyin; document.getElementById('wordMeaning').textContent = w.meaning; document.getElementById('wordExample').textContent = '例：' + w.example; document.getElementById('wordMeaning').style.display = 'none'; document.getElementById('wordExample').style.display = 'none'; }
+        function toggleShow(){ document.getElementById('wordMeaning').style.display = 'block'; document.getElementById('wordExample').style.display = 'block'; }
+        function prev(){ index = (index - 1 + words[category].length) % words[category].length; showWord(); }
+        function next(){ index = (index + 1) % words[category].length; showWord(); }
+        function random(){ index = Math.floor(Math.random() * words[category].length); showWord(); }
+        showWord();
+    </script>
+</body>
+</html>

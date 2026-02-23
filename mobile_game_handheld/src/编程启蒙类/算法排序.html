@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算法排序</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        .sort-container {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 8px;
+            height: 150px;
+            margin: 20px 0;
+        }
+
+        .bar {
+            width: 35px;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 5px 5px 0 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.3s;
+            padding-bottom: 5px;
+        }
+
+        .bar.comparing {
+            background: linear-gradient(to top, #f39c12, #e74c3c);
+        }
+
+        .bar.sorted {
+            background: linear-gradient(to top, #27ae60, #2ecc71);
+        }
+
+        .bar-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.action-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #27ae60; color: #fff; }
+        .btn-next { background: #3498db; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+
+        .explanation {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .step-info {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        .hint {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255,255,255,0.15);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 算法排序</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">步骤: <span id="steps">0</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="sort-container">
+            <div class="explanation" id="explanation">
+                <strong>冒泡排序：</strong>从左到右比较相邻的两个数，大的放右边。一轮结束后最大的数会"冒"到最后面。
+            </div>
+
+            <div class="step-info" id="stepInfo"></div>
+
+            <div class="bars" id="bars">
+                <!-- 柱子由JS生成 -->
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="action-btn btn-start" id="startBtn" onclick="startSort()">▶️ 开始排序</button>
+            <button class="action-btn btn-next" id="nextBtn" onclick="nextLevel()" style="display:none;">下一关 →</button>
+            <button class="action-btn btn-reset" onclick="resetLevel()">🔄 重置</button>
+        </div>
+
+        <p class="hint">
+            看数字从小到大排队！<br>
+            了解计算机是如何排序的
+        </p>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let numbers = [];
+        let steps = 0;
+        let isSorting = false;
+        let sortInterval = null;
+
+        const levels = [
+            { numbers: [5, 2, 8, 1, 9], algorithm: 'bubble' },
+            { numbers: [3, 7, 2, 9, 1, 5], algorithm: 'bubble' },
+            { numbers: [8, 3, 1, 6, 2, 9], algorithm: 'bubble' },
+            { numbers: [5, 2, 8, 1, 9, 3, 7], algorithm: 'bubble' },
+            { numbers: [9, 5, 2, 7, 1, 8, 3, 6], algorithm: 'bubble' }
+        ];
+
+        function initGame() {
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+            numbers = [...level.numbers];
+            steps = 0;
+
+            if (sortInterval) {
+                clearInterval(sortInterval);
+                sortInterval = null;
+            }
+            isSorting = false;
+
+            document.getElementById('level').textContent = levelIndex + 1;
+            document.getElementById('steps').textContent = '0';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('stepInfo').textContent = '';
+
+            renderBars();
+        }
+
+        function renderBars() {
+            const container = document.getElementById('bars');
+            container.innerHTML = '';
+
+            const maxVal = Math.max(...numbers);
+
+            numbers.forEach((num, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.id = 'bar-' + index;
+                const height = (num / maxVal) * 120 + 20;
+                bar.style.height = height + 'px';
+                bar.textContent = num;
+                container.appendChild(bar);
+            });
+        }
+
+        async function startSort() {
+            if (isSorting) return;
+            isSorting = true;
+            document.getElementById('startBtn').disabled = true;
+
+            await bubbleSort();
+        }
+
+        async function bubbleSort() {
+            const n = numbers.length;
+
+            for (let i = 0; i < n - 1; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    // 高亮比较的两个
+                    highlightBars(j, j + 1);
+                    document.getElementById('stepInfo').textContent = `比较 ${numbers[j]} 和 ${numbers[j+1]}`;
+
+                    await sleep(800);
+
+                    if (numbers[j] > numbers[j + 1]) {
+                        // 交换
+                        [numbers[j], numbers[j + 1]] = [numbers[j + 1], numbers[j]];
+                        renderBars();
+                        highlightBars(j, j + 1);
+                        document.getElementById('stepInfo').textContent = `${numbers[j+1]} > ${numbers[j]}，交换！`;
+                        steps++;
+                        document.getElementById('steps').textContent = steps;
+
+                        await sleep(800);
+                    }
+
+                    // 取消高亮
+                    unhighlightBars();
+                }
+
+                // 标记已排好序的
+                document.getElementById('bar-' + (n - 1 - i)).classList.add('sorted');
+            }
+
+            // 最后一个也标记
+            document.getElementById('bar-0').classList.add('sorted');
+
+            document.getElementById('stepInfo').textContent = '🎉 排序完成！';
+            isSorting = false;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+        }
+
+        function highlightBars(i, j) {
+            const bar1 = document.getElementById('bar-' + i);
+            const bar2 = document.getElementById('bar-' + j);
+            if (bar1) bar1.classList.add('comparing');
+            if (bar2) bar2.classList.add('comparing');
+        }
+
+        function unhighlightBars() {
+            document.querySelectorAll('.bar').forEach(bar => {
+                bar.classList.remove('comparing');
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜完成所有排序练习！');
+            }
+            loadLevel(currentLevel);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

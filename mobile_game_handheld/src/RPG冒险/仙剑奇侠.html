@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仙剑奇侠</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); display: flex; flex-direction: column; align-items: center; font-family: 'Microsoft YaHei', sans-serif; padding: 10px; user-select: none; }
+        h1 { color: #ff6b6b; font-size: 1.5rem; margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,107,107,0.5); }
+
+        .top-bar { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
+        .stat-box { background: linear-gradient(135deg, #2c3e50, #1a252f); padding: 6px 12px; border-radius: 20px; color: #fff; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; border: 1px solid #34495e; }
+        .stat-box.gold { background: linear-gradient(135deg, #f39c12, #d68910); }
+        .stat-box.stage { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        .main-area { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+
+        .battle-scene { position: relative; background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%); border-radius: 15px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); width: 320px; height: 300px; }
+        #gameCanvas { display: block; }
+
+        .flash { position: absolute; top:0;left:0;width:100%;height:100%;background:#fff;opacity:0;pointer-events:none; }
+        .flash.damage { animation: flashRed 0.3s; }
+        .flash.attack { animation: flashWhite 0.2s; }
+        @keyframes flashRed { 0%{opacity:0.6} 100%{opacity:0} }
+        @keyframes flashWhite { 0%{opacity:0.4} 100%{opacity:0} }
+
+        .side-panel { display: flex; flex-direction: column; gap: 8px; max-width: 160px; }
+
+        .player-card { background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 10px; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .player-card h3 { font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .hp-bar-container { background: #1a1a2e; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 6px; }
+        .hp-bar { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width 0.3s; border-radius: 10px; }
+        .mp-bar-container { background: #1a1a2e; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+        .mp-bar { height: 100%; background: linear-gradient(90deg, #3498db, #2980b9); transition: width 0.3s; border-radius: 10px; }
+        .player-stats { font-size: 0.7rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+
+        .enemy-card { background: linear-gradient(135deg, #6c1e1e, #4a1414); border-radius: 12px; padding: 10px; color: #fff; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .enemy-card.show { display: block; animation: slideIn 0.3s; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        .enemy-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .enemy-emoji { font-size: 1.8rem; }
+        .enemy-info h4 { font-size: 0.9rem; }
+        .enemy-hp-bar { background: #1a1a2e; border-radius: 8px; height: 8px; overflow: hidden; }
+        .enemy-hp { height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); transition: width 0.3s; }
+
+        .action-panel { display: flex; flex-direction: column; gap: 6px; }
+        .action-btn { padding: 10px 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: all 0.2s; }
+        .action-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .attack-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; box-shadow: 0 4px 15px rgba(231,76,60,0.4); }
+        .skill-btn { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; box-shadow: 0 4px 15px rgba(155,89,182,0.4); }
+        .magic-btn { background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; box-shadow: 0 4px 15px rgba(52,152,219,0.4); }
+        .item-btn { background: linear-gradient(135deg, #27ae60, #1e8449); color: #fff; box-shadow: 0 4px 15px rgba(39,174,96,0.4); }
+        .run-btn { background: linear-gradient(135deg, #7f8c8d, #5d6d7e); color: #fff; }
+
+        .skill-panel { display: none; background: #1a1a2e; border-radius: 10px; padding: 8px; gap: 5px; }
+        .skill-panel.show { display: flex; flex-wrap: wrap; }
+        .skill-btn-small { padding: 6px 10px; border: none; border-radius: 8px; background: #2c3e50; color: #fff; font-size: 0.7rem; cursor: pointer; }
+        .skill-btn-small:hover { background: #34495e; }
+        .skill-btn-small.disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .log-box { background: rgba(0,0,0,0.5); border-radius: 10px; padding: 8px; max-height: 100px; overflow-y: auto; font-size: 0.7rem; color: #aaa; width: 100%; max-width: 320px; }
+        .log-entry { margin: 3px 0; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .log-entry.damage { color: #e74c3c; }
+        .log-entry.heal { color: #2ecc71; }
+        .log-entry.magic { color: #3498db; }
+        .log-entry.skill { color: #9b59b6; }
+        .log-entry.event { color: #f1c40f; }
+        .log-entry.win { color: #f1c40f; font-weight: bold; }
+
+        .modal-overlay { position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-overlay.show { display: flex; }
+        .shop-modal { background: linear-gradient(135deg, #2c3e50, #1a252f); border-radius: 20px; padding: 20px; max-width: 350px; width: 90%; color: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .shop-modal h2 { text-align: center; margin-bottom: 15px; color: #f1c40f; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 8px; }
+        .shop-item-info { display: flex; align-items: center; gap: 10px; }
+        .shop-item-emoji { font-size: 1.5rem; }
+        .shop-item-name { font-weight: bold; font-size: 0.85rem; }
+        .shop-item-desc { font-size: 0.65rem; color: #aaa; }
+        .buy-btn { padding: 8px 15px; border: none; border-radius: 20px; background: #27ae60; color: #fff; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
+        .buy-btn:disabled { background: #555; cursor: not-allowed; }
+        .close-shop { display: block; width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 25px; background: #e74c3c; color: #fff; font-weight: bold; cursor: pointer; }
+
+        .intro-modal { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 20px; padding: 25px; max-width: 400px; width: 90%; color: #fff; text-align: center; }
+        .intro-modal h2 { color: #ff6b6b; margin-bottom: 15px; }
+        .intro-modal p { font-size: 0.85rem; line-height: 1.6; color: #ccc; margin-bottom: 15px; }
+        .start-btn { padding: 12px 30px; border: none; border-radius: 25px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; font-weight: bold; font-size: 1rem; cursor: pointer; }
+
+        @media (max-width: 500px) { .battle-scene { width: 100%; max-width: 320px; height: 250px; } }
+    </style>
+</head>
+<body>
+    <h1>⚔️ 仙剑奇侠</h1>
+    <div class="top-bar">
+        <div class="stat-box">💖 <span id="hp">100</span>/<span id="maxHp">100</span></div>
+        <div class="stat-box">⚡ <span id="mp">50</span>/<span id="maxMp">50</span></div>
+        <div class="stat-box gold">💰 <span id="gold">0</span></div>
+        <div class="stat-box stage">🏆 第<span id="stage">1</span>关</div>
+    </div>
+
+    <div class="main-area">
+        <div class="battle-scene">
+            <canvas id="gameCanvas" width="320" height="300"></canvas>
+            <div class="flash" id="flash"></div>
+        </div>
+        <div class="side-panel">
+            <div class="player-card">
+                <h3>🗡️ 李逍遥</h3>
+                <div class="hp-bar-container"><div class="hp-bar" id="playerHpBar" style="width: 100%"></div></div>
+                <div class="mp-bar-container"><div class="mp-bar" id="playerMpBar" style="width: 100%"></div></div>
+                <div class="player-stats">
+                    <div>攻击: <span id="atk">15</span></div>
+                    <div>防御: <span id="def">5</span></div>
+                    <div>等级: <span id="level">1</span></div>
+                    <div>经验: <span id="exp">0</span></div>
+                </div>
+            </div>
+            <div class="enemy-card" id="enemyCard">
+                <div class="enemy-header">
+                    <span class="enemy-emoji" id="enemyEmoji">👹</span>
+                    <div class="enemy-info"><h4 id="enemyName">小怪</h4></div>
+                </div>
+                <div class="enemy-hp-bar"><div class="enemy-hp" id="enemyHpBar" style="width: 100%"></div></div>
+            </div>
+            <div class="action-panel" id="actionPanel">
+                <button class="action-btn attack-btn" onclick="playerAttack()">⚔️ 普通攻击</button>
+                <button class="action-btn skill-btn" onclick="showSkills()">✨ 仙术技能</button>
+                <button class="action-btn magic-btn" onclick="showMagic()">🔮 绝招</button>
+                <button class="action-btn item-btn" onclick="usePotion()">🧪 使用丹药</button>
+            </div>
+            <div class="skill-panel" id="skillPanel"></div>
+        </div>
+    </div>
+
+    <div class="log-box" id="logBox"><div class="log-entry">欢迎来到仙剑奇侠世界！</div></div>
+
+    <div class="modal-overlay" id="introModal">
+        <div class="intro-modal">
+            <h2>🏮 仙剑奇侠</h2>
+            <p>少年李逍遥为救亲人，踏上仙侠之路。历尽艰险，斩妖除魔，最终能否得道成仙？</p>
+            <p>💰 击败敌人获得金币，可购买仙丹提升修为</p>
+            <p>✨ 升级仙术技能，增强战斗能力</p>
+            <button class="start-btn" onclick="startGame()">🚀 开始冒险</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shopModal">
+        <div class="shop-modal">
+            <h2>🏪 仙丹铺</h2>
+            <div id="shopItems"></div>
+            <button class="close-shop" onclick="closeShop()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const enemies = [
+            { name: "山贼", emoji: "👹", hp: 30, atk: 8, exp: 10, gold: 15, color: "#8B4513" },
+            { name: "蛇妖", emoji: "🐍", hp: 40, atk: 12, exp: 15, gold: 20, color: "#228B22" },
+            { name: "骷髅", emoji: "💀", hp: 35, atk: 15, exp: 18, gold: 25, color: "#D3D3D3" },
+            { name: "狐妖", emoji: "🦊", hp: 50, atk: 18, exp: 25, gold: 35, color: "#FF6B6B" },
+            { name: "僵尸", emoji: "🧟", hp: 60, atk: 20, exp: 30, gold: 40, color: "#556B2F" },
+            { name: "牛魔", emoji: "🐂", hp: 80, atk: 25, exp: 45, gold: 60, color: "#8B0000" },
+            { name: "狼妖", emoji: "🐺", hp: 45, atk: 22, exp: 22, gold: 30, color: "#696969" },
+            { name: "树精", emoji: "🌲", hp: 70, atk: 15, exp: 35, gold: 45, color: "#006400" }
+        ];
+
+        const bosses = [
+            { name: "赤鬼王", emoji: "👹", hp: 150, atk: 30, exp: 100, gold: 150, color: "#FF0000" },
+            { name: "拜月教主", emoji: "🌙", hp: 200, atk: 40, exp: 150, gold: 200, color: "#4B0082" },
+            { name: "水魔兽", emoji: "🐉", hp: 300, atk: 50, exp: 250, gold: 300, color: "#00008B" }
+        ];
+
+        const skills = [
+            { name: "御剑术", mp: 10, dmg: 1.5, desc: "御剑伤敌" },
+            { name: "天剑", mp: 20, dmg: 2.0, desc: "万剑归宗" },
+            { name: "醉仙望月", mp: 15, heal: 20, desc: "恢复生命" },
+            { name: "灵血咒", mp: 25, dmg: 2.5, desc: "吸血邪功" }
+        ];
+
+        const magics = [
+            { name: "万剑诀", mp: 30, dmg: 3.0, desc: "群攻仙术" },
+            { name: "天罡战气", mp: 40, buff: 1.5, desc: "攻击增强" }
+        ];
+
+        const shopItems = [
+            { name: "还魂丹", emoji: "💊", price: 50, desc: "复活并回满血", type: "revive" },
+            { name: "紫金丹", emoji: "💎", price: 30, desc: "回满生命值", type: "healFull" },
+            { name: "小还丹", emoji: "🧪", price: 15, desc: "恢复50生命", type: "heal", value: 50 },
+            { name: "聚气丹", emoji: "⚡", price: 20, desc: "恢复30法力", type: "mp", value: 30 },
+            { name: "修炼丹", emoji: "📈", price: 100, desc: "永久+5攻击", type: "atk", value: 5 },
+            { name: "护体丹", emoji: "🛡️", price: 100, desc: "永久+3防御", type: "def", value: 3 }
+        ];
+
+        let player = { hp: 100, maxHp: 100, mp: 50, maxMp: 50, atk: 15, def: 5, level: 1, exp: 0, gold: 0, potions: 3 };
+        let enemy = null;
+        let stage = 1;
+        let isPlayerTurn = true;
+        let isBuffed = false;
+        let gameStarted = false;
+
+        function startGame() {
+            document.getElementById('introModal').classList.remove('show');
+            gameStarted = true;
+            spawnEnemy();
+        }
+
+        function spawnEnemy() {
+            const isBoss = stage % 5 === 0;
+            const pool = isBoss ? bosses : enemies;
+            const template = pool[Math.floor(Math.random() * pool.length)];
+            enemy = { ...template, maxHp: template.hp + Math.floor(stage * 2), hp: template.hp + Math.floor(stage * 2) };
+            document.getElementById('enemyCard').classList.add('show');
+            document.getElementById('enemyEmoji').textContent = enemy.emoji;
+            document.getElementById('enemyName').textContent = enemy.name + (isBoss ? " (BOSS)" : "");
+            updateUI();
+            addLog(`遇到 ${enemy.name}！`, "event");
+            drawScene();
+        }
+
+        function playerAttack() {
+            if (!isPlayerTurn || !enemy) return;
+            isPlayerTurn = false;
+            const dmg = Math.max(1, Math.floor(player.atk * (isBuffed ? 1.5 : 1) - enemy.atk * 0.2));
+            enemy.hp -= dmg;
+            flash('attack');
+            addLog(`你对${enemy.name}造成 ${dmg} 点伤害！`, "damage");
+            drawPlayerAttack();
+            updateUI();
+
+            if (enemy.hp <= 0) {
+                setTimeout(winBattle, 500);
+            } else {
+                setTimeout(enemyTurn, 800);
+            }
+        }
+
+        function showSkills() {
+            if (!isPlayerTurn) return;
+            const panel = document.getElementById('skillPanel');
+            panel.innerHTML = '';
+            skills.forEach((skill, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'skill-btn-small' + (player.mp < skill.mp ? ' disabled' : '');
+                btn.textContent = skill.name + '(' + skill.mp + '⚡)';
+                btn.onclick = () => useSkill(i);
+                panel.appendChild(btn);
+            });
+            panel.classList.add('show');
+        }
+
+        function useSkill(idx) {
+            const skill = skills[idx];
+            if (player.mp < skill.mp) { addLog("法力不足！", "damage"); return; }
+            player.mp -= skill.mp;
+            isPlayerTurn = false;
+            document.getElementById('skillPanel').classList.remove('show');
+
+            if (skill.heal) {
+                player.hp = Math.min(player.maxHp, player.hp + skill.heal);
+                addLog(`使用${skill.name}，恢复 ${skill.heal} 点生命！`, "heal");
+            } else if (skill.dmg) {
+                const dmg = Math.max(1, Math.floor(player.atk * skill.dmg - enemy.atk * 0.2));
+                enemy.hp -= dmg;
+                flash('attack');
+                addLog(`使用${skill.name}，对${enemy.name}造成 ${dmg} 点伤害！`, "skill");
+            }
+            updateUI();
+            if (enemy.hp <= 0) { setTimeout(winBattle, 500); } else { setTimeout(enemyTurn, 800); }
+        }
+
+        function showMagic() {
+            if (!isPlayerTurn) return;
+            const panel = document.getElementById('skillPanel');
+            panel.innerHTML = '';
+            magics.forEach((magic, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'skill-btn-small' + (player.mp < magic.mp ? ' disabled' : '');
+                btn.textContent = magic.name + '(' + magic.mp + '⚡)';
+                btn.onclick = () => useMagic(i);
+                panel.appendChild(btn);
+            });
+            panel.classList.add('show');
+        }
+
+        function useMagic(idx) {
+            const magic = magics[idx];
+            if (player.mp < magic.mp) { addLog("法力不足！", "damage"); return; }
+            player.mp -= magic.mp;
+            isPlayerTurn = false;
+            document.getElementById('skillPanel').classList.remove('show');
+
+            if (magic.buff) {
+                isBuffed = true;
+                addLog(`使用${magic.name}，攻击力提升50%！`, "magic");
+                setTimeout(() => { isBuffed = false; addLog("增益效果结束", "event"); }, 10000);
+            } else if (magic.dmg) {
+                const dmg = Math.max(1, Math.floor(player.atk * magic.dmg));
+                enemy.hp -= dmg;
+                flash('attack');
+                addLog(`使用${magic.name}，对${enemy.name}造成 ${dmg} 点巨额伤害！`, "magic");
+            }
+            updateUI();
+            if (enemy.hp <= 0) { setTimeout(winBattle, 500); } else { setTimeout(enemyTurn, 800); }
+        }
+
+        function usePotion() {
+            if (!isPlayerTurn || player.potions <= 0) { addLog("没有丹药了！", "damage"); return; }
+            isPlayerTurn = false;
+            player.potions--;
+            player.hp = Math.min(player.maxHp, player.hp + 50);
+            addLog("使用小还丹，恢复50点生命！", "heal");
+            updateUI();
+            setTimeout(enemyTurn, 800);
+        }
+
+        function enemyTurn() {
+            if (!enemy) return;
+            const dmg = Math.max(1, Math.floor(enemy.atk - player.def * 0.5));
+            player.hp -= dmg;
+            flash('damage');
+            addLog(`${enemy.name}攻击你，造成 ${dmg} 点伤害！`, "damage");
+            updateUI();
+
+            if (player.hp <= 0) {
+                addLog("你被打败了...", "damage");
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                isPlayerTurn = true;
+            }
+        }
+
+        function winBattle() {
+            const expGain = enemy.exp;
+            const goldGain = enemy.gold;
+            player.exp += expGain;
+            player.gold += goldGain;
+            addLog(`战胜${enemy.name}！获得 ${expGain} 经验, ${goldGain} 金币`, "win");
+
+            if (player.exp >= player.level * 50) {
+                player.level++;
+                player.exp -= player.level * 50 - 50;
+                player.maxHp += 20;
+                player.maxMp += 10;
+                player.atk += 3;
+                player.def += 2;
+                player.hp = player.maxHp;
+                player.mp = player.maxMp;
+                addLog(`升级了！现在等级 ${player.level}！`, "win");
+            }
+
+            enemy = null;
+            document.getElementById('enemyCard').classList.remove('show');
+            stage++;
+            document.getElementById('stage').textContent = stage;
+            updateUI();
+
+            setTimeout(() => {
+                if (stage % 3 === 0) openShop();
+                else spawnEnemy();
+            }, 1000);
+        }
+
+        function openShop() {
+            const itemsEl = document.getElementById('shopItems');
+            itemsEl.innerHTML = '';
+            shopItems.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                div.innerHTML = `
+                    <div class="shop-item-info">
+                        <span class="shop-item-emoji">${item.emoji}</span>
+                        <div>
+                            <div class="shop-item-name">${item.name}</div>
+                            <div class="shop-item-desc">${item.desc}</div>
+                        </div>
+                    </div>
+                    <button class="buy-btn" onclick="buyItem(${i})" ${player.gold < item.price ? 'disabled' : ''}>💰${item.price}</button>
+                `;
+                itemsEl.appendChild(div);
+            });
+            document.getElementById('shopModal').classList.add('show');
+        }
+
+        function buyItem(idx) {
+            const item = shopItems[idx];
+            if (player.gold < item.price) return;
+            player.gold -= item.price;
+
+            switch(item.type) {
+                case 'healFull': player.hp = player.maxHp; break;
+                case 'heal': player.hp = Math.min(player.maxHp, player.hp + item.value); break;
+                case 'mp': player.mp = Math.min(player.maxMp, player.mp + item.value); break;
+                case 'atk': player.atk += item.value; break;
+                case 'def': player.def += item.value; break;
+                case 'revive': player.hp = player.maxHp; player.potions += 2; break;
+            }
+            addLog(`购买${item.name}！`, "event");
+            updateUI();
+            openShop();
+        }
+
+        function closeShop() {
+            document.getElementById('shopModal').classList.remove('show');
+            spawnEnemy();
+        }
+
+        function updateUI() {
+            document.getElementById('hp').textContent = player.hp;
+            document.getElementById('maxHp').textContent = player.maxHp;
+            document.getElementById('mp').textContent = player.mp;
+            document.getElementById('maxMp').textContent = player.maxMp;
+            document.getElementById('gold').textContent = player.gold;
+            document.getElementById('atk').textContent = player.atk;
+            document.getElementById('def').textContent = player.def;
+            document.getElementById('level').textContent = player.level;
+            document.getElementById('exp').textContent = player.exp;
+            document.getElementById('playerHpBar').style.width = (player.hp / player.maxHp * 100) + '%';
+            document.getElementById('playerMpBar').style.width = (player.mp / player.maxMp * 100) + '%';
+            if (enemy) {
+                document.getElementById('enemyHpBar').style.width = (enemy.hp / enemy.maxHp * 100) + '%';
+            }
+        }
+
+        function addLog(msg, type) {
+            const box = document.getElementById('logBox');
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + type;
+            div.textContent = msg;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function flash(type) {
+            const flash = document.getElementById('flash');
+            flash.className = 'flash ' + type;
+            setTimeout(() => flash.className = 'flash', 300);
+        }
+
+        function drawScene() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 背景
+            ctx.fillStyle = '#0d0d1a';
+            for (let i = 0; i < 20; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height * 0.5, Math.random() * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 地面
+            ctx.fillStyle = '#2d2d44';
+            ctx.fillRect(0, 220, canvas.width, 80);
+
+            if (enemy) {
+                // 敌人
+                ctx.font = '50px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(enemy.emoji, canvas.width / 2, 180);
+
+                // 敌人血条
+                ctx.fillStyle = '#333';
+                ctx.fillRect(80, 100, 160, 10);
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(80, 100, 160 * (enemy.hp / enemy.maxHp), 10);
+            }
+        }
+
+        function drawPlayerAttack() {
+            drawScene();
+            // 剑光效果
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(160, 200);
+            ctx.lineTo(160, 140);
+            ctx.stroke();
+            ctx.font = '30px Arial';
+            ctx.fillText('⚔️', 160, 150);
+        }
+
+        drawScene();
+    </script>
+<script src="../gamepad-helper.js"></script>
+</body>
+</html>

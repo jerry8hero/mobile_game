@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小小数学家</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .question {
+            font-size: 3rem;
+            color: #333;
+            margin: 30px 0;
+            font-weight: bold;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .option {
+            padding: 20px;
+            font-size: 1.8rem;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .option.correct {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+            animation: correctPulse 0.5s ease;
+        }
+
+        .option.wrong {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            animation: wrongShake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .feedback {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            min-height: 40px;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            color: #27ae60;
+        }
+
+        .feedback.wrong {
+            color: #e74c3c;
+        }
+
+        .level-select {
+            margin-bottom: 20px;
+        }
+
+        .level-btn {
+            padding: 10px 25px;
+            font-size: 1rem;
+            margin: 0 5px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .level-btn.active {
+            background: #f39c12;
+            color: white;
+        }
+
+        .level-btn:not(.active) {
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .btn-restart {
+            margin-top: 25px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #f39c12;
+        }
+
+        .win-content h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .stars {
+            font-size: 4rem;
+            margin: 20px 0;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧮 小小数学家</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">题数: <span id="questionNum">0</span>/10</div>
+    </div>
+
+    <div class="game-container">
+        <div class="level-select">
+            <button class="level-btn active" onclick="setLevel(1)">简单</button>
+            <button class="level-btn" onclick="setLevel(2)">中等</button>
+            <button class="level-btn" onclick="setLevel(3)">困难</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="progress" style="width: 0%"></div>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="question" id="question">准备开始!</div>
+
+        <div class="options" id="options"></div>
+
+        <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 完成啦!</h2>
+            <div class="stars" id="stars"></div>
+            <p>得分: <span id="finalScore">0</span> / 100</p>
+            <p>用时: <span id="finalTime">0</span>秒</p>
+            <button class="btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        let level = 1;
+        let score = 0;
+        let questionCount = 0;
+        let correctCount = 0;
+        let currentAnswer = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let isAnswering = false;
+
+        const maxQuestions = 10;
+
+        function setLevel(l) {
+            level = l;
+            document.querySelectorAll('.level-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === l);
+            });
+            restartGame();
+        }
+
+        function generateQuestion() {
+            let num1, num2, operator;
+
+            if (level === 1) {
+                // 简单：10以内加减法
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                operator = Math.random() > 0.5 ? '+' : '-';
+                if (operator === '-' && num1 < num2) [num1, num2] = [num2, num1];
+            } else if (level === 2) {
+                // 中等：20以内加减乘
+                num1 = Math.floor(Math.random() * 20) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                const ops = ['+', '-', '×'];
+                operator = ops[Math.floor(Math.random() * 3)];
+                if (operator === '-' && num1 < num2) [num1, num2] = [num2, num1];
+                if (operator === '×') {
+                    num1 = Math.floor(Math.random() * 9) + 1;
+                    num2 = Math.floor(Math.random() * 9) + 1;
+                }
+            } else {
+                // 困难：100以内四则运算
+                num1 = Math.floor(Math.random() * 100) + 1;
+                num2 = Math.floor(Math.random() * 20) + 1;
+                const ops = ['+', '-', '×', '÷'];
+                operator = ops[Math.floor(Math.random() * 4)];
+                if (operator === '-' && num1 < num2) [num1, num2] = [num2, num1];
+                if (operator === '×') {
+                    num1 = Math.floor(Math.random() * 12) + 1;
+                    num2 = Math.floor(Math.random() * 12) + 1;
+                }
+                if (operator === '÷') {
+                    num2 = Math.floor(Math.random() * 9) + 1;
+                    num1 = num2 * (Math.floor(Math.random() * 10) + 1);
+                }
+            }
+
+            // 计算正确答案
+            switch (operator) {
+                case '+': currentAnswer = num1 + num2; break;
+                case '-': currentAnswer = num1 - num2; break;
+                case '×': currentAnswer = num1 * num2; break;
+                case '÷': currentAnswer = num1 / num2; break;
+            }
+
+            // 生成选项
+            let options = [currentAnswer];
+            while (options.length < 4) {
+                let wrong;
+                const offset = Math.floor(Math.random() * 10) + 1;
+                wrong = Math.random() > 0.5 ? currentAnswer + offset : currentAnswer - offset;
+                if (wrong > 0 && !options.includes(wrong)) {
+                    options.push(wrong);
+                }
+            }
+            options = shuffle(options);
+
+            document.getElementById('question').textContent = `${num1} ${operator} ${num2} = ?`;
+
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('feedback').textContent = '';
+            isAnswering = true;
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function checkAnswer(selected, btn) {
+            if (!isAnswering) return;
+            isAnswering = false;
+
+            questionCount++;
+            document.getElementById('questionNum').textContent = questionCount;
+            document.getElementById('progress').style.width = `${(questionCount / maxQuestions) * 100}%`;
+
+            const feedback = document.getElementById('feedback');
+
+            if (selected === currentAnswer) {
+                btn.classList.add('correct');
+                score += 10;
+                correctCount++;
+                feedback.textContent = '✅ 回答正确!';
+                feedback.className = 'feedback correct';
+            } else {
+                btn.classList.add('wrong');
+                feedback.textContent = `❌ 正确答案是 ${currentAnswer}`;
+                feedback.className = 'feedback wrong';
+
+                // 显示正确答案
+                document.querySelectorAll('.option').forEach(opt => {
+                    if (parseInt(opt.textContent) === currentAnswer) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+
+            document.getElementById('score').textContent = score;
+
+            // 下一题
+            setTimeout(() => {
+                if (questionCount >= maxQuestions) {
+                    gameWin();
+                } else {
+                    generateQuestion();
+                }
+            }, 1500);
+        }
+
+        function gameWin() {
+            clearInterval(timerInterval);
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalTime').textContent = elapsed;
+
+            // 显示星级
+            let stars = '';
+            if (score >= 80) stars = '⭐⭐⭐';
+            else if (score >= 50) stars = '⭐⭐';
+            else stars = '⭐';
+            document.getElementById('stars').textContent = stars;
+
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function restartGame() {
+            score = 0;
+            questionCount = 0;
+            correctCount = 0;
+            isAnswering = false;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('questionNum').textContent = '0';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('question').textContent = '准备好了吗?';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('winOverlay').style.display = 'none';
+
+            // 开始计时
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = Date.now();
+
+            // 延迟生成第一题
+            setTimeout(generateQuestion, 500);
+        }
+
+        function closeWinAndRestart() {
+            document.getElementById('winOverlay').style.display = 'none';
+            restartGame();
+        }
+
+        // 初始化
+        restartGame();
+    </script>
+</body>
+</html>

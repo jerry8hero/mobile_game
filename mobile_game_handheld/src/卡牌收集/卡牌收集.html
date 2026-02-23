@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡牌收集</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 { color: #fff; font-size: 1.8rem; margin-bottom: 10px; }
+
+        .info-bar { display: flex; gap: 15px; margin-bottom: 10px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 15px; color: #fff; }
+
+        .game-container { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 400px; width: 100%; }
+
+        .card-pack {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .card-pack:hover { transform: scale(1.02); }
+        .card-pack:active { transform: scale(0.98); }
+        .pack-icon { font-size: 4rem; }
+        .pack-text { color: #fff; font-size: 1.2rem; margin-top: 10px; font-weight: bold; }
+
+        .card-display { min-height: 150px; display: flex; align-items: center; justify-content: center; }
+
+        .card {
+            width: 120px;
+            height: 160px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            animation: cardFlip 0.5s;
+        }
+
+        @keyframes cardFlip {
+            0%{transform:rotateY(180deg);opacity:0}
+            100%{transform:rotateY(0);opacity:1}
+        }
+
+        .card.rarity { }
+        .card.rarity.ssr { background: linear-gradient(135deg, #f1c40f, #e67e22); }
+        .card.rarity.sr { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .card.rarity.r { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .card.rarity.n { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+
+        .card-emoji { font-size: 3rem; }
+        .card-name { font-size: 0.9rem; font-weight: bold; margin-top: 5px; }
+        .card-rarity { font-size: 0.7rem; opacity: 0.8; }
+
+        .collection {
+            margin-top: 15px;
+        }
+
+        .collection-title { font-size: 0.9rem; color: #666; margin-bottom: 10px; }
+
+        .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+        .mini-card {
+            aspect-ratio: 1;
+            background: #f0f0f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+        }
+
+        .mini-card.locked { opacity: 0.3; }
+        .mini-card .count {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+            background: #333;
+            color: #fff;
+            padding: 1px 4px;
+            border-radius: 5px;
+        }
+
+        .hint { color: rgba(255,255,255,0.8); font-size: 0.85rem; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🃏 卡牌收集</h1>
+
+    <div class="info-bar">
+        <div class="info-item">💰 金币: <span id="money">100</span></div>
+        <div class="info-item">📦 抽卡: <span id="packs">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="card-pack" onclick="drawCard()">
+            <div class="pack-icon">🎁</div>
+            <div class="pack-text">点击抽卡 (💰30)</div>
+        </div>
+
+        <div class="card-display" id="cardDisplay"></div>
+
+        <div class="collection">
+            <div class="collection-title">📚 已收集 (<span id="collected">0</span>/12)</div>
+            <div class="card-grid" id="cardGrid"></div>
+        </div>
+    </div>
+
+    <p class="hint">抽卡收集卡牌，越稀有的越好看！</p>
+
+    <script>
+        const cards = [
+            {id:0, emoji:'🌟', name:'星星', rarity:'n', rate:40},
+            {id:1, emoji:'🌙', name:'月亮', rarity:'n', rate:35},
+            {id:2, emoji:'☀️', name:'太阳', rarity:'r', rate:15},
+            {id:3, emoji:'🌈', name:'彩虹', rarity:'r', rate:10},
+            {id:4, emoji:'🔥', name:'火焰', rarity:'sr', rate:5},
+            {id:5, emoji:'❄️', name:'雪花', rarity:'sr', rate:4},
+            {id:6, emoji:'⚡', name:'闪电', rarity:'sr', rate:3},
+            {id:7, emoji:'💎', name:'钻石', rarity:'ssr', rate:1},
+            {id:8, emoji:'👑', name:'皇冠', rarity:'ssr', rate:0.5},
+            {id:9, emoji:'🦄', name:'独角兽', rarity:'ssr', rate:0.3},
+            {id:10, emoji:'🐲', name:'神龙', rarity:'ssr', rate:0.15},
+            {id:11, emoji:'💫', name:'流星', rarity:'ssr', rate:0.05}
+        ];
+
+        let money = 100;
+        let packs = 0;
+        let collection = {};
+
+        cards.forEach(c => collection[c.id] = 0);
+
+        function drawCard(){
+            if(money < 30){
+                alert('金币不足！需要30金币');
+                return;
+            }
+
+            money -= 30;
+            packs++;
+
+            // 随机抽取
+            const rand = Math.random() * 100;
+            let cum = 0;
+            let card = cards[0];
+
+            for(let c of cards){
+                cum += c.rate;
+                if(rand <= cum){
+                    card = c;
+                    break;
+                }
+            }
+
+            collection[card.id]++;
+
+            // 显示卡牌
+            const display = document.getElementById('cardDisplay');
+            display.innerHTML = `
+                <div class="card rarity ${card.rarity}">
+                    <div class="card-emoji">${card.emoji}</div>
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-rarity">${getRarityText(card.rarity)}</div>
+                </div>
+            `;
+
+            updateUI();
+            saveGame();
+        }
+
+        function getRarityText(r){
+            const texts = {ssr:'传说',sr:'稀有',r:'优秀',n:'普通'};
+            return texts[r];
+        }
+
+        function updateUI(){
+            document.getElementById('money').textContent = money;
+            document.getElementById('packs').textContent = packs;
+
+            const total = Object.values(collection).reduce((a,b)=>a+b,0);
+            document.getElementById('collected').textContent = total;
+
+            // 更新收集格
+            const grid = document.getElementById('cardGrid');
+            grid.innerHTML = '';
+            cards.forEach(c => {
+                const div = document.createElement('div');
+                const count = collection[c.id];
+                div.className = 'mini-card ' + (count>0?'':'locked');
+                div.innerHTML = c.emoji + (count>0?`<span class="count">${count}</span>`:'');
+                grid.appendChild(div);
+            });
+        }
+
+        function saveGame(){
+            localStorage.setItem('cardGame', JSON.stringify({money, packs, collection}));
+        }
+
+        // 加载存档
+        const saved = localStorage.getItem('cardGame');
+        if(saved){
+            const data = JSON.parse(saved);
+            money = data.money;
+            packs = data.packs;
+            collection = data.collection;
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>

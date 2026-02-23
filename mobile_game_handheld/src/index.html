@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 掌机游戏厅</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="handheld.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="handheld-nav">
+        <div class="nav-left">
+            <button class="nav-btn" id="backBtn" onclick="goBack()">🔙</button>
+        </div>
+        <div class="nav-center">
+            <h1 class="logo">🎮 掌机游戏厅</h1>
+        </div>
+        <div class="nav-right">
+            <button class="nav-btn" onclick="toggleFullscreen()">⛶</button>
+        </div>
+    </nav>
+
+    <!-- 主游戏区域 -->
+    <main class="game-area">
+        <!-- 游戏分类网格 -->
+        <div class="category-grid" id="categoryGrid">
+            <!-- 游戏分类将通过 JS 动态生成 -->
+        </div>
+
+        <!-- 游戏列表（点击分类后显示） -->
+        <div class="game-list" id="gameList" style="display: none;">
+            <div class="game-list-header">
+                <button class="back-to-categories" onclick="showCategories()">← 返回分类</button>
+                <h2 id="categoryTitle">游戏列表</h2>
+            </div>
+            <div class="games" id="gamesContainer">
+                <!-- 游戏卡片将通过 JS 动态生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部虚拟按键区 -->
+    <footer class="virtual-controls" id="virtualControls">
+        <div class="vc-section vc-dpad">
+            <div class="dpad">
+                <button class="dpad-btn dpad-up" data-dir="up">▲</button>
+                <button class="dpad-btn dpad-left" data-dir="left">◀</button>
+                <button class="dpad-btn dpad-center">●</button>
+                <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+                <button class="dpad-btn dpad-down" data-dir="down">▼</button>
+            </div>
+        </div>
+        <div class="vc-section vc-buttons">
+            <div class="action-buttons">
+                <button class="action-btn btn-y" data-action="y">Y</button>
+                <button class="action-btn btn-x" data-action="x">X</button>
+                <button class="action-btn btn-b" data-action="b">B</button>
+                <button class="action-btn btn-a" data-action="a">A</button>
+            </div>
+            <div class="system-buttons">
+                <button class="system-btn" id="selectBtn">SEL</button>
+                <button class="system-btn" id="startBtn">START</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 手柄状态指示器 -->
+    <div class="gamepad-status" id="gamepadStatus">
+        <span class="status-dot disconnected"></span>
+        <span class="status-text">未连接手柄</span>
+    </div>
+
+    <script src="game-controller.js"></script>
+    <script src="games-data.js"></script>
+    <script>
+        // 游戏数据
+        const gameCategories = [
+            { name: '益智类', icon: '🧩', count: 12, color: '#ff6b6b', dir: '益智类' },
+            { name: '街机类', icon: '🎮', count: 6, color: '#48dbfb', dir: '街机类' },
+            { name: '编程启蒙类', icon: '🤖', count: 17, color: '#1dd1a1', dir: '编程启蒙类' },
+            { name: '知识类', icon: '📚', count: 16, color: '#feca57', dir: '知识类' },
+            { name: 'RPG冒险', icon: '⚔️', count: 3, color: '#ff9ff3', dir: 'RPG冒险' },
+            { name: '敏捷类', icon: '⚡', count: 7, color: '#54a0ff', dir: '敏捷类' },
+            { name: '模拟经营', icon: '🏠', count: 4, color: '#5f27cd', dir: '模拟经营' },
+            { name: '运动类', icon: '🏃', count: 4, color: '#ee5a24', dir: '运动类' },
+            { name: '棋类', icon: '♟️', count: 2, color: '#009432', dir: '棋类' },
+            { name: '创意艺术', icon: '🎨', count: 3, color: '#ffc312', dir: '创意艺术类' },
+            { name: '模拟体验', icon: '🎢', count: 3, color: '#d63031', dir: '模拟体验' },
+            { name: '音乐类', icon: '🎵', count: 1, color: '#e84393', dir: '音乐类' },
+            { name: '射击类', icon: '✈️', count: 1, color: '#00cec9', dir: '射击类' },
+            { name: '运气类', icon: '🎰', count: 2, color: '#fd79a8', dir: '运气类' },
+            { name: '策略塔防', icon: '🏰', count: 1, color: '#a29bfe', dir: '策略塔防' },
+            { name: '放置挂机', icon: '⏰', count: 1, color: '#fab1a0', dir: '放置挂机' },
+            { name: '卡牌收集', icon: '🃏', count: 1, color: '#ffeaa7', dir: '卡牌收集' },
+            { name: '记忆类', icon: '🎨', count: 2, color: '#74b9ff', dir: '记忆类' }
+        ];
+
+        // 分类游戏映射（简化版）
+        const categoryGames = {
+            '益智类': [
+                { name: '记忆配对', icon: '🎴', type: '翻牌找相同', file: './益智类/记忆配对.html' },
+                { name: '拼图游戏', icon: '🧩', type: '拼图挑战', file: './益智类/拼图游戏.html' },
+                { name: '连连看', icon: '🔗', type: '连线消除', file: './益智类/连连看.html' },
+                { name: '24点', icon: '🧮', type: '数学运算', file: './益智类/24点.html' },
+                { name: '汉诺塔', icon: '🗼', type: '智力解谜', file: './益智类/汉诺塔.html' },
+                { name: '扫雷', icon: '💣', type: '排雷冒险', file: './益智类/扫雷.html' },
+                { name: '猜数字', icon: '🔢', type: '猜数字', file: './益智类/猜数字.html' },
+                { name: '数字排序', icon: '📊', type: '排序挑战', file: './益智类/数字排序.html' },
+                { name: '平衡木', icon: '⚖️', type: '平衡游戏', file: './益智类/平衡木.html' },
+                { name: '停车场', icon: '🅿️', type: '停车管理', file: './益智类/停车场.html' },
+                { name: 'Emoji消消乐', icon: '😀', type: '表情消除', file: './益智类/emoji消消乐.html' }
+            ],
+            '街机类': [
+                { name: '俄罗斯方块', icon: '🧱', type: '经典方块', file: './街机类/俄罗斯方块.html' },
+                { name: '贪吃蛇', icon: '🐍', type: '贪吃蛇', file: './街机类/贪吃蛇.html' },
+                { name: '打砖块', icon: '🧱', type: '打砖块', file: './街机类/打砖块.html' },
+                { name: '2048', icon: '🔢', type: '数字合并', file: './街机类/2048.html' },
+                { name: '挑战2048', icon: '🏆', type: '2048挑战', file: './街机类/挑战2048.html' }
+            ],
+            '编程启蒙类': [
+                { name: '可视化编程', icon: '💻', type: '编程入门', file: './编程启蒙/可视化编程.html' },
+                { name: '算法可视化', icon: '📊', type: '算法学习', file: './编程启蒙/算法可视化.html' },
+                { name: '迷宫探险', icon: '🗺️', type: '迷宫解谜', file: './编程启蒙/迷宫探险.html' },
+                { name: '循环画板', icon: '🎨', type: '循环绘图', file: './编程启蒙/循环画板.html' },
+                { name: '编程小火车', icon: '🚂', type: '火车编程', file: './编程启蒙/编程小火车.html' }
+            ],
+            'RPG冒险': [
+                { name: '勇者冒险', icon: '🗡️', type: 'RPG冒险', file: './RPG冒险/勇者冒险.html' },
+                { name: '地下城探险', icon: '🏰', type: '地下城', file: './RPG冒险/地下城探险.html' },
+                { name: '仙剑奇侠', icon: '🧑‍🎤', type: '仙侠RPG', file: './RPG冒险/仙剑奇侠.html' }
+            ],
+            '敏捷类': [
+                { name: '切水果', icon: '🔪', type: '水果切割', file: './敏捷类/切水果.html' },
+                { name: '接水果', icon: '🧺', type: '接水果', file: './敏捷类/接水果.html' },
+                { name: '打地鼠', icon: '🔨', type: '打地鼠', file: './敏捷类/打地鼠.html' },
+                { name: '疯狂套牛', icon: '🐂', type: '套牛游戏', file: './敏捷类/疯狂套牛.html' },
+                { name: '见缝插针', icon: '📍', type: 'Timing游戏', file: './敏捷类/见缝插针.html' }
+            ],
+            '模拟经营': [
+                { name: '小小农场', icon: '🌾', type: '农场经营', file: './模拟经营/小小农场.html' },
+                { name: '小小餐厅', icon: '🍳', type: '餐厅经营', file: './模拟经营/小小餐厅.html' },
+                { name: '宠物养成', icon: '🐕', type: '宠物养成', file: './模拟经营/宠物养成.html' },
+                { name: '宠物综合训练师', icon: '🦮', type: '训练师', file: './模拟经营/宠物综合训练师.html' }
+            ],
+            '运动类': [
+                { name: '酷跑冒险', icon: '🏃', type: '跑酷游戏', file: './运动类/酷跑冒险.html' },
+                { name: '极速赛车', icon: '🏎️', type: '赛车游戏', file: './运动类/极速赛车.html' },
+                { name: '点球大战', icon: '⚽', type: '足球游戏', file: './运动类/点球大战.html' },
+                { name: '投篮大赛', icon: '🏀', type: '篮球游戏', file: './运动类/投篮大赛.html' }
+            ],
+            '棋类': [
+                { name: '井字棋', icon: '❌', type: '三子棋', file: './棋类/井字棋.html' },
+                { name: '五子棋', icon: '⭕', type: '五子棋', file: './棋类/五子棋.html' }
+            ],
+            '知识类': [
+                { name: '单词速记', icon: '📝', type: '背单词', file: './知识类/单词速记.html' },
+                { name: '打字练习', icon: '⌨️', type: '打字训练', file: './知识类/打字练习.html' },
+                { name: '找不同', icon: '🔍', type: '找茬游戏', file: './知识类/找不同.html' },
+                { name: '汉字学习', icon: '汉字', type: '学汉字', file: './知识类/汉字学习.html' },
+                { name: '拼音学习', icon: '拼音', type: '学拼音', file: './知识类/拼音学习.html' }
+            ],
+            '创意艺术类': [
+                { name: '魔法画板', icon: '🖌️', type: '绘画', file: './创意艺术类/魔法画板.html' },
+                { name: '积木搭建', icon: '🧱', type: '积木', file: './创意艺术类/积木搭建.html' },
+                { name: '换装小游戏', icon: '👕', type: '换装', file: './创意艺术类/换装小游戏.html' }
+            ],
+            '模拟体验': [
+                { name: '恐龙乐园', icon: '🦖', type: '恐龙', file: './模拟体验/恐龙乐园.html' },
+                { name: '钓鱼达人', icon: '🎣', type: '钓鱼', file: './模拟体验/钓鱼达人.html' },
+                { name: '小小厨神', icon: '👨‍🍳', type: '烹饪', file: './模拟体验/小小厨神.html' }
+            ],
+            '音乐类': [
+                { name: '钢琴', icon: '🎹', type: '弹琴', file: './音乐类/钢琴.html' }
+            ],
+            '射击类': [
+                { name: '飞行射击', icon: '✈️', type: '射击', file: './射击类/飞行射击.html' }
+            ],
+            '运气类': [
+                { name: '翻牌21点', icon: '🃏', type: '21点', file: './运气类/翻牌21点.html' },
+                { name: '抽卡比大小', icon: '🎴', type: '抽卡', file: './运气类/抽卡比大小.html' }
+            ],
+            '策略塔防': [
+                { name: '塔防小阵地', icon: '🏰', type: '塔防', file: './策略塔防/塔防小阵地.html' }
+            ],
+            '放置挂机': [
+                { name: '放置矿工', icon: '⛏️', type: '放置', file: './放置挂机/放置矿工.html' }
+            ],
+            '卡牌收集': [
+                { name: '卡牌收集', icon: '🃏', type: '卡牌', file: './卡牌收集/卡牌收集.html' }
+            ],
+            '记忆类': [
+                { name: '颜色记忆', icon: '🎨', type: '记忆', file: './记忆类/颜色记忆.html' },
+                { name: '迷宫探险', icon: '🗺️', type: '迷宫', file: './记忆类/迷宫探险.html' }
+            ]
+        };
+
+        let currentCategory = null;
+        let selectedIndex = 0;
+
+        // 初始化显示分类
+        function init() {
+            renderCategories();
+            setupGamepad();
+            setupVirtualControls();
+        }
+
+        // 渲染分类网格
+        function renderCategories() {
+            const grid = document.getElementById('categoryGrid');
+            grid.innerHTML = gameCategories.map((cat, index) => `
+                <div class="category-card" data-index="${index}" style="border-color: ${cat.color}">
+                    <div class="category-icon">${cat.icon}</div>
+                    <div class="category-name">${cat.name}</div>
+                    <div class="category-count">${cat.count} 个游戏</div>
+                </div>
+            `).join('');
+
+            // 点击事件
+            grid.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const index = parseInt(card.dataset.index);
+                    showCategory(gameCategories[index]);
+                });
+            });
+        }
+
+        // 显示游戏列表
+        function showCategory(category) {
+            currentCategory = category;
+            selectedIndex = 0;
+            document.getElementById('categoryGrid').style.display = 'none';
+            document.getElementById('gameList').style.display = 'block';
+            document.getElementById('categoryTitle').textContent = `${category.icon} ${category.name}`;
+
+            const games = categoryGames[category.name] || [];
+            const container = document.getElementById('gamesContainer');
+            container.innerHTML = games.map((game, index) => `
+                <a href="${game.file}" class="game-card" data-index="${index}">
+                    <span class="game-icon">${game.icon}</span>
+                    <div class="game-info">
+                        <div class="game-name">${game.name}</div>
+                        <div class="game-type">${game.type}</div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        // 返回分类列表
+        function showCategories() {
+            currentCategory = null;
+            document.getElementById('categoryGrid').style.display = 'grid';
+            document.getElementById('gameList').style.display = 'none';
+        }
+
+        // 返回按钮
+        function goBack() {
+            if (currentCategory) {
+                showCategories();
+            }
+        }
+
+        // 全屏切换
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 设置虚拟按键
+        function setupVirtualControls() {
+            // 十字键
+            document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const dir = btn.dataset.dir;
+                    handleDpadInput(dir);
+                });
+            });
+
+            // ABXY 按钮
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.action;
+                    handleActionInput(action);
+                });
+            });
+
+            // Select/Start
+            document.getElementById('selectBtn').addEventListener('click', () => {
+                handleSystemInput('select');
+            });
+            document.getElementById('startBtn').addEventListener('click', () => {
+                handleSystemInput('start');
+            });
+        }
+
+        // 处理十字键输入
+        function handleDpadInput(dir) {
+            if (!currentCategory) {
+                // 在分类页面时，方向键选择分类
+                if (dir === 'up') selectedIndex = Math.max(0, selectedIndex - 3);
+                if (dir === 'down') selectedIndex = Math.min(gameCategories.length - 1, selectedIndex + 3);
+                if (dir === 'left') selectedIndex = Math.max(0, selectedIndex - 1);
+                if (dir === 'right') selectedIndex = Math.min(gameCategories.length - 1, selectedIndex + 1);
+
+                // 高亮选中项
+                document.querySelectorAll('.category-card').forEach((card, i) => {
+                    card.classList.toggle('selected', i === selectedIndex);
+                });
+            } else {
+                // 在游戏列表页面时，方向键选择游戏
+                const games = categoryGames[currentCategory.name] || [];
+                if (dir === 'up') selectedIndex = Math.max(0, selectedIndex - 2);
+                if (dir === 'down') selectedIndex = Math.min(games.length - 1, selectedIndex + 2);
+                if (dir === 'left') selectedIndex = Math.max(0, selectedIndex - 1);
+                if (dir === 'right') selectedIndex = Math.min(games.length - 1, selectedIndex + 1);
+
+                // 高亮选中项
+                document.querySelectorAll('.game-card').forEach((card, i) => {
+                    card.classList.toggle('selected', i === selectedIndex);
+                });
+            }
+        }
+
+        // 处理动作按钮输入
+        function handleActionInput(action) {
+            if (action === 'a') {
+                // A键确认
+                if (currentCategory) {
+                    const games = categoryGames[currentCategory.name] || [];
+                    if (games[selectedIndex]) {
+                        window.location.href = games[selectedIndex].file;
+                    }
+                } else {
+                    showCategory(gameCategories[selectedIndex]);
+                }
+            } else if (action === 'b') {
+                // B键返回
+                goBack();
+            }
+        }
+
+        // 处理系统按钮
+        function handleSystemInput(system) {
+            if (system === 'start') {
+                toggleFullscreen();
+            } else if (system === 'select') {
+                // Select 键显示手柄状态
+                alert('🎮 掌机游戏厅 v1.0\n支持游戏手柄控制');
+            }
+        }
+
+        // 设置手柄
+        function setupGamepad() {
+            const statusEl = document.getElementById('gamepadStatus');
+            const dot = statusEl.querySelector('.status-dot');
+            const text = statusEl.querySelector('.status-text');
+
+            window.addEventListener('gamepadconnected', (e) => {
+                dot.classList.remove('disconnected');
+                dot.classList.add('connected');
+                text.textContent = `已连接: ${e.gamepad.id.substring(0, 20)}`;
+            });
+
+            window.addEventListener('gamepaddisconnected', () => {
+                dot.classList.remove('connected');
+                dot.classList.add('disconnected');
+                text.textContent = '未连接手柄';
+            });
+        }
+
+        // 启动游戏
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

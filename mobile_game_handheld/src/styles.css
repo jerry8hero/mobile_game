@@ -1,0 +1,23 @@
+/* 基础样式 - styles.css */
+/* 掌机样式已在 handheld.css 中定义，此文件保留为基础样式 */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+/* 隐藏未使用的元素 */
+.logo.tauri, .logo.vanilla, #greet-form {
+    display: none;
+}

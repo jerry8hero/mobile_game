@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常识问答</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        h1 { color: #fff; font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .info-bar { display: flex; gap: 30px; margin-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 20px; color: #fff; font-size: 1.1rem; backdrop-filter: blur(10px); }
+        .game-container { background: rgba(255,255,255,0.95); padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 100%; }
+        .question-num { color: #666; font-size: 1rem; margin-bottom: 15px; }
+        .question { font-size: 1.4rem; color: #333; margin: 25px 0; font-weight: 600; line-height: 1.6; }
+        .category-tag { display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 5px 15px; border-radius: 15px; font-size: 0.85rem; margin-bottom: 15px; }
+        .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 30px; }
+        .option { padding: 18px; font-size: 1.1rem; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; border-radius: 15px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 5px 15px rgba(52,152,219,0.3); }
+        .option:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(52,152,219,0.4); }
+        .option.correct { background: linear-gradient(145deg, #27ae60, #1e8449); animation: correctPulse 0.5s ease; }
+        .option.wrong { background: linear-gradient(145deg, #e74c3c, #c0392b); animation: wrongShake 0.5s ease; }
+        @keyframes correctPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .feedback { font-size: 1.3rem; margin: 20px 0; min-height: 35px; font-weight: bold; }
+        .feedback.correct { color: #27ae60; }
+        .feedback.wrong { color: #e74c3c; }
+        .progress-bar { width: 100%; height: 8px; background: #ecf0f1; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); border-radius: 4px; transition: width 0.3s ease; }
+        .btn-restart { margin-top: 25px; padding: 12px 30px; font-size: 1.1rem; background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-restart:hover { transform: translateY(-2px); }
+        .win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .win-content { background: linear-gradient(145deg, #1a1a2e, #16213e); padding: 50px; border-radius: 30px; text-align: center; color: white; animation: pop 0.5s ease; border: 2px solid #f39c12; }
+        .win-content h2 { font-size: 2.5rem; margin-bottom: 20px; }
+        .stars { font-size: 3.5rem; margin: 15px 0; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @media (max-width: 600px) { .options { grid-template-columns: 1fr; } .game-container { padding: 25px; } h1 { font-size: 1.8rem; } .question { font-size: 1.15rem; } }
+    </style>
+</head>
+<body>
+    <h1>🧠 常识问答</h1>
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">题数: <span id="questionNum">0</span>/10</div>
+    </div>
+    <div class="game-container">
+        <div class="progress-bar"><div class="progress" id="progress" style="width: 0%"></div></div>
+        <div class="category-tag" id="category">常识</div>
+        <div class="question-num">第 <span id="currentNum">1</span> 题</div>
+        <div class="feedback" id="feedback"></div>
+        <div class="question" id="question">准备开始!</div>
+        <div class="options" id="options"></div>
+        <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 挑战完成!</h2>
+            <div class="stars" id="stars"></div>
+            <p>得分: <span id="finalScore">0</span> / 100</p>
+            <p>正确: <span id="correctCount">0</span> / 10</p>
+            <button class="btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+    <script>
+        const questions = [
+            { q: "人体最大的器官是什么?", options: ["心脏", "肝脏", "皮肤", "大脑"], a: 2, cat: "人体" },
+            { q: "水的化学式是什么?", options: ["H2O", "CO2", "O2", "NaCl"], a: 0, cat: "化学" },
+            { q: "地球自转一圈大约多长时间?", options: ["12小时", "24小时", "36小时", "48小时"], a: 1, cat: "天文" },
+            { q: "太阳系中最大的行星是哪颗?", options: ["地球", "木星", "土星", "火星"], a: 1, cat: "天文" },
+            { q: "光速大约是多少公里/秒?", options: ["30万", "3万", "300万", "3000"], a: 0, cat: "物理" },
+            { q: "人体血液是什么类型的循环?", options: ["单循环", "双循环", "三循环", "不循环"], a: 1, cat: "人体" },
+            { q: "世界上面积最大的大洲是?", options: ["非洲", "北美洲", "亚洲", "欧洲"], a: 2, cat: "地理" },
+            { q: "声音在空气中传播速度约为?", options: ["340米/秒", "3400米/秒", "34米/秒", "3.4米/秒"], a: 0, cat: "物理" },
+            { q: "人体所需的三大营养物质不包括?", options: ["蛋白质", "脂肪", "维生素", "碳水化合物"], a: 2, cat: "营养" },
+            { q: "地球的卫星是?", options: ["月亮", "太阳", "火星", "木星"], a: 0, cat: "天文" },
+            { q: "冰的熔点是多少摄氏度?", options: ["0℃", "100℃", "-10℃", "50℃"], a: 0, cat: "物理" },
+            { q: "植物进行光合作用需要什么气体?", options: ["氧气", "氮气", "二氧化碳", "氢气"], a: 2, cat: "生物" },
+            { q: "成年人有多少颗恒牙?", options: ["28-32颗", "20颗", "24颗", "36颗"], a: 0, cat: "人体" },
+            { q: "世界上最高的山脉是?", options: ["珠穆朗玛峰", "乔戈里峰", "干城章嘉峰", "马卡鲁峰"], a: 0, cat: "地理" },
+            { q: "DNA的中文名称是?", options: ["脱氧核糖核酸", "核糖核酸", "蛋白质", "氨基酸"], a: 0, cat: "生物" },
+            { q: "大气层中最接近地面的是?", options: ["平流层", "对流层", "热层", "中间层"], a: 1, cat: "地理" },
+            { q: "人体最大的内分泌腺是?", options: ["垂体", "甲状腺", "胰腺", "肾上腺"], a: 1, cat: "人体" },
+            { q: "一年有几个季节?", options: ["2个", "3个", "4个", "5个"], a: 2, cat: "自然" },
+            { q: "金属导热性最好的是?", options: ["银", "铜", "金", "铝"], a: 0, cat: "物理" },
+            { q: "细胞的生命周期一般是?", options: ["几天", "几周", "几个月", "几年"], a: 3, cat: "生物" },
+            { q: "月球表面是什么颜色?", options: ["蓝色", "红色", "灰色", "绿色"], a: 2, cat: "天文" },
+            { q: "人体的pH值大约是?", options: ["5-6", "6-7", "7.35-7.45", "8-9"], a: 2, cat: "人体" },
+            { q: "地球的年龄大约是多少岁?", options: ["46亿年", "100亿年", "10亿年", "1亿年"], a: 0, cat: "天文" },
+            { q: "空气中最多的气体是?", options: ["氧气", "氮气", "二氧化碳", "氢气"], a: 1, cat: "化学" },
+            { q: "人体必需的微量元素不包括?", options: ["铁", "锌", "钙", "硒"], a: 2, cat: "营养" }
+        ];
+
+        let score = 0, questionCount = 0, currentQuestion = null, usedQuestions = [], isAnswering = false;
+        const maxQuestions = 10;
+
+        function getRandomQuestion() {
+            if (usedQuestions.length >= questions.length) usedQuestions = [];
+            let idx;
+            do { idx = Math.floor(Math.random() * questions.length); } while (usedQuestions.includes(idx));
+            usedQuestions.push(idx);
+            return questions[idx];
+        }
+
+        function showQuestion() {
+            currentQuestion = getRandomQuestion();
+            document.getElementById('category').textContent = currentQuestion.cat;
+            document.getElementById('currentNum').textContent = questionCount + 1;
+            document.getElementById('question').textContent = currentQuestion.q;
+            document.getElementById('feedback').textContent = '';
+            const opts = document.getElementById('options');
+            opts.innerHTML = '';
+            currentQuestion.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(i, btn);
+                opts.appendChild(btn);
+            });
+            isAnswering = true;
+        }
+
+        function checkAnswer(selected, btn) {
+            if (!isAnswering) return;
+            isAnswering = false;
+            questionCount++;
+            const isCorrect = selected === currentQuestion.a;
+            if (isCorrect) { score += 10; btn.classList.add('correct'); document.getElementById('feedback').textContent = '✅ 回答正确!'; document.getElementById('feedback').className = 'feedback correct'; }
+            else { btn.classList.add('wrong'); document.getElementById('feedback').textContent = '❌ 正确答案是 ' + currentQuestion.options[currentQuestion.a]; document.getElementById('feedback').className = 'feedback wrong'; document.querySelectorAll('.option')[currentQuestion.a].classList.add('correct'); }
+            document.getElementById('score').textContent = score;
+            document.getElementById('questionNum').textContent = questionCount;
+            document.getElementById('progress').style.width = (questionCount / maxQuestions * 100) + '%';
+            setTimeout(() => questionCount >= maxQuestions ? gameWin() : showQuestion(), 1500);
+        }
+
+        function gameWin() {
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctCount').textContent = score / 10;
+            let stars = score >= 80 ? '⭐⭐⭐' : score >= 50 ? '⭐⭐' : '⭐';
+            document.getElementById('stars').textContent = stars;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function restartGame() {
+            score = 0; questionCount = 0; usedQuestions = []; isAnswering = false;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('questionNum').textContent = '0';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('question').textContent = '准备好了吗?';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('winOverlay').style.display = 'none';
+            setTimeout(showQuestion, 500);
+        }
+
+        function closeWinAndRestart() { document.getElementById('winOverlay').style.display = 'none'; restartGame(); }
+        restartGame();
+    </script>
+</body>
+</html>

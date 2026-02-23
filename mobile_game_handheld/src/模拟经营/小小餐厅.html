@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小小餐厅</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.3);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .kitchen {
+            background: #f5f5f5;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .kitchen-title {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .food-btn {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .food-btn:hover { border-color: #ff9a9e; }
+        .food-btn.selected { border-color: #ff9a9e; background: #fff0f0; }
+        .food-btn:disabled { opacity: 0.5; }
+
+        .food-emoji { font-size: 2rem; }
+        .food-name { font-size: 0.8rem; color: #333; }
+        .food-price { font-size: 0.75rem; color: #666; }
+
+        .cooking-area {
+            background: #fff3cd;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .cooking-status {
+            font-size: 1.1rem;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .cooking-food {
+            font-size: 3rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9a9e, #fecfef);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .counter {
+            background: #e8f5e9;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .counter-title {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .customers {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .customer {
+            font-size: 2.5rem;
+            animation: bounce 0.5s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .order-bubble {
+            position: relative;
+            background: #fff;
+            border: 2px solid #ff9a9e;
+            border-radius: 10px;
+            padding: 5px 10px;
+            font-size: 1.5rem;
+            margin-left: 30px;
+        }
+
+        .order-bubble::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            border: 5px solid transparent;
+            border-right-color: #ff9a9e;
+            margin-top: -5px;
+        }
+
+        .serve-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .serve-btn:hover { background: #219a52; }
+        .serve-btn:disabled { background: #ccc; }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #333; }
+        .stat-label { font-size: 0.8rem; color: #666; }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            display: none;
+            z-index: 100;
+        }
+
+        .message.show { display: block; animation: pop 0.3s; }
+
+        @keyframes pop {
+            from { transform: translate(-50%, -50%) scale(0.5); }
+            to { transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🍽️ 小小餐厅</h1>
+
+    <div class="info-bar">
+        <div class="info-item">💰 <span id="money">0</span></div>
+        <div class="info-item">⭐ 好评: <span id="rating">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="kitchen">
+            <div class="kitchen-title">👨‍🍳 厨房 - 点击选择要做的菜</div>
+            <div class="menu" id="menu">
+                <button class="food-btn" data-food="hamburger" data-price="15" data-time="5" onclick="selectFood(this)">
+                    <div class="food-emoji">🍔</div>
+                    <div class="food-name">汉堡</div>
+                    <div class="food-price">💰15 | 5秒</div>
+                </button>
+                <button class="food-btn" data-food="pizza" data-price="25" data-time="8" onclick="selectFood(this)">
+                    <div class="food-emoji">🍕</div>
+                    <div class="food-name">披萨</div>
+                    <div class="food-price">💰25 | 8秒</div>
+                </button>
+                <button class="food-btn" data-food="noodles" data-price="10" data-time="3" onclick="selectFood(this)">
+                    <div class="food-emoji">🍜</div>
+                    <div class="food-name">面条</div>
+                    <div class="food-price">💰10 | 3秒</div>
+                </button>
+                <button class="food-btn" data-food="rice" data-price="12" data-time="4" onclick="selectFood(this)">
+                    <div class="food-emoji">🍚</div>
+                    <div class="food-name">米饭</div>
+                    <div class="food-price">💰12 | 4秒</div>
+                </button>
+                <button class="food-btn" data-food="icecream" data-price="8" data-time="2" onclick="selectFood(this)">
+                    <div class="food-emoji">🍦</div>
+                    <div class="food-name">冰淇淋</div>
+                    <div class="food-price">💰8 | 2秒</div>
+                </button>
+                <button class="food-btn" data-food="coffee" data-price="10" data-time="3" onclick="selectFood(this)">
+                    <div class="food-emoji">☕</div>
+                    <div class="food-name">咖啡</div>
+                    <div class="food-price">💰10 | 3秒</div>
+                </button>
+            </div>
+        </div>
+
+        <div class="cooking-area">
+            <div class="cooking-status" id="cookingStatus">厨房空闲中...</div>
+            <div class="cooking-food" id="cookingFood">🍳</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="counter">
+            <div class="counter-title">🍽️ 顾客座位</div>
+            <div class="customers" id="customers">
+                <div class="customer">😋</div>
+                <div class="order-bubble" id="orderBubble">🍔</div>
+            </div>
+            <button class="serve-btn" id="serveBtn" onclick="serveFood()" disabled>上菜</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="served">0</div>
+                <div class="stat-label">已服务</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="waiting">0</div>
+                <div class="stat-label">等待中</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="angry">0</div>
+                <div class="stat-label">生气走人</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        const foods = {
+            hamburger: { emoji: '🍔', name: '汉堡', price: 15, time: 5 },
+            pizza: { emoji: '🍕', name: '披萨', price: 25, time: 8 },
+            noodles: { emoji: '🍜', name: '面条', price: 10, time: 3 },
+            rice: { emoji: '🍚', name: '米饭', price: 12, time: 4 },
+            icecream: { emoji: '🍦', name: '冰淇淋', price: 8, time: 2 },
+            coffee: { emoji: '☕', name: '咖啡', price: 10, time: 3 }
+        };
+
+        const customerEmojis = ['👨', '👩', '👦', '👧', '👴', '👵', '🧑'];
+
+        let money = 0;
+        let rating = 0;
+        let served = 0;
+        let waiting = 0;
+        let angry = 0;
+
+        let selectedFood = null;
+        let cookingFood = null;
+        let cookingStartTime = 0;
+        let currentOrder = null;
+        let isCooking = false;
+        let orderTimer = null;
+
+        function selectFood(btn) {
+            if (isCooking) {
+                showMessage('正在做菜，稍等！');
+                return;
+            }
+
+            document.querySelectorAll('.food-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedFood = btn.dataset.food;
+
+            startCooking();
+        }
+
+        function startCooking() {
+            if (!selectedFood) return;
+
+            const food = foods[selectedFood];
+            isCooking = true;
+            cookingFood = selectedFood;
+            cookingStartTime = Date.now();
+
+            document.getElementById('cookingStatus').textContent = '正在烹饪 ' + food.name + '...';
+            document.getElementById('cookingFood').textContent = food.emoji;
+            document.getElementById('serveBtn').disabled = true;
+
+            // 禁用其他按钮
+            document.querySelectorAll('.food-btn').forEach(b => {
+                b.disabled = true;
+            });
+
+            // 进度条动画
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 100 / (food.time * 10);
+                document.getElementById('progressFill').style.width = Math.min(progress, 100) + '%';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    finishCooking();
+                }
+            }, 100);
+        }
+
+        function finishCooking() {
+            isCooking = false;
+            const food = foods[cookingFood];
+
+            document.getElementById('cookingStatus').textContent = food.name + '做好了！';
+            document.getElementById('serveBtn').disabled = false;
+
+            // 启用按钮
+            document.querySelectorAll('.food-btn').forEach(b => {
+                b.disabled = false;
+            });
+        }
+
+        function serveFood() {
+            if (!cookingFood) return;
+
+            const food = foods[cookingFood];
+
+            // 检查是否匹配订单
+            if (currentOrder && currentOrder !== cookingFood) {
+                showMessage('❌ 订单是' + foods[currentOrder].emoji + '，不是这个！');
+                angry++;
+                clearCustomer();
+                return;
+            }
+
+            // 成功
+            money += food.price;
+            served++;
+            waiting = Math.max(0, waiting - 1);
+
+            showMessage('+' + food.price + '金币！');
+
+            // 重置厨房
+            cookingFood = null;
+            document.getElementById('cookingStatus').textContent = '厨房空闲中...';
+            document.getElementById('cookingFood').textContent = '🍳';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('serveBtn').disabled = true;
+            document.querySelectorAll('.food-btn').forEach(b => b.classList.remove('selected'));
+            selectedFood = null;
+
+            clearCustomer();
+            updateStats();
+        }
+
+        function generateCustomer() {
+            if (waiting >= 3) return;
+
+            // 随机选择食物
+            const foodKeys = Object.keys(foods);
+            currentOrder = foodKeys[Math.floor(Math.random() * foodKeys.length)];
+
+            const customerEmoji = customerEmojis[Math.floor(Math.random() * customerEmojis.length)];
+
+            document.getElementById('customers').innerHTML = `
+                <div class="customer">${customerEmoji}</div>
+                <div class="order-bubble">${foods[currentOrder].emoji}</div>
+            `;
+
+            waiting++;
+
+            // 设置等待超时
+            const patience = 10000 + Math.random() * 10000;
+            orderTimer = setTimeout(() => {
+                if (currentOrder) {
+                    angry++;
+                    showMessage('😠 顾客等不及走了！');
+                    clearCustomer();
+                    updateStats();
+                }
+            }, patience);
+
+            updateStats();
+        }
+
+        function clearCustomer() {
+            currentOrder = null;
+            if (orderTimer) {
+                clearTimeout(orderTimer);
+                orderTimer = null;
+            }
+
+            setTimeout(() => {
+                document.getElementById('customers').innerHTML = '<div class="customer">😋</div><div class="order-bubble">🍽️</div>';
+            }, 500);
+        }
+
+        function updateStats() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('rating').textContent = rating;
+            document.getElementById('served').textContent = served;
+            document.getElementById('waiting').textContent = waiting;
+            document.getElementById('angry').textContent = angry;
+        }
+
+        function showMessage(text) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 1500);
+        }
+
+        // 生成顾客
+        setInterval(() => {
+            if (Math.random() < 0.3) {
+                generateCustomer();
+            }
+        }, 3000);
+
+        // 初始顾客
+        setTimeout(generateCustomer, 1000);
+    </script>
+</body>
+</html>

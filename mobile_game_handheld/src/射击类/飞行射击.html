@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞行射击</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            border: 3px solid #4a4a8a;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(100, 100, 255, 0.3);
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(to bottom, #0a0a20, #1a1a40);
+        }
+
+        .controls {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .control-hint {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .start-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            background: rgba(0,0,0,0.7);
+            padding: 20px 40px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>✈️ 飞行射击</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">生命: <span id="lives">❤️❤️❤️</span></div>
+    </div>
+
+    <div class="game-container" style="position: relative;">
+        <canvas id="gameCanvas" width="500" height="600"></canvas>
+        <div class="start-hint" id="startHint" onclick="startGame()">点击开始游戏</div>
+    </div>
+
+    <div class="controls">
+        <p class="control-hint">← → 或 A D 移动 | 空格 射击</p>
+        <button class="btn" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let player = { x: 250, y: 520, width: 40, height: 40 };
+        let bullets = [];
+        let enemies = [];
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let gameLoop = null;
+        let enemySpawnTimer = null;
+        let lastShot = 0;
+
+        const keys = {};
+
+        function initGame() {
+            player.x = 230;
+            player.y = 520;
+            bullets = [];
+            enemies = [];
+            score = 0;
+            lives = 3;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('lives').textContent = '❤️❤️❤️';
+            document.getElementById('startHint').style.display = 'block';
+
+            draw();
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            document.getElementById('startHint').style.display = 'none';
+
+            enemySpawnTimer = setInterval(spawnEnemy, 1000);
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function restartGame() {
+            gameRunning = false;
+            clearInterval(enemySpawnTimer);
+            cancelAnimationFrame(gameLoop);
+            initGame();
+        }
+
+        function spawnEnemy() {
+            if (!gameRunning) return;
+            const enemy = {
+                x: Math.random() * (canvas.width - 40),
+                y: -40,
+                width: 40,
+                height: 40,
+                speed: 2 + Math.random() * 2
+            };
+            enemies.push(enemy);
+        }
+
+        function shoot() {
+            if (!gameRunning) return;
+            const now = Date.now();
+            if (now - lastShot > 200) {
+                bullets.push({
+                    x: player.x + player.width / 2 - 3,
+                    y: player.y,
+                    width: 6,
+                    height: 15,
+                    speed: 8
+                });
+                lastShot = now;
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // 玩家移动
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                player.x = Math.max(0, player.x - 5);
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                player.x = Math.min(canvas.width - player.width, player.x + 5);
+            }
+
+            // 子弹移动
+            bullets.forEach((bullet, index) => {
+                bullet.y -= bullet.speed;
+                if (bullet.y < -20) bullets.splice(index, 1);
+            });
+
+            // 敌人移动
+            enemies.forEach((enemy, eIndex) => {
+                enemy.y += enemy.speed;
+
+                // 检测碰撞 - 子弹击中敌人
+                bullets.forEach((bullet, bIndex) => {
+                    if (rectIntersect(bullet, enemy)) {
+                        enemies.splice(eIndex, 1);
+                        bullets.splice(bIndex, 1);
+                        score += 10;
+                        document.getElementById('score').textContent = score;
+                    }
+                });
+
+                // 检测碰撞 - 敌人撞到玩家
+                if (rectIntersect(player, enemy)) {
+                    enemies.splice(eIndex, 1);
+                    lives--;
+                    updateLivesDisplay();
+                    if (lives <= 0) {
+                        gameOver();
+                        return;
+                    }
+                }
+
+                // 敌人超出屏幕
+                if (enemy.y > canvas.height) {
+                    enemies.splice(eIndex, 1);
+                }
+            });
+
+            draw();
+            if (gameRunning) gameLoop = requestAnimationFrame(update);
+        }
+
+        function rectIntersect(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+
+        function updateLivesDisplay() {
+            let hearts = '';
+            for (let i = 0; i < lives; i++) hearts += '❤️';
+            for (let i = lives; i < 3; i++) hearts += '🖤';
+            document.getElementById('lives').textContent = hearts;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 星星背景
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 73) % canvas.width;
+                const y = (i * 47) % canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 玩家飞机
+            ctx.fillStyle = '#3498db';
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.width/2, player.y);
+            ctx.lineTo(player.x + player.width, player.y + player.height);
+            ctx.lineTo(player.x + player.width/2, player.y + player.height - 10);
+            ctx.lineTo(player.x, player.y + player.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // 子弹
+            ctx.fillStyle = '#f1c40f';
+            bullets.forEach(bullet => {
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+
+            // 敌人
+            enemies.forEach(enemy => {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.moveTo(enemy.x, enemy.y + enemy.height);
+                ctx.lineTo(enemy.x + enemy.width, enemy.y + enemy.height);
+                ctx.lineTo(enemy.x + enemy.width/2, enemy.y);
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(enemySpawnTimer);
+            cancelAnimationFrame(gameLoop);
+            alert(`游戏结束!\n\n得分: ${score}`);
+            initGame();
+        }
+
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ' || e.key === 'Space') {
+                e.preventDefault();
+                shoot();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        initGame();
+    </script>
+<script src="../gamepad-helper.js"></script>
+</body>
+</html>

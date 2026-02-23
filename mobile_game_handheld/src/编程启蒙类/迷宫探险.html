@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宫探险</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 15px;
+            user-select: none;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.25);
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #gameCanvas {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .direction-btns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .dir-btn {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            background: #fff;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.15s;
+        }
+
+        .dir-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .dir-btn:active {
+            transform: scale(0.95);
+        }
+
+        .dir-btn.empty {
+            visibility: hidden;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-auto { background: #9b59b6; color: #fff; }
+        .btn-reset { background: #f39c12; color: #fff; }
+        .btn-next { background: #27ae60; color: #fff; }
+
+        .instructions {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.95rem;
+            text-align: center;
+            max-width: 350px;
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .win-content {
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            animation: pop 0.4s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .win-content h2 {
+            color: #27ae60;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .win-content p {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .win-content button {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        @media (max-width: 400px) {
+            #gameCanvas { width: 300px; height: 300px; }
+            .dir-btn { width: 45px; height: 45px; font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 迷宫探险</h1>
+
+    <div class="info-bar">
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">步数: <span id="steps">0</span></div>
+    </div>
+
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="350" height="350"></canvas>
+
+        <div class="direction-btns">
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="movePlayer('up')">⬆️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="movePlayer('left')">⬅️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="movePlayer('right')">➡️</button>
+            <div class="dir-btn empty"></div>
+            <button class="dir-btn" onclick="movePlayer('down')">⬇️</button>
+            <div class="dir-btn empty"></div>
+        </div>
+
+        <div class="action-btns">
+            <button class="btn-reset" onclick="resetLevel()">🔄 重置</button>
+            <button class="btn-next" onclick="nextLevel()">下一关</button>
+        </div>
+
+        <p class="instructions">
+            用方向按钮控制小探险家 🧭 找到出口 🏁<br>
+            也可以用键盘方向键或WASD移动
+        </p>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 找到出口!</h2>
+            <p>用时 <span id="finalSteps">0</span> 步</p>
+            <button onclick="nextLevel()">下一关 →</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏配置
+        const GRID_SIZE = 7;
+        const TILE_SIZE = canvas.width / GRID_SIZE;
+
+        // 地图元素
+        const EMPTY = 0;
+        const WALL = 1;
+        const START = 2;
+        const END = 3;
+        const COIN = 4;
+
+        // 关卡数据
+        const levels = [
+            // Level 1: 简单
+            [
+                [1,1,1,1,1,1,1],
+                [1,2,0,0,0,0,1],
+                [1,1,1,1,1,0,1],
+                [1,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1],
+                [1,0,0,0,0,3,1],
+                [1,1,1,1,1,1,1]
+            ],
+            // Level 2: 中等
+            [
+                [1,1,1,1,1,1,1],
+                [1,2,0,1,0,0,1],
+                [1,1,0,1,0,1,1],
+                [1,0,0,0,0,0,1],
+                [1,0,1,1,1,0,1],
+                [1,0,0,0,1,3,1],
+                [1,1,1,1,1,1,1]
+            ],
+            // Level 3: 较难
+            [
+                [1,1,1,1,1,1,1],
+                [1,2,0,0,1,0,1],
+                [1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1],
+                [1,0,0,0,0,3,1],
+                [1,1,1,1,1,1,1]
+            ],
+            // Level 4: 挑战
+            [
+                [1,1,1,1,1,1,1,1],
+                [1,2,0,0,0,1,0,1],
+                [1,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,0,1],
+                [1,0,1,1,1,1,0,1],
+                [1,0,0,0,0,1,0,1],
+                [1,1,1,1,0,0,3,1],
+                [1,1,1,1,1,1,1,1]
+            ],
+            // Level 5: 复杂
+            [
+                [1,1,1,1,1,1,1,1],
+                [1,2,0,1,0,0,0,1],
+                [1,1,0,1,0,1,0,1],
+                [1,0,0,0,0,1,0,1],
+                [1,0,1,1,0,1,0,1],
+                [1,0,1,0,0,0,0,1],
+                [1,0,1,1,1,1,3,1],
+                [1,1,1,1,1,1,1,1]
+            ]
+        ];
+
+        // 游戏状态
+        let currentLevel = 0;
+        let grid = [];
+        let player = {x: 0, y: 0};
+        let endPos = {x: 0, y: 0};
+        let steps = 0;
+        let gridSize = GRID_SIZE;
+
+        // 初始化
+        function initGame() {
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const levelData = levels[levelIndex];
+            gridSize = levelData.length;
+            grid = JSON.parse(JSON.stringify(levelData));
+
+            // 找到起点和终点
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    if (grid[y][x] === START) {
+                        player = {x, y};
+                    }
+                    if (grid[y][x] === END) {
+                        endPos = {x, y};
+                    }
+                }
+            }
+
+            steps = 0;
+            document.getElementById('level').textContent = levelIndex + 1;
+            document.getElementById('steps').textContent = '0';
+            document.getElementById('winOverlay').style.display = 'none';
+        }
+
+        // 绘制游戏
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const tileSize = canvas.width / gridSize;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const px = x * tileSize;
+                    const py = y * tileSize;
+
+                    // 背景
+                    if ((x + y) % 2 === 0) {
+                        ctx.fillStyle = '#ecf0f1';
+                    } else {
+                        ctx.fillStyle = '#dfe6e9';
+                    }
+                    ctx.fillRect(px, py, tileSize, tileSize);
+
+                    const cell = grid[y][x];
+                    ctx.font = `${tileSize * 0.6}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    if (cell === WALL) {
+                        ctx.fillText('🌲', px + tileSize/2, py + tileSize/2);
+                    } else if (cell === START) {
+                        ctx.fillText('🧭', px + tileSize/2, py + tileSize/2);
+                    } else if (cell === END) {
+                        ctx.fillText('🏁', px + tileSize/2, py + tileSize/2);
+                    }
+                }
+            }
+
+            // 画玩家
+            const playerX = player.x * tileSize + tileSize/2;
+            const playerY = player.y * tileSize + tileSize/2;
+            ctx.font = `${tileSize * 0.6}px Arial`;
+            ctx.fillText('🧒', playerX, playerY);
+        }
+
+        // 移动玩家
+        function movePlayer(direction) {
+            let newX = player.x;
+            let newY = player.y;
+
+            switch(direction) {
+                case 'up': newY--; break;
+                case 'down': newY++; break;
+                case 'left': newX--; break;
+                case 'right': newX++; break;
+            }
+
+            // 检查边界
+            if (newX < 0 || newX >= gridSize || newY < 0 || newY >= gridSize) return;
+
+            // 检查墙壁
+            if (grid[newY][newX] === WALL) return;
+
+            // 移动
+            player.x = newX;
+            player.y = newY;
+            steps++;
+            document.getElementById('steps').textContent = steps;
+
+            draw();
+
+            // 检查胜利
+            if (player.x === endPos.x && player.y === endPos.y) {
+                setTimeout(() => {
+                    document.getElementById('finalSteps').textContent = steps;
+                    document.getElementById('winOverlay').style.display = 'flex';
+                }, 200);
+            }
+        }
+
+        // 重置关卡
+        function resetLevel() {
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 下一关
+        function nextLevel() {
+            document.getElementById('winOverlay').style.display = 'none';
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+            } else {
+                currentLevel = 0;
+                alert('🎊 恭喜通关所有迷宫！');
+            }
+            loadLevel(currentLevel);
+            draw();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W':
+                    movePlayer('up');
+                    break;
+                case 'ArrowDown': case 's': case 'S':
+                    movePlayer('down');
+                    break;
+                case 'ArrowLeft': case 'a': case 'A':
+                    movePlayer('left');
+                    break;
+                case 'ArrowRight': case 'd': case 'D':
+                    movePlayer('right');
+                    break;
+            }
+        });
+
+        initGame();
+    </script>
+<script src="../gamepad-helper.js"></script>
+</body>
+</html>

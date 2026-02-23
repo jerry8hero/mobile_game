@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间认知</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #3498db, #9b59b6); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 2rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 400px; width: 100%; text-align: center; }
+        .clock { width: 200px; height: 200px; border: 8px solid #3498db; border-radius: 50%; margin: 20px auto; position: relative; background: #fff; }
+        .clock-face { position: absolute; width: 100%; height: 100%; }
+        .hour { position: absolute; width: 6px; height: 50px; background: #333; left: 50%; top: 50px; transform-origin: bottom center; transform: translateX(-50%); border-radius: 3px; }
+        .minute { position: absolute; width: 4px; height: 70px; background: #666; left: 50%; top: 30px; transform-origin: bottom center; transform: translateX(-50%); border-radius: 2px; }
+        .center-dot { position: absolute; width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .time-display { font-size: 2.5rem; font-weight: bold; color: #333; margin: 15px 0; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .option-btn { padding: 15px; border: 2px solid #ddd; border-radius: 12px; background: #f8f9fa; cursor: pointer; font-size: 1.2rem; font-weight: bold; transition: all 0.2s; }
+        .option-btn:hover { border-color: #3498db; transform: scale(1.02); }
+        .option-btn.correct { background: #27ae60; color: #fff; border-color: #27ae60; }
+        .option-btn.wrong { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+        .score { font-size: 1.2rem; color: #333; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>🕐 时间认知</h1>
+    <div class="game-container">
+        <div class="clock">
+            <div class="clock-face">
+                <div class="hour" id="hourHand"></div>
+                <div class="minute" id="minuteHand"></div>
+                <div class="center-dot"></div>
+            </div>
+        </div>
+        <div class="time-display" id="timeDisplay">3:00</div>
+        <div class="options" id="options"></div>
+        <div class="score">得分: <span id="score">0</span></div>
+    </div>
+    <script>
+        const times = [
+            {hour:3, minute:0, text:'3:00'},
+            {hour:6, minute:30, text:'6:30'},
+            {hour:9, minute:0, text:'9:00'},
+            {hour:12, minute:0, text:'12:00'},
+            {hour:1, minute:30, text:'1:30'},
+            {hour:8, minute:15, text:'8:15'},
+            {hour:4, minute:45, text:'4:45'},
+            {hour:7, minute:0, text:'7:00'}
+        ];
+        let score = 0, currentIndex = 0;
+        function setClock(h, m){
+            document.getElementById('hourHand').style.transform = `translateX(-50%) rotate(${h*30 + m*0.5}deg)`;
+            document.getElementById('minuteHand').style.transform = `translateX(-50%) rotate(${m*6}deg)`;
+        }
+        function newQuestion(){
+            const time = times[Math.floor(Math.random() * times.length)];
+            document.getElementById('timeDisplay').textContent = time.text;
+            setClock(time.hour, time.minute);
+            let options = [time.text];
+            while(options.length < 4){
+                const r = times[Math.floor(Math.random() * times.length)].text;
+                if(!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+            const container = document.getElementById('options');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => selectAnswer(btn, opt, time.text);
+                container.appendChild(btn);
+            });
+        }
+        function selectAnswer(btn, answer, correct){
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            if(answer === correct){
+                btn.classList.add('correct');
+                score += 10;
+            }else{
+                btn.classList.add('wrong');
+                document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent === correct) b.classList.add('correct'); });
+            }
+            document.getElementById('score').textContent = score;
+            setTimeout(newQuestion, 1500);
+        }
+        newQuestion();
+    </script>
+</body>
+</html>

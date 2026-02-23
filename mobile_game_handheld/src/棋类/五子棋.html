@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #d4a574 0%, #c9a067 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #5d4037;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            font-size: 1.5rem;
+            color: #5d4037;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .game-container {
+            background: #deb887;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            background: #deb887;
+            position: relative;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #5d4037;
+        }
+
+        .cell::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #5d4037;
+        }
+
+        .cell.black::before, .cell.black::after,
+        .cell.white::before, .cell.white::after {
+            display: none;
+        }
+
+        .stone {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stone.black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+        }
+
+        .stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+        }
+
+        .last-move {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: red;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: #5d4037;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #4e342e;
+        }
+    </style>
+</head>
+<body>
+    <h1>♟️ 五子棋</h1>
+
+    <div class="status" id="status">黑棋回合</div>
+
+    <div class="game-container">
+        <div id="board"></div>
+    </div>
+
+    <button class="btn" onclick="resetGame()">🔄 重新开始</button>
+
+    <script>
+        const BOARD_SIZE = 15;
+        let board = [];
+        let currentPlayer = 'black';
+        let gameOver = false;
+        let lastMove = null;
+
+        function initBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.onclick = () => handleClick(i);
+                boardEl.appendChild(cell);
+            }
+
+            board = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
+        }
+
+        function handleClick(index) {
+            if (gameOver || board[index] !== null) return;
+
+            board[index] = currentPlayer;
+            lastMove = index;
+            renderMove(index, currentPlayer);
+
+            if (checkWin(index, currentPlayer)) {
+                document.getElementById('status').textContent =
+                    (currentPlayer === 'black' ? '黑棋' : '白棋') + ' 获胜!';
+                gameOver = true;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            document.getElementById('status').textContent =
+                (currentPlayer === 'black' ? '黑棋' : '白棋') + '回合';
+        }
+
+        function renderMove(index, player) {
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            cell.classList.add(player);
+
+            const stone = document.createElement('div');
+            stone.className = `stone ${player}`;
+            cell.appendChild(stone);
+
+            // 移除上一个标记
+            document.querySelectorAll('.last-move').forEach(el => el.remove());
+
+            // 添加最后一步标记
+            const mark = document.createElement('div');
+            mark.className = 'last-move';
+            cell.appendChild(mark);
+        }
+
+        function checkWin(index, player) {
+            const row = Math.floor(index / BOARD_SIZE);
+            const col = index % BOARD_SIZE;
+
+            const directions = [
+                [1, 0],   // 水平
+                [0, 1],   // 垂直
+                [1, 1],   // 对角线
+                [1, -1]   // 反对角线
+            ];
+
+            for (const [dr, dc] of directions) {
+                let count = 1;
+
+                // 正方向
+                let r = row + dr;
+                let c = col + dc;
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE &&
+                       board[r * BOARD_SIZE + c] === player) {
+                    count++;
+                    r += dr;
+                    c += dc;
+                }
+
+                // 反方向
+                r = row - dr;
+                c = col - dc;
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE &&
+                       board[r * BOARD_SIZE + c] === player) {
+                    count++;
+                    r -= dr;
+                    c -= dc;
+                }
+
+                if (count >= 5) return true;
+            }
+
+            return false;
+        }
+
+        function resetGame() {
+            currentPlayer = 'black';
+            gameOver = false;
+            lastMove = null;
+            document.getElementById('status').textContent = '黑棋回合';
+            initBoard();
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>

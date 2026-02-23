@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连连看</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .info-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile:hover {
+            transform: scale(1.1);
+        }
+
+        .tile.selected {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+            transform: scale(1.1);
+        }
+
+        .tile.matched {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .tile.empty {
+            background: transparent;
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .tile.empty:hover {
+            transform: none;
+        }
+
+        .hint-btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .hint-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-restart {
+            margin-top: 15px;
+            margin-left: 10px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+            animation: pop 0.5s ease;
+            border: 2px solid #27ae60;
+        }
+
+        .win-content h2 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔗 连连看</h1>
+
+    <div class="info-bar">
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">剩余: <span id="remaining">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div id="gameBoard"></div>
+    </div>
+
+    <div class="controls">
+        <button class="hint-btn" onclick="useHint()">💡 提示 (<span id="hints">3</span>)</button>
+        <button class="btn-restart" onclick="initGame()">🔄 重来</button>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-content">
+            <h2>🎉 完成!</h2>
+            <p>太棒了! 所有配对都完成了!</p>
+            <p>得分: <span id="finalScore">0</span></p>
+            <button class="btn-restart" onclick="closeWinAndRestart()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const ROWS = 8;
+        const COLS = 8;
+        const EMOJIS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑', '🌸', '🌺', '🌻', '🌷'];
+
+        let board = [];
+        let selected = null;
+        let score = 0;
+        let hints = 3;
+        let pairsRemaining = 0;
+
+        function initGame() {
+            score = 0;
+            hints = 3;
+            selected = null;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('hints').textContent = '3';
+            document.getElementById('winOverlay').style.display = 'none';
+
+            // 生成棋盘
+            generateBoard();
+            renderBoard();
+        }
+
+        function generateBoard() {
+            // 选择16种图案，每种出现4次 = 64个位置
+            const selectedEmojis = EMOJIS.slice(0, 16);
+            let tiles = [];
+
+            // 每种图案4个
+            selectedEmojis.forEach(emoji => {
+                tiles.push(emoji, emoji, emoji, emoji);
+            });
+
+            // 随机打乱
+            for (let i = tiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+            }
+
+            // 创建二维数组（外围加一圈0作为边界）
+            board = [];
+            for (let i = 0; i < ROWS + 2; i++) {
+                board[i] = [];
+                for (let j = 0; j < COLS + 2; j++) {
+                    if (i === 0 || i === ROWS + 1 || j === 0 || j === COLS + 1) {
+                        board[i][j] = null; // 边界
+                    } else {
+                        board[i][j] = tiles[(i - 1) * COLS + (j - 1)];
+                    }
+                }
+            }
+
+            pairsRemaining = 32; // 16对
+        }
+
+        function renderBoard() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            gameBoard.style.gridTemplateColumns = `repeat(${COLS}, 50px)`;
+
+            for (let i = 1; i <= ROWS; i++) {
+                for (let j = 1; j <= COLS; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.dataset.row = i;
+                    tile.dataset.col = j;
+
+                    if (board[i][j] === null) {
+                        tile.classList.add('empty');
+                    } else {
+                        tile.textContent = board[i][j];
+                        tile.onclick = () => onTileClick(i, j);
+                    }
+
+                    if (selected && selected.row === i && selected.col === j) {
+                        tile.classList.add('selected');
+                    }
+
+                    gameBoard.appendChild(tile);
+                }
+            }
+
+            document.getElementById('remaining').textContent = pairsRemaining;
+        }
+
+        function onTileClick(row, col) {
+            if (board[row][col] === null) return;
+
+            if (!selected) {
+                // 第一次点击
+                selected = { row, col };
+            } else if (selected.row === row && selected.col === col) {
+                // 取消选择
+                selected = null;
+            } else {
+                // 第二次点击，检查是否匹配
+                if (board[selected.row][selected.col] === board[row][col]) {
+                    // 检查是否能连接
+                    if (canConnect(selected.row, selected.col, row, col)) {
+                        // 配对成功
+                        board[selected.row][selected.col] = null;
+                        board[row][col] = null;
+                        score += 10;
+                        pairsRemaining--;
+
+                        document.getElementById('score').textContent = score;
+                        selected = null;
+
+                        renderBoard();
+
+                        if (pairsRemaining === 0) {
+                            setTimeout(showWin, 300);
+                        }
+                    } else {
+                        // 不能连接，选择新的
+                        selected = { row, col };
+                    }
+                } else {
+                    // 不同图案，选择新的
+                    selected = { row, col };
+                }
+            }
+
+            renderBoard();
+        }
+
+        // 检查两点是否能通过不超过两个拐点连接
+        function canConnect(r1, c1, r2, c2) {
+            // 1. 直接连接
+            if (checkLine(r1, c1, r2, c2)) return true;
+
+            // 2. 一个拐点
+            if (checkOneCorner(r1, c1, r2, c2)) return true;
+
+            // 3. 两个拐点
+            if (checkTwoCorners(r1, c1, r2, c2)) return true;
+
+            return false;
+        }
+
+        function checkLine(r1, c1, r2, c2) {
+            // 同一行
+            if (r1 === r2) {
+                const minC = Math.min(c1, c2);
+                const maxC = Math.max(c1, c2);
+                for (let c = minC + 1; c < maxC; c++) {
+                    if (board[r1][c] !== null) return false;
+                }
+                return true;
+            }
+
+            // 同一列
+            if (c1 === c2) {
+                const minR = Math.min(r1, r2);
+                const maxR = Math.max(r1, r2);
+                for (let r = minR + 1; r < maxR; r++) {
+                    if (board[r][c1] !== null) return false;
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        function checkOneCorner(r1, c1, r2, c2) {
+            // 尝试两个拐角方案
+            // 方案1: (r1, c1) -> (r1, c2) -> (r2, c2)
+            if (board[r1][c2] === null && checkLine(r1, c1, r1, c2) && checkLine(r1, c2, r2, c2)) {
+                return true;
+            }
+
+            // 方案2: (r1, c1) -> (r2, c1) -> (r2, c2)
+            if (board[r2][c1] === null && checkLine(r1, c1, r2, c1) && checkLine(r2, c1, r2, c2)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function checkTwoCorners(r1, c1, r2, c2) {
+            // 遍历所有可能的中间点
+            for (let r = 0; r < ROWS + 2; r++) {
+                // 水平扩展
+                if (board[r][c1] === null && checkLine(r1, c1, r, c1) && checkOneCorner(r, c1, r2, c2)) {
+                    if (checkLine(r, c1, r, c2)) return true;
+                }
+            }
+
+            for (let c = 0; c < COLS + 2; c++) {
+                // 垂直扩展
+                if (board[r1][c] === null && checkLine(r1, c1, r1, c) && checkOneCorner(r1, c, r2, c2)) {
+                    if (checkLine(r1, c, r2, c)) return true;
+                }
+            }
+
+            return false;
+        }
+
+        function useHint() {
+            if (hints <= 0) return;
+
+            // 找一对可以连接的
+            for (let i = 1; i <= ROWS; i++) {
+                for (let j = 1; j <= COLS; j++) {
+                    if (board[i][j] === null) continue;
+
+                    for (let i2 = i; i2 <= ROWS; i2++) {
+                        for (let j2 = 1; j2 <= COLS; j2++) {
+                            if (i === i2 && j === j2) continue;
+                            if (board[i2][j2] === null) continue;
+                            if (board[i][j] !== board[i2][j2]) continue;
+
+                            if (canConnect(i, j, i2, j2)) {
+                                hints--;
+                                document.getElementById('hints').textContent = hints;
+
+                                // 高亮显示
+                                selected = { row: i, col: j };
+                                renderBoard();
+                                setTimeout(() => {
+                                    const tiles = document.querySelectorAll('.tile');
+                                    tiles.forEach(t => t.classList.remove('selected'));
+                                    const t1 = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+                                    const t2 = document.querySelector(`[data-row="${i2}"][data-col="${j2}"]`);
+                                    if (t1) t1.classList.add('selected');
+                                    if (t2) t2.classList.add('selected');
+                                }, 100);
+
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            alert('没有可用的提示了!');
+        }
+
+        function showWin() {
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('winOverlay').style.display = 'flex';
+        }
+
+        function closeWinAndRestart() {
+            document.getElementById('winOverlay').style.display = 'none';
+            initGame();
+        }
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图形认知</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #1abc9c, #3498db); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Microsoft YaHei', sans-serif; padding: 15px; user-select: none; }
+        h1 { color: #fff; font-size: 2rem; margin-bottom: 10px; }
+        .game-container { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-width: 450px; width: 100%; text-align: center; }
+        .shape-display { background: #f5f5f5; border-radius: 15px; padding: 30px; margin: 15px 0; min-height: 150px; display: flex; align-items: center; justify-content: center; }
+        .shape { transition: all 0.3s; }
+        .question { font-size: 1.3rem; color: #333; margin-bottom: 15px; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-btn { padding: 15px; border: 2px solid #ddd; border-radius: 12px; background: #f8f9fa; cursor: pointer; font-size: 1rem; font-weight: bold; transition: all 0.2s; }
+        .option-btn:hover { border-color: #3498db; transform: scale(1.02); }
+        .option-btn.correct { background: #27ae60; color: #fff; border-color: #27ae60; }
+        .option-btn.wrong { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+        .score { font-size: 1.2rem; color: #333; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>🔷 图形认知</h1>
+    <div class="game-container">
+        <div class="question">这是什么形状？</div>
+        <div class="shape-display" id="shapeDisplay"></div>
+        <div class="options" id="options"></div>
+        <div class="score">得分: <span id="score">0</span></div>
+    </div>
+    <script>
+        const shapes = [
+            { name: '圆形', emoji: '⚫', draw: '<svg width="80" height="80"><circle cx="40" cy="40" r="35" fill="#e74c3c"/></svg>' },
+            { name: '正方形', emoji: '⬛', draw: '<svg width="80" height="80"><rect x="10" y="10" width="60" height="60" fill="#3498db"/></svg>' },
+            { name: '三角形', emoji: '🔺', draw: '<svg width="80" height="80"><polygon points="40,10 10,70 70,70" fill="#27ae60"/></svg>' },
+            { name: '长方形', emoji: '🟫', draw: '<svg width="80" height="80"><rect x="5" y="20" width="70" height="40" fill="#f39c12"/></svg>' },
+            { name: '菱形', emoji: '🔶', draw: '<svg width="80" height="80"><polygon points="40,5 75,40 40,75 5,40" fill="#9b59b6"/></svg>' },
+            { name: '五边形', emoji: '⬠', draw: '<svg width="80" height="80"><polygon points="40,5 75,30 65,75 15,75 5,30" fill="#1abc9c"/></svg>' },
+            { name: '六边形', emoji: '⬡', draw: '<svg width="80" height="80"><polygon points="20,10 60,10 75,40 60,70 20,70 5,40" fill="#e67e22"/></svg>' },
+            { name: '椭圆', emoji: '⭕', draw: '<svg width="80" height="80"><ellipse cx="40" cy="40" rx="35" ry="20" fill="#34495e"/></svg>' }
+        ];
+        let score = 0;
+        function newQuestion(){
+            const correct = shapes[Math.floor(Math.random() * shapes.length)];
+            document.getElementById('shapeDisplay').innerHTML = correct.draw;
+            const opts = [correct.name];
+            while(opts.length < 4){
+                const r = shapes[Math.floor(Math.random() * shapes.length)].name;
+                if(!opts.includes(r)) opts.push(r);
+            }
+            opts.sort(() => Math.random() - 0.5);
+            const container = document.getElementById('options');
+            container.innerHTML = '';
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => selectAnswer(btn, opt === correct.name);
+                container.appendChild(btn);
+            });
+        }
+        function selectAnswer(btn, correct){
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            if(correct){
+                btn.classList.add('correct');
+                score += 10;
+            }else{
+                btn.classList.add('wrong');
+                document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent === shapes.find(s => s.name === document.querySelector('.option-btn:not(.wrong) ? '' : '')) b.classList.add('correct'); });
+            }
+            document.getElementById('score').textContent = score;
+            setTimeout(newQuestion, 1500);
+        }
+        newQuestion();
+    </script>
+</body>
+</html>
