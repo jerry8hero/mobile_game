@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地牢传说</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #1a1a2e, #0d0d1a); min-height: 100vh; color: #fff; }
+        #game { max-width: 450px; margin: 0 auto; padding: 15px; }
+        h1 { text-align: center; color: #e94560; margin-bottom: 10px; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; }
+        #map { background: #1a1a2e; border-radius: 10px; padding: 10px; min-height: 300px; position: relative; }
+        .player { position: absolute; font-size: 2rem; transition: all 0.3s; }
+        .enemy { position: absolute; font-size: 1.5rem; }
+        .chest { position: absolute; font-size: 1.5rem; }
+        .stairs { position: absolute; font-size: 2rem; }
+        .log { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; height: 80px; overflow-y: auto; font-size: 0.85rem; color: #aaa; }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .btn { padding: 15px; background: #4ecdc4; border: none; border-radius: 8px; color: #fff; font-size: 1.2rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>⚔️ 地牢传说</h1>
+        <div class="stats">
+            <div class="stat">❤️<br><span id="hp">100</span></div>
+            <div class="stat">⚔️<br><span id="atk">10</span></div>
+            <div class="stat">💰<br><span id="gold">0</span></div>
+            <div class="stat">🌊<br><span id="floor">1</span></div>
+        </div>
+        <div id="map"></div>
+        <div class="log" id="log"></div>
+        <div class="controls">
+            <button class="btn" onclick="move(0,-1)">⬆️</button>
+            <button class="btn" onclick="attack()">⚔️</button>
+            <button class="btn" onclick="move(0,1)">⬇️</button>
+            <button class="btn" onclick="move(-1,0)">⬅️</button>
+            <button class="btn" onclick="heal()">💖</button>
+            <button class="btn" onclick="move(1,0)">➡️</button>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const mapSize = 6;
+        let player = { x: 0, y: 0, hp: 100, maxHp: 100, atk: 10, gold: 0 };
+        let floor = 1;
+        let enemies = [];
+        let chests = [];
+        let stairs = { x: 5, y: 5 };
+        let logMsgs = [];
+
+        function log(msg) {
+            logMsgs.unshift(msg);
+            if (logMsgs.length > 5) logMsgs.pop();
+            document.getElementById('log').innerHTML = logMsgs.join('<br>');
+        }
+
+        function initFloor() {
+            enemies = [];
+            chests = [];
+            player.x = 0;
+            player.y = 0;
+            stairs = { x: mapSize - 1, y: mapSize - 1 };
+
+            // 生成敌人
+            for (let i = 0; i < floor + 1; i++) {
+                const ex = Math.floor(Math.random() * mapSize);
+                const ey = Math.floor(Math.random() * mapSize);
+                if ((ex !== 0 || ey !== 0) && (ex !== stairs.x || ey !== stairs.y)) {
+                    enemies.push({
+                        x: ex, y: ey,
+                        hp: 20 + floor * 10,
+                        atk: 5 + floor * 2,
+                        icon: ['👺','👾','💀','🧟'][Math.floor(Math.random() * 4)]
+                    });
+                }
+            }
+
+            // 生成宝箱
+            for (let i = 0; i < Math.floor(floor / 2); i++) {
+                const cx = Math.floor(Math.random() * mapSize);
+                const cy = Math.floor(Math.random() * mapSize);
+                if (!enemies.find(e => e.x === cx && e.y === cy) && (cx !== 0 || cy !== 0) && (cx !== stairs.x || cy !== stairs.y)) {
+                    chests.push({ x: cx, y: cy });
+                }
+            }
+
+            log(`🌊 进入第 ${floor} 层`);
+            render();
+        }
+
+        function render() {
+            const mapEl = document.getElementById('map');
+            mapEl.innerHTML = '';
+
+            // 画格子
+            for (let y = 0; y < mapSize; y++) {
+                for (let x = 0; x < mapSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.style.cssText = 'width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;';
+                    if (x === stairs.x && y === stairs.y) cell.textContent = '🪜';
+                    else if (x === player.x && y === player.y) cell.textContent = '🧙';
+                    else {
+                        const enemy = enemies.find(e => e.x === x && e.y === y);
+                        if (enemy) cell.textContent = enemy.icon;
+                        else if (chests.find(c => c.x === x && c.y === y)) cell.textContent = '📦';
+                        else cell.textContent = '⬛';
+                    }
+                    mapEl.appendChild(cell);
+                }
+                mapEl.appendChild(document.createElement('br'));
+            }
+
+            document.getElementById('hp').textContent = player.hp;
+            document.getElementById('atk').textContent = player.atk;
+            document.getElementById('gold').textContent = player.gold;
+            document.getElementById('floor').textContent = floor;
+        }
+
+        function move(dx, dy) {
+            const nx = player.x + dx;
+            const ny = player.y + dy;
+            if (nx < 0 || nx >= mapSize || ny < 0 || ny >= mapSize) return;
+
+            const enemy = enemies.find(e => e.x === nx && e.y === ny);
+            if (enemy) {
+                attackEnemy(enemy);
+            } else {
+                player.x = nx;
+                player.y = ny;
+
+                const chest = chests.find(c => c.x === nx && c.y === ny);
+                if (chest) {
+                    const gold = 10 + floor * 5;
+                    player.gold += gold;
+                    chests = chests.filter(c => c !== chest);
+                    log(`💰 找到宝箱，获得 ${gold} 金币！`);
+                }
+
+                if (nx === stairs.x && ny === stairs.y) {
+                    floor++;
+                    log('🪜 下一层！');
+                    initFloor();
+                }
+            }
+            render();
+        }
+
+        function attackEnemy(enemy) {
+            enemy.hp -= player.atk;
+            log(`⚔️ 攻击敌人，造成 ${player.atk} 伤害！`);
+            if (enemy.hp <= 0) {
+                enemies = enemies.filter(e => e !== enemy);
+                const gold = 5 + floor * 2;
+                player.gold += gold;
+                log(`💀 击败敌人，获得 ${gold} 金币！`);
+            } else {
+                player.hp -= enemy.atk;
+                log(`💔 被敌人攻击，损失 ${enemy.atk} HP！`);
+                if (player.hp <= 0) {
+                    alert('💀 游戏结束！');
+                    location.reload();
+                }
+            }
+            render();
+        }
+
+        function attack() {
+            const adjacent = enemies.filter(e =>
+                Math.abs(e.x - player.x) + Math.abs(e.y - player.y) === 1
+            );
+            if (adjacent.length > 0) {
+                attackEnemy(adjacent[0]);
+            } else {
+                log('⚠️ 附近没有敌人');
+            }
+        }
+
+        function heal() {
+            const cost = 20;
+            if (player.gold >= cost && player.hp < player.maxHp) {
+                player.gold -= cost;
+                player.hp = Math.min(player.maxHp, player.hp + 30);
+                log('💖 使用治疗，恢复 30 HP！');
+                render();
+            } else if (player.gold < cost) {
+                log('⚠️ 金币不足');
+            } else {
+                log('⚠️ 生命值已满');
+            }
+        }
+
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'up') move(0, -1);
+                if (btn === 'down') move(0, 1);
+                if (btn === 'left') move(-1, 0);
+                if (btn === 'right') move(1, 0);
+                if (btn === 'a') attack();
+                if (btn === 'b') heal();
+            });
+        }
+
+        initFloor();
+    </script>
+</body>
+</html>

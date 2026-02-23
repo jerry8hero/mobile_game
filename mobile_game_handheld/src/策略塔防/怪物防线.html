@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>怪物防线</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; justify-content: center; }
+        #game { width: 100%; max-width: 500px; padding: 10px; }
+        h1 { text-align: center; color: #e94560; margin-bottom: 10px; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 10px; color: #fff; }
+        #map { position: relative; background: #2a2a4a; border-radius: 10px; height: 350px; overflow: hidden; }
+        .path { position: absolute; background: #3a3a5a; border-radius: 5px; }
+        .tower { position: absolute; width: 40px; height: 40px; background: #4ecdc4; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; }
+        .enemy { position: absolute; width: 30px; height: 30px; font-size: 1.5rem; transition: all 0.3s; }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .btn { padding: 15px; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+        .btn-archer { background: #27ae60; color: #fff; }
+        .btn-mage { background: #9b59b6; color: #fff; }
+        .btn-cannon { background: #e74c3c; color: #fff; }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h1>🏰 怪物防线</h1>
+        <div class="stats">
+            <div>💰 <span id="gold">100</span></div>
+            <div>❤️ <span id="lives">10</span></div>
+            <div>🌊 <span id="wave">1</span></div>
+        </div>
+        <div id="map"></div>
+        <div class="controls">
+            <button class="btn btn-archer" onclick="selectTower('🏹')">🏹 弓箭 (50)</button>
+            <button class="btn btn-mage" onclick="selectTower('🔮')">🔮 法师 (80)</button>
+            <button class="btn btn-cannon" onclick="selectTower('💣')">💣 炮台 (100)</button>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const map = document.getElementById('map');
+        let gold = 100;
+        let lives = 10;
+        let wave = 1;
+        let towers = [];
+        let enemies = [];
+        let selectedTower = null;
+        let waveInterval;
+
+        const pathPoints = [[0, 170], [100, 170], [100, 100], [300, 100], [300, 250], [150, 250], [150, 350], [400, 350]];
+
+        function drawMap() {
+            map.innerHTML = '';
+            // 画路径
+            for (let i = 0; i < pathPoints.length - 1; i++) {
+                const p1 = pathPoints[i], p2 = pathPoints[i+1];
+                const div = document.createElement('div');
+                div.className = 'path';
+                div.style.left = Math.min(p1[0], p2[0]) + 'px';
+                div.style.top = Math.min(p1[1], p2[1]) + 'px';
+                div.style.width = (Math.abs(p1[0] - p2[0]) || 30) + 'px';
+                div.style.height = (Math.abs(p1[1] - p2[1]) || 30) + 'px';
+                map.appendChild(div);
+            }
+        }
+
+        function selectTower(type) {
+            const costs = { '🏹': 50, '🔮': 80, '💣': 100 };
+            if (gold >= costs[type]) {
+                selectedTower = type;
+                map.onclick = placeTower;
+            }
+        }
+
+        function placeTower(e) {
+            if (!selectedTower) return;
+            const rect = map.getBoundingClientRect();
+            const x = e.clientX - rect.left - 20;
+            const y = e.clientY - rect.top - 20;
+            const costs = { '🏹': 50, '🔮': 80, '💣': 100 };
+
+            gold -= costs[selectedTower];
+            towers.push({ x, y, type: selectedTower, cooldown: 0 });
+            updateUI();
+            selectedTower = null;
+            map.onclick = null;
+        }
+
+        function spawnEnemy() {
+            const hp = wave * 20;
+            enemies.push({ x: 0, y: 170, hp, maxHp: hp, pathIndex: 0 });
+        }
+
+        function update() {
+            // 移动敌人
+            enemies.forEach((enemy, i) => {
+                const target = pathPoints[enemy.pathIndex + 1];
+                if (!target) {
+                    lives--;
+                    enemies.splice(i, 1);
+                    updateUI();
+                    if (lives <= 0) alert('💀 游戏结束！');
+                    return;
+                }
+
+                const dx = target[0] - enemy.x;
+                const dy = target[1] - enemy.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist < 5) enemy.pathIndex++;
+                else {
+                    enemy.x += (dx / dist) * 2;
+                    enemy.y += (dy / dist) * 2;
+                }
+            });
+
+            // 塔攻击
+            towers.forEach(tower => {
+                tower.cooldown--;
+                if (tower.cooldown <= 0) {
+                    const target = enemies.find(e => {
+                        const dx = e.x - tower.x;
+                        const dy = e.y - tower.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 100;
+                    });
+                    if (target) {
+                        target.hp -= tower.type === '🏹' ? 10 : tower.type === '🔮' ? 15 : 25;
+                        tower.cooldown = tower.type === '🏹' ? 30 : tower.type === '🔮' ? 40 : 60;
+                        if (target.hp <= 0) {
+                            gold += 10;
+                            updateUI();
+                        }
+                    }
+                }
+            });
+
+            enemies = enemies.filter(e => e.hp > 0);
+            drawEnemies();
+            drawTowers();
+
+            if (enemies.length === 0 && wave < 20) {
+                wave++;
+                updateUI();
+                for (let i = 0; i < wave + 2; i++) {
+                    setTimeout(() => spawnEnemy(), i * 1000);
+                }
+            }
+        }
+
+        function drawEnemies() {
+            document.querySelectorAll('.enemy').forEach(e => e.remove());
+            enemies.forEach(enemy => {
+                const div = document.createElement('div');
+                div.className = 'enemy';
+                div.textContent = '👾';
+                div.style.left = enemy.x + 'px';
+                div.style.top = enemy.y + 'px';
+                map.appendChild(div);
+            });
+        }
+
+        function drawTowers() {
+            document.querySelectorAll('.tower').forEach(e => e.remove());
+            towers.forEach(tower => {
+                const div = document.createElement('div');
+                div.className = 'tower';
+                div.textContent = tower.type;
+                div.style.left = tower.x + 'px';
+                div.style.top = tower.y + 'px';
+                map.appendChild(div);
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('gold').textContent = gold;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('wave').textContent = wave;
+        }
+
+        drawMap();
+        spawnEnemy();
+        setInterval(update, 100);
+
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'a') selectTower('🏹');
+                if (btn === 'b') selectTower('🔮');
+                if (btn === 'x') selectTower('💣');
+            });
+        }
+    </script>
+</body>
+</html>

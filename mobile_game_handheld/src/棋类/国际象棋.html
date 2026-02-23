@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国际象棋</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+        h1 { color: #e94560; margin-bottom: 10px; }
+        #board { display: grid; grid-template-columns: repeat(8, 1fr); width: 320px; height: 320px; border: 5px solid #8b4513; }
+        .cell { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; }
+        .cell.white { background: #f0d9b5; }
+        .cell.black { background: #b58863; }
+        .cell.selected { border: 3px solid #e94560; }
+        .cell.possible { background: rgba(78, 205, 196, 0.5); }
+        #status { margin-top: 15px; font-size: 1.2rem; }
+        .btn { margin-top: 15px; padding: 10px 25px; background: #4ecdc4; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>♟️ 国际象棋</h1>
+    <div id="board"></div>
+    <div id="status">轮到白方</div>
+    <button class="btn" onclick="init()">🔄 重新开始</button>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const pieces = {
+            r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟',
+            R: '♖', N: '♘', B: '♗', Q: '♕', K: '♔', P: '♙'
+        };
+
+        let board = [];
+        let selected = null;
+        let turn = 'white';
+
+        function init() {
+            board = [
+                ['r','n','b','q','k','b','n','r'],
+                ['p','p','p','p','p','p','p','p'],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['','','','','','','',''],
+                ['P','P','P','P','P','P','P','P'],
+                ['R','N','B','Q','K','B','N','R']
+            ];
+            turn = 'white';
+            selected = null;
+            render();
+            updateStatus();
+        }
+
+        function render() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${(r + c) % 2 === 0 ? 'white' : 'black'}`;
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    if (selected && selected.r === r && selected.c === c) {
+                        cell.classList.add('selected');
+                    }
+                    cell.textContent = board[r][c] ? pieces[board[r][c]] : '';
+                    cell.onclick = () => click(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function click(r, c) {
+            const piece = board[r][c];
+            const isWhite = piece && piece === piece.toUpperCase();
+            const isBlack = piece && piece === piece.toLowerCase();
+
+            if (selected) {
+                if (selected.r === r && selected.c === c) {
+                    selected = null;
+                } else {
+                    board[r][c] = board[selected.r][selected.c];
+                    board[selected.r][selected.c] = '';
+                    selected = null;
+                    turn = turn === 'white' ? 'black' : 'white';
+                    updateStatus();
+                }
+            } else if (piece && ((turn === 'white' && isWhite) || (turn === 'black' && isBlack))) {
+                selected = { r, c };
+            }
+            render();
+        }
+
+        function updateStatus() {
+            document.getElementById('status').textContent = `轮到${turn === 'white' ? '白方' : '黑方'}`;
+        }
+
+        init();
+
+        if (window.GamepadHelper) {
+            let cursor = 0;
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'a') click(Math.floor(cursor / 8), cursor % 8);
+                if (btn === 'left') cursor = Math.max(0, cursor - 1);
+                if (btn === 'right') cursor = Math.min(63, cursor + 1);
+                if (btn === 'up') cursor = Math.max(0, cursor - 8);
+                if (btn === 'down') cursor = Math.min(63, cursor + 8);
+                if (btn === 'b') init();
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拳皇格斗</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; justify-content: center; }
+        #game { width: 100%; max-width: 450px; position: relative; }
+        canvas { display: block; width: 100%; height: 80vh; background: linear-gradient(180deg, #2a2a4a, #1a1a2e); border-radius: 10px; }
+        #ui { position: absolute; top: 0; left: 0; right: 0; padding: 10px; display: flex; justify-content: space-between; color: #fff; font-size: 1.1rem; }
+        .health-bar { width: 150px; height: 20px; background: #333; border-radius: 10px; overflow: hidden; }
+        .hp { height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); transition: width 0.3s; }
+        #startScreen, #gameOverScreen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 10; border-radius: 10px; }
+        #gameOverScreen { display: none; }
+        h1 { color: #e94560; margin-bottom: 20px; }
+        .btn { padding: 12px 30px; background: #e94560; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .controls { margin-top: 20px; color: #aaa; font-size: 0.9rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <canvas id="canvas" height="500"></canvas>
+        <div id="ui">
+            <div>
+                <div>玩家</div>
+                <div class="health-bar"><div class="hp" id="p1Hp" style="width:100%"></div></div>
+            </div>
+            <div style="text-align:right">
+                <div>CPU</div>
+                <div class="health-bar"><div class="hp" id="p2Hp" style="width:100%"></div></div>
+            </div>
+        </div>
+        <div id="startScreen">
+            <h1>👊 拳皇格斗</h1>
+            <button class="btn" onclick="startGame()">开始战斗</button>
+            <div class="controls">A:拳 | B:腿 | 方向键移动</div>
+        </div>
+        <div id="gameOverScreen">
+            <h1 id="winnerText">游戏结束</h1>
+            <button class="btn" onclick="restartGame()">再来一局</button>
+        </div>
+    </div>
+    <script src="../gamepad-helper.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 450;
+
+        let gameRunning = false;
+        let p1 = { x: 80, y: 350, hp: 100, state: 'idle', frame: 0, attack: 0 };
+        let p2 = { x: 320, y: 350, hp: 100, state: 'idle', frame: 0, attack: 0 };
+        let keys = {};
+
+        const actions = { punch: 0, kick: 0, block: 0 };
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            p1 = { x: 80, y: 350, hp: 100, state: 'idle', frame: 0, attack: 0 };
+            p2 = { x: 320, y: 350, hp: 100, state: 'idle', frame: 0, attack: 0 };
+            loop();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // 玩家移动
+            if (keys['ArrowLeft'] && p1.x > 30) p1.x -= 5;
+            if (keys['ArrowRight'] && p1.x < 180) p1.x += 5;
+
+            // CPU AI
+            if (Math.random() < 0.05) {
+                if (p2.x > p1.x + 60) p2.x -= 3;
+                else if (p2.x < p1.x - 60) p2.x += 3;
+                else if (Math.random() < 0.3) p2Attack();
+            }
+
+            // 攻击判定
+            if (p1.attack > 0) {
+                p1.attack--;
+                if (p1.attack === 10 && Math.abs(p1.x - p2.x) < 80) {
+                    p2.hp -= 10;
+                    document.getElementById('p2Hp').style.width = p2.hp + '%';
+                }
+            }
+            if (p2.attack > 0) {
+                p2.attack--;
+                if (p2.attack === 10 && Math.abs(p2.x - p1.x) < 80) {
+                    p1.hp -= 10;
+                    document.getElementById('p1Hp').style.width = p1.hp + '%';
+                }
+            }
+
+            // 游戏结束
+            if (p1.hp <= 0 || p2.hp <= 0) {
+                gameRunning = false;
+                document.getElementById('winnerText').textContent = p1.hp > 0 ? '🏆 你赢了！' : '💀 你输了！';
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            }
+        }
+
+        function p1Punch() { if (p1.attack === 0) p1.attack = 20; }
+        function p1Kick() { if (p1.attack === 0) { p1.attack = 25; p1.x += 20; } }
+
+        function p2Attack() { if (p2.attack === 0) p2.attack = 20; }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 地面
+            ctx.fillStyle = '#3a3a5a';
+            ctx.fillRect(0, 420, canvas.width, 80);
+
+            // 玩家
+            ctx.font = '60px Arial';
+            ctx.fillText(p1.attack > 10 ? '💥' : '🥷', p1.x, p1.y);
+            ctx.fillText(p2.attack > 10 ? '💥' : '🥷', p2.x, p2.y);
+        }
+
+        function loop() {
+            if (!gameRunning) return;
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        document.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            if (e.key === 'a') p1Punch();
+            if (e.key === 's') p1Kick();
+        });
+        document.addEventListener('keyup', e => keys[e.key] = false);
+
+        if (window.GamepadHelper) {
+            GamepadHelper.on('onButtonDown', btn => {
+                if (btn === 'left' && p1.x > 30) p1.x -= 10;
+                if (btn === 'right' && p1.x < 180) p1.x += 10;
+                if (btn === 'a') p1Punch();
+                if (btn === 'b') p1Kick();
+            });
+        }
+
+        draw();
+    </script>
+</body>
+</html>
