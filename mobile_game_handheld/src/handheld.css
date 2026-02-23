@@ -467,3 +467,157 @@ body {
     background: var(--accent-primary);
     border-radius: 4px;
 }
+
+/* 搜索栏 */
+.search-bar {
+    display: flex;
+    padding: 10px 15px;
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--accent-primary);
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.search-bar input::placeholder {
+    color: var(--text-secondary);
+}
+
+.search-close {
+    margin-left: 10px;
+    padding: 10px 15px;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+/* 搜索结果 */
+.search-results {
+    padding: 15px;
+    background: var(--bg-dark);
+}
+
+.search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    color: var(--text-secondary);
+}
+
+.search-header button {
+    padding: 8px 15px;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+}
+
+.game-category {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.game-card .game-type {
+    color: var(--accent-primary);
+}
+
+/* 游戏详情弹窗 */
+.game-detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.game-detail-modal.show {
+    display: flex;
+}
+
+.game-detail-content {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 25px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+.game-detail-icon {
+    font-size: 5rem;
+    margin-bottom: 15px;
+}
+
+.game-detail-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--accent-primary);
+}
+
+.game-detail-type {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.game-detail-desc {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.game-detail-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.game-detail-btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.game-detail-btn.play {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.game-detail-btn.favorite {
+    background: var(--dpad-color);
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* 每日推荐 */
+.recommended-section {
+    margin-bottom: 25px;
+}
+
+.recommended-title {
+    font-size: 1.2rem;
+    color: var(--accent-primary);
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 4px solid var(--accent-primary);
+}

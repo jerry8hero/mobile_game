@@ -24,9 +24,25 @@
             <h1 class="logo">🎮 掌机游戏厅</h1>
         </div>
         <div class="nav-right">
+            <button class="nav-btn" onclick="toggleSearch()">🔍</button>
             <button class="nav-btn" onclick="toggleFullscreen()">⛶</button>
         </div>
     </nav>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar" id="searchBar" style="display:none;">
+        <input type="text" id="searchInput" placeholder="搜索游戏..." oninput="searchGames(this.value)">
+        <button class="search-close" onclick="toggleSearch()">✕</button>
+    </div>
+
+    <!-- 搜索结果 -->
+    <div class="search-results" id="searchResults" style="display:none;">
+        <div class="search-header">
+            <span>搜索结果: <span id="searchCount">0</span> 个</span>
+            <button onclick="closeSearch()">返回</button>
+        </div>
+        <div class="games" id="searchGamesContainer"></div>
+    </div>
 
     <!-- 主游戏区域 -->
     <main class="game-area">
@@ -243,6 +259,61 @@
             setupVirtualControls();
         }
 
+        // 搜索功能
+        function toggleSearch() {
+            const searchBar = document.getElementById('searchBar');
+            const searchResults = document.getElementById('searchResults');
+            if (searchBar.style.display === 'none') {
+                searchBar.style.display = 'flex';
+                document.getElementById('searchInput').focus();
+            } else {
+                searchBar.style.display = 'none';
+                searchResults.style.display = 'none';
+                document.getElementById('searchInput').value = '';
+            }
+        }
+
+        function searchGames(query) {
+            if (!query || query.length < 1) {
+                document.getElementById('searchResults').style.display = 'none';
+                return;
+            }
+
+            query = query.toLowerCase();
+            const results = [];
+            for (const [category, games] of Object.entries(categoryGames)) {
+                games.forEach(game => {
+                    if (game.name.toLowerCase().includes(query) ||
+                        game.type.toLowerCase().includes(query)) {
+                        results.push({...game, category});
+                    }
+                });
+            }
+
+            document.getElementById('searchCount').textContent = results.length;
+            const container = document.getElementById('searchGamesContainer');
+            container.innerHTML = results.map((game, index) => `
+                <a href="${game.file}" class="game-card" data-index="${index}">
+                    <span class="game-icon">${game.icon}</span>
+                    <div class="game-info">
+                        <div class="game-name">${game.name}</div>
+                        <div class="game-type">${game.type}</div>
+                        <div class="game-category">${game.category}</div>
+                    </div>
+                </a>
+            `).join('');
+
+            document.getElementById('searchResults').style.display = 'block';
+            document.getElementById('categoryGrid').style.display = 'none';
+        }
+
+        function closeSearch() {
+            document.getElementById('searchBar').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryGrid').style.display = 'grid';
+        }
+
         // 渲染分类网格
         function renderCategories() {
             const grid = document.getElementById('categoryGrid');
@@ -276,7 +347,8 @@
             container.innerHTML = games.map((game, index) => {
                 const isFav = window.Favorites ? window.Favorites.isFavorite(game.file) : false;
                 return `
-                <a href="${game.file}" class="game-card" data-index="${index}" data-file="${game.file}">
+                <a href="${game.file}" class="game-card" data-index="${index}" data-file="${game.file}"
+                   ondblclick="showGameDetail({name:'${game.name}',icon:'${game.icon}',type:'${game.type}',file:'${game.file}',category:'${category.name}'})">
                     <span class="game-icon">${game.icon}</span>
                     <div class="game-info">
                         <div class="game-name">${game.name}</div>
@@ -315,8 +387,67 @@
 
         // 返回按钮
         function goBack() {
-            if (currentCategory) {
+            const searchResults = document.getElementById('searchResults');
+            if (searchResults && searchResults.style.display === 'block') {
+                closeSearch();
+            } else if (currentCategory) {
                 showCategories();
+            }
+        }
+
+        // 显示游戏详情
+        function showGameDetail(game) {
+            const modal = document.createElement('div');
+            modal.className = 'game-detail-modal show';
+            modal.innerHTML = `
+                <div class="game-detail-content">
+                    <div class="game-detail-icon">${game.icon}</div>
+                    <div class="game-detail-name">${game.name}</div>
+                    <div class="game-detail-type">${game.type}</div>
+                    <div class="game-detail-desc">${getGameDescription(game)}</div>
+                    <div class="game-detail-buttons">
+                        <button class="game-detail-btn favorite" onclick="toggleFavoriteDetail('${game.file}', '${game.name}', '${game.icon}', '${game.type}', '${game.category || currentCategory?.name}')">
+                            ${window.Favorites && window.Favorites.isFavorite(game.file) ? '❤️' : '🤍'}
+                        </button>
+                        <button class="game-detail-btn play" onclick="playGame('${game.file}')">🎮 开始游戏</button>
+                    </div>
+                    <button onclick="this.closest('.game-detail-modal').remove()" style="margin-top:15px;padding:8px 20px;background:transparent;border:1px solid #666;color:#aaa;border-radius:6px;">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+
+        function getGameDescription(game) {
+            const descriptions = {
+                '记忆配对': '翻牌找相同的经典记忆游戏，考验你的记忆力！',
+                '俄罗斯方块': '经典方块消除游戏，旋转下落，挑战最高分！',
+                '贪吃蛇': '控制小蛇吃到食物越长越大，别撞到自己！',
+                '卡牌对战': '收集卡牌，组建牌组，与对手一决高下！',
+                '极速赛车': '躲避障碍，收集金币，成为最快车手！',
+                '抽卡召唤': '稀有度抽卡系统，收集强力角色！',
+                '节奏大师': '跟随节奏点击按键，挑战完美演奏！'
+            };
+            return descriptions[game.name] || `一款有趣的${game.type}游戏，快来挑战吧！`;
+        }
+
+        function playGame(file) {
+            window.location.href = file;
+        }
+
+        function toggleFavoriteDetail(file, name, icon, type, category) {
+            if (window.Favorites) {
+                const game = { name, icon, type, file, category };
+                if (window.Favorites.isFavorite(file)) {
+                    window.Favorites.removeFavorite(file);
+                } else {
+                    window.Favorites.addFavorite(game);
+                }
+                // 刷新显示
+                document.querySelector('.game-detail-btn.favorite').textContent =
+                    window.Favorites.isFavorite(file) ? '❤️' : '🤍';
             }
         }
 
