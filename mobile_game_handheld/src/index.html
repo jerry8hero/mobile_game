@@ -78,6 +78,7 @@
         <span class="status-text">未连接手柄</span>
     </div>
 
+    <script src="favorites.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -246,15 +247,37 @@
 
             const games = categoryGames[category.name] || [];
             const container = document.getElementById('gamesContainer');
-            container.innerHTML = games.map((game, index) => `
-                <a href="${game.file}" class="game-card" data-index="${index}">
+            container.innerHTML = games.map((game, index) => {
+                const isFav = window.Favorites ? window.Favorites.isFavorite(game.file) : false;
+                return `
+                <a href="${game.file}" class="game-card" data-index="${index}" data-file="${game.file}">
                     <span class="game-icon">${game.icon}</span>
                     <div class="game-info">
                         <div class="game-name">${game.name}</div>
                         <div class="game-type">${game.type}</div>
                     </div>
+                    <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(event, '${game.file}', '${game.name}', '${game.icon}', '${game.type}', '${category.name}')">
+                        ${isFav ? '❤️' : '🤍'}
+                    </button>
                 </a>
-            `).join('');
+            `}).join('');
+        }
+
+        // 切换收藏
+        function toggleFavorite(event, file, name, icon, type, category) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (window.Favorites) {
+                const game = { name, icon, type, file, category };
+                if (window.Favorites.isFavorite(file)) {
+                    window.Favorites.removeFavorite(file);
+                } else {
+                    window.Favorites.addFavorite(game);
+                }
+                // 刷新显示
+                showCategory(currentCategory);
+            }
         }
 
         // 返回分类列表

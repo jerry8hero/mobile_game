@@ -227,6 +227,27 @@ body {
     color: var(--text-secondary);
 }
 
+/* 收藏按钮 */
+.fav-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.fav-btn:active {
+    transform: scale(1.2);
+}
+
+.game-card {
+    position: relative;
+}
+
 /* 底部虚拟按键区 */
 .virtual-controls {
     display: flex;

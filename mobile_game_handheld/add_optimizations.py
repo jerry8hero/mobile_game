@@ -21,6 +21,7 @@ OPTIMIZATION_SCRIPTS = [
     '../touch-fix.js',
     '../performance.js',
     '../loading.js',
+    '../game-nav.js',
     '../switch-controls.js'
 ]
 
