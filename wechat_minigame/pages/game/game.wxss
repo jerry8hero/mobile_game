@@ -1,0 +1,133 @@
+/* pages/game/game.wxss */
+
+.game-container {
+    width: 100%;
+    height: 100vh;
+    background-color: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 游戏头部 */
+.game-header {
+    height: 50px;
+    background: linear-gradient(135deg, #e94560, #16213e);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+}
+
+.game-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.game-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.score, .high-score {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+.menu-btn {
+    color: #fff;
+    font-size: 20px;
+    padding: 5px 10px;
+}
+
+/* 画布容器 */
+.canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0d1321;
+    position: relative;
+}
+
+.game-canvas {
+    width: 300px;
+    height: 500px;
+    background: #1a1a2e;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+}
+
+.game-placeholder {
+    color: #a0a0a0;
+    font-size: 16px;
+}
+
+/* 底部控制 */
+.game-controls {
+    height: 60px;
+    background: #16213e;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-btn {
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 25px;
+    background: rgba(233, 69, 96, 0.2);
+    border-radius: 20px;
+}
+
+.control-btn:active {
+    background: rgba(233, 69, 96, 0.4);
+}
+
+/* 菜单弹窗 */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.menu-content {
+    background: linear-gradient(145deg, #1e2a4a, #16213e);
+    border-radius: 20px;
+    padding: 30px;
+    width: 70%;
+    max-width: 300px;
+}
+
+.menu-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.menu-item {
+    color: #a0a0a0;
+    font-size: 16px;
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-item:active {
+    color: #e94560;
+    background: rgba(233, 69, 96, 0.1);
+}

@@ -1,0 +1,8 @@
+{
+    "navigationBarTitleText": "🎮 掌机游戏厅",
+    "navigationBarBackgroundColor": "#e94560",
+    "navigationBarTextStyle": "white",
+    "enablePullDownRefresh": false,
+    "backgroundColor": "#1a1a2e",
+    "backgroundTextStyle": "light"
+}

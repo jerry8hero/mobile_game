@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 掌机游戏厅 - 选择入口</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .title {
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        .platform-list {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .platform-card {
+            background: linear-gradient(145deg, #1e2a4a, #16213e);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .platform-card:hover {
+            transform: translateY(-5px);
+            border-color: #e94560;
+        }
+
+        .platform-card:active {
+            transform: scale(0.98);
+        }
+
+        .platform-icon {
+            font-size: 50px;
+            margin-right: 20px;
+        }
+
+        .platform-info {
+            flex: 1;
+        }
+
+        .platform-name {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .platform-desc {
+            color: #a0a0a0;
+            font-size: 13px;
+        }
+
+        .platform-arrow {
+            color: #e94560;
+            font-size: 24px;
+        }
+
+        .wechat-card {
+            background: linear-gradient(145deg, #07c160, #06ad56);
+        }
+
+        .wechat-card .platform-name {
+            color: #fff;
+        }
+
+        .wechat-card .platform-desc {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .h5-card {
+            background: linear-gradient(145deg, #1e2a4a, #16213e);
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .auto-tip {
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(233, 69, 96, 0.3);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #fff;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">🎮</div>
+    <h1 class="title">掌机游戏厅</h1>
+    <p class="subtitle">经典游戏集合 - 选择入口进入</p>
+
+    <div class="platform-list">
+        <!-- 微信小游戏入口 -->
+        <div class="platform-card wechat-card" onclick="enterWechat()">
+            <span class="platform-icon">💬</span>
+            <div class="platform-info">
+                <div class="platform-name">微信小游戏</div>
+                <div class="platform-desc">在微信中打开，体验更流畅</div>
+            </div>
+            <span class="platform-arrow">→</span>
+        </div>
+
+        <!-- H5网页入口 -->
+        <div class="platform-card h5-card" onclick="enterH5()">
+            <span class="platform-icon">🌐</span>
+            <div class="platform-info">
+                <div class="platform-name">H5 网页版</div>
+                <div class="platform-desc">浏览器直接访问，支持更多设备</div>
+            </div>
+            <span class="platform-arrow">→</span>
+        </div>
+    </div>
+
+    <p class="auto-tip">如未选择，3秒后自动进入...</p>
+
+    <div class="footer">
+        <p>版本: v2.0 | 支持平台: 微信 / 浏览器</p>
+    </div>
+
+    <!-- 加载提示 -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在跳转...</div>
+    </div>
+
+    <script>
+        // 平台检测
+        function detectPlatform() {
+            // 检测微信环境
+            const isWechat = typeof wx !== 'undefined' ||
+                navigator.userAgent.toLowerCase().includes('micromessenger');
+
+            // 检测是否在微信开发者工具
+            const isWechatDevTools = navigator.userAgent.toLowerCase().includes('wechatdevtools');
+
+            return {
+                isWechat: isWechat && !isWechatDevTools,
+                isWechatDevTools,
+                isMobile: /mobile|android|iphone|ipad/i.test(navigator.userAgent),
+                isH5: true
+            };
+        }
+
+        // 进入微信小游戏
+        function enterWechat() {
+            showLoading('正在打开微信小游戏...');
+            // 尝试打开微信小游戏
+            setTimeout(() => {
+                // 如果在微信环境中，尝试跳转
+                if (typeof wx !== 'undefined' && wx.navigateToMiniProgram) {
+                    // 跳转到其他小程序
+                    wx.navigateToMiniProgram({
+                        appId: 'wx0000000000000000', // 需要替换为实际appid
+                        path: 'pages/index/index',
+                        success: () => {},
+                        fail: () => {
+                            // 如果跳转失败，尝试打开页面
+                            window.location.href = './wechat_minigame/';
+                        }
+                    });
+                } else {
+                    // 非微信环境，跳转到微信小游戏目录
+                    window.location.href = './wechat_minigame/';
+                }
+            }, 500);
+        }
+
+        // 进入H5版本（掌机版）
+        function enterH5() {
+            showLoading('正在打开掌机游戏厅...');
+            setTimeout(() => {
+                window.location.href = './mobile_game_handheld/src/index.html';
+            }, 500);
+        }
+
+        // 显示加载
+        function showLoading(text) {
+            document.getElementById('loading').classList.add('active');
+            document.querySelector('.loading-text').textContent = text;
+        }
+
+        // 隐藏加载
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        // 自动选择入口
+        function autoSelect() {
+            const platform = detectPlatform();
+
+            if (platform.isWechat || platform.isWechatDevTools) {
+                // 微信环境
+                console.log('检测到微信环境，自动进入微信小游戏');
+                enterWechat();
+            } else {
+                // 其他环境，进入H5
+                console.log('检测到浏览器环境，自动进入H5版本');
+                enterH5();
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 3秒后自动选择
+            setTimeout(autoSelect, 3000);
+        });
+    </script>
+</body>
+</html>

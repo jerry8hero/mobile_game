@@ -1,0 +1,248 @@
+/* pages/index/index.wxss */
+
+/* 容器 */
+.container {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #1a1a2e;
+    position: relative;
+}
+
+/* 搜索栏 */
+.search-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(135deg, #e94560, #16213e);
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    z-index: 100;
+}
+
+.search-input {
+    flex: 1;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 17px;
+    padding: 0 15px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.search-placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.search-close {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    margin-left: 10px;
+}
+
+/* 搜索结果 */
+.search-results {
+    padding-top: 60px;
+    padding-bottom: 70px;
+    min-height: 100vh;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    color: #a0a0a0;
+    font-size: 14px;
+}
+
+.back-btn {
+    color: #e94560;
+    padding: 5px 15px;
+}
+
+/* 内容区 */
+.content {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+/* 分类网格 */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 10px 5px;
+}
+
+.category-card {
+    background: linear-gradient(145deg, #1e2a4a, #16213e);
+    border-radius: 15px;
+    padding: 25px 15px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.category-card:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+.category-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.category-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.category-count {
+    font-size: 12px;
+    color: #a0a0a0;
+}
+
+/* 游戏列表头部 */
+.game-list-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.back-to-categories {
+    color: #e94560;
+    font-size: 14px;
+    padding: 8px 15px;
+    background: rgba(233, 69, 96, 0.1);
+    border-radius: 20px;
+    margin-right: 15px;
+}
+
+.category-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+}
+
+/* 游戏列表 */
+.games-list {
+    padding: 0 10px;
+}
+
+.game-card {
+    background: linear-gradient(145deg, #1e2a4a, #16213e);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.game-card:active {
+    transform: scale(0.98);
+}
+
+.game-icon {
+    font-size: 40px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.game-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.game-name {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.game-type {
+    display: block;
+    font-size: 12px;
+    color: #a0a0a0;
+}
+
+.fav-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* 底部标签栏 */
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #16213e;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+}
+
+.tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #a0a0a0;
+    font-size: 12px;
+    padding: 5px 20px;
+}
+
+.tab-item.active {
+    color: #e94560;
+}
+
+.tab-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+/* 平台标识 */
+.platform-tag {
+    position: fixed;
+    top: 58px;
+    right: 10px;
+    background: #e94560;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    z-index: 101;
+}
