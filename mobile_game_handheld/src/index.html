@@ -24,6 +24,7 @@
             <h1 class="logo">🎮 掌机游戏厅</h1>
         </div>
         <div class="nav-right">
+            <button class="nav-btn user-btn" id="userBtn" onclick="toggleUserPanel()">👤</button>
             <button class="nav-btn" onclick="toggleSearch()">🔍</button>
             <button class="nav-btn" onclick="toggleFullscreen()">⛶</button>
         </div>
@@ -95,6 +96,9 @@
     </div>
 
     <script src="favorites.js"></script>
+    <script src="user-account.js"></script>
+    <script src="leaderboard.js"></script>
+    <script src="giftcode.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -104,6 +108,7 @@
     <script>
         // 游戏数据
         const gameCategories = [
+            { name: '网络游戏', icon: '🌐', count: 3, color: '#9b59b6', dir: '网络游戏' },
             { name: '益智类', icon: '🧩', count: 14, color: '#ff6b6b', dir: '益智类' },
             { name: '街机类', icon: '🎮', count: 10, color: '#48dbfb', dir: '街机类' },
             { name: '编程启蒙类', icon: '🤖', count: 17, color: '#1dd1a1', dir: '编程启蒙类' },
@@ -130,6 +135,11 @@
 
         // 分类游戏映射（简化版）
         const categoryGames = {
+            '网络游戏': [
+                { name: '贪吃蛇大作战', icon: '🐍', type: '多人对战', file: './益智类/记忆配对.html', isOnline: true },
+                { name: '飞行射击', icon: '✈️', type: '双人合作', file: './射击类/飞行射击.html', isOnline: true },
+                { name: '俄罗斯方块对战', icon: '🧱', type: '竞技对战', file: './街机类/俄罗斯方块.html', isOnline: true }
+            ],
             '益智类': [
                 { name: '记忆配对', icon: '🎴', type: '翻牌找相同', file: './益智类/记忆配对.html' },
                 { name: '拼图游戏', icon: '🧩', type: '拼图挑战', file: './益智类/拼图游戏.html' },
@@ -575,6 +585,268 @@
                     console.log('❌ Service Worker 注册失败:', error);
                 });
         }
+
+        // ========== 用户系统功能 ==========
+
+        // 初始化用户
+        function initUser() {
+            if (window.UserAccount) {
+                window.UserAccount.autoLogin();
+                updateUserDisplay();
+            }
+        }
+
+        // 更新用户显示
+        function updateUserDisplay() {
+            const userBtn = document.getElementById('userBtn');
+            if (window.UserAccount) {
+                const user = window.UserAccount.getUser();
+                if (user) {
+                    userBtn.textContent = user.avatar || '👤';
+                }
+            }
+        }
+
+        // 切换用户面板
+        function toggleUserPanel() {
+            const existing = document.getElementById('userPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.UserAccount) return;
+
+            const user = window.UserAccount.getUser();
+            const coins = window.UserAccount.getCoins();
+
+            const panel = document.createElement('div');
+            panel.className = 'user-panel show';
+            panel.id = 'userPanel';
+            panel.innerHTML = `
+                <div class="user-panel-header">
+                    <div class="user-avatar-large" onclick="showAvatarPicker()">${user?.avatar || '👤'}</div>
+                    <div class="user-info">
+                        <div class="user-name" id="displayUsername">${user?.username || '游客'}</div>
+                        <div class="user-coins">💰 ${coins} 金币</div>
+                    </div>
+                    <button class="close-btn" onclick="toggleUserPanel()">✕</button>
+                </div>
+                <div class="user-panel-body">
+                    <div class="user-action" onclick="showUsernameEditor()">
+                        <span>📝 修改昵称</span>
+                    </div>
+                    <div class="user-action" onclick="showAvatarPicker()">
+                        <span>😊 更换头像</span>
+                    </div>
+                    <div class="user-action" onclick="showGiftCodePanel()">
+                        <span>🎁 兑换礼包码</span>
+                    </div>
+                    <div class="user-action" onclick="showUserRecords()">
+                        <span>📜 兑换记录</span>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+            panel.onclick = (e) => {
+                if (e.target === panel) panel.remove();
+            };
+        }
+
+        // 显示用户名编辑
+        function showUsernameEditor() {
+            const user = window.UserAccount.getUser();
+            const newName = prompt('请输入新昵称（最多12字符）:', user?.username || '');
+            if (newName && newName.trim()) {
+                window.UserAccount.setUsername(newName.trim());
+                updateUserDisplay();
+                document.getElementById('displayUsername').textContent = newName.trim();
+            }
+        }
+
+        // 显示头像选择
+        function showAvatarPicker() {
+            const avatars = window.UserAccount.getAvatarList();
+            const user = window.UserAccount.getUser();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.innerHTML = `
+                <div class="avatar-picker">
+                    <h3>选择头像</h3>
+                    <div class="avatar-grid">
+                        ${avatars.map(a => `
+                            <div class="avatar-option ${a === user?.avatar ? 'selected' : ''}" onclick="selectAvatar('${a}')">${a}</div>
+                        `).join('')}
+                    </div>
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // 选择头像
+        function selectAvatar(avatar) {
+            window.UserAccount.setAvatar(avatar);
+            updateUserDisplay();
+            document.getElementById('userPanel').querySelector('.user-avatar-large').textContent = avatar;
+            document.querySelectorAll('.avatar-option').forEach(el => {
+                el.classList.toggle('selected', el.textContent === avatar);
+            });
+        }
+
+        // 显示礼包码面板
+        function showGiftCodePanel() {
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.innerHTML = `
+                <div class="giftcode-panel">
+                    <h3>🎁 兑换礼包码</h3>
+                    <p class="giftcode-hint">输入礼包码兑换金币奖励</p>
+                    <input type="text" id="giftcodeInput" class="giftcode-input" placeholder="请输入礼包码" maxlength="20">
+                    <div class="giftcode-buttons">
+                        <button class="redeem-btn" onclick="redeemGiftCode()">兑换</button>
+                        <button onclick="this.closest('.modal').remove()">关闭</button>
+                    </div>
+                    <div id="giftcodeResult"></div>
+                    <div class="giftcode-tips">
+                        <p>💡 试试这些礼包码：</p>
+                        <p>LAUNCHER2024 - 100金币</p>
+                        <p>NEWPLAYER - 50金币</p>
+                        <p>VIP888 - 888金币</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // 兑换礼包码
+        function redeemGiftCode() {
+            const input = document.getElementById('giftcodeInput');
+            const result = document.getElementById('giftcodeResult');
+            const code = input.value.trim();
+
+            if (!code) {
+                result.innerHTML = '<p class="error">请输入礼包码</p>';
+                return;
+            }
+
+            const res = window.GiftCode.redeem(code);
+            if (res.success) {
+                result.innerHTML = `<p class="success">${res.message}</p>`;
+                updateUserDisplay();
+                // 刷新用户面板显示
+                const userPanel = document.getElementById('userPanel');
+                if (userPanel) {
+                    const user = window.UserAccount.getUser();
+                    userPanel.querySelector('.user-coins').textContent = `💰 ${user?.coins || 0} 金币`;
+                }
+            } else {
+                result.innerHTML = `<p class="error">${res.message}</p>`;
+            }
+        }
+
+        // 显示兑换记录
+        function showUserRecords() {
+            const records = window.GiftCode.getUserRecords();
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.innerHTML = `
+                <div class="records-panel">
+                    <h3>📜 兑换记录</h3>
+                    ${records.length === 0 ? '<p class="empty">暂无兑换记录</p>' : `
+                        <div class="records-list">
+                            ${records.map(r => `
+                                <div class="record-item">
+                                    <span>${r.giftName}</span>
+                                    <span>+${r.coins}💰</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // 显示排行榜
+        function showLeaderboard(gameName) {
+            const scores = window.Leaderboard.getLeaderboard(gameName);
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.innerHTML = `
+                <div class="leaderboard-panel">
+                    <h3>🏆 ${gameName} 排行榜</h3>
+                    <div class="leaderboard-list">
+                        ${scores.length === 0 ? '<p class="empty">暂无数据</p>' : `
+                            ${scores.map((s, i) => `
+                                <div class="leaderboard-item ${s.isLocal ? 'local' : ''}">
+                                    <span class="rank">${i + 1}</span>
+                                    <span class="avatar">${s.avatar || '👤'}</span>
+                                    <span class="name">${s.username}</span>
+                                    <span class="score">${s.score}</span>
+                                    ${s.isLocal ? '<span class="local-tag">你</span>' : ''}
+                                </div>
+                            `).join('')}
+                        }
+                    </div>
+                    <p class="leaderboard-tip">排名前10可获得金币奖励！</p>
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // 修改游戏详情弹窗，添加排行榜按钮
+        const originalShowGameDetail = window.showGameDetail;
+        window.showGameDetail = function(game) {
+            const modal = document.createElement('div');
+            modal.className = 'game-detail-modal show';
+            const hasLeaderboard = window.Leaderboard.getSupportedGames().includes(game.name);
+            modal.innerHTML = `
+                <div class="game-detail-content">
+                    <div class="game-detail-icon">${game.icon}</div>
+                    <div class="game-detail-name">${game.name}</div>
+                    <div class="game-detail-type">${game.type}</div>
+                    ${game.isOnline ? '<div class="online-tag">🌐 网络游戏</div>' : ''}
+                    <div class="game-detail-desc">${getGameDescription(game)}</div>
+                    <div class="game-detail-buttons">
+                        <button class="game-detail-btn favorite" onclick="toggleFavoriteDetail('${game.file}', '${game.name}', '${game.icon}', '${game.type}', '${game.category || currentCategory?.name}')">
+                            ${window.Favorites && window.Favorites.isFavorite(game.file) ? '❤️' : '🤍'}
+                        </button>
+                        ${hasLeaderboard ? `<button class="game-detail-btn leaderboard" onclick="showLeaderboard('${game.name}'); this.closest('.game-detail-modal').remove();">🏆 排行榜</button>` : ''}
+                        <button class="game-detail-btn play" onclick="playGame('${game.file}')">🎮 开始游戏</button>
+                    </div>
+                    <button onclick="this.closest('.game-detail-modal').remove()" style="margin-top:15px;padding:8px 20px;background:transparent;border:1px solid #666;color:#aaa;border-radius:6px;">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        };
+
+        // 修改游戏卡片显示，添加网络游戏标记
+        const originalShowCategory = window.showCategory;
+        window.showCategory = function(category) {
+            originalShowCategory(category);
+            // 为网络游戏添加标记
+            const games = categoryGames[category.name] || [];
+            games.forEach((game, index) => {
+                if (game.isOnline) {
+                    const card = document.querySelector(`.game-card[data-index="${index}"]`);
+                    if (card) {
+                        card.querySelector('.game-type').innerHTML += ' 🌐';
+                    }
+                }
+            });
+        };
+
+        // 页面加载后初始化用户
+        document.addEventListener('DOMContentLoaded', () => {
+            initUser();
+        });
     </script>
 </body>
 </html>
