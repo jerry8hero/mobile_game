@@ -27,6 +27,8 @@
             <button class="nav-btn checkin-btn" id="checkinBtn" onclick="showCheckinPanel()">📅</button>
             <button class="nav-btn task-btn" id="taskBtn" onclick="showTaskPanel()">📋</button>
             <button class="nav-btn shop-btn" id="shopBtn" onclick="showShopPanel()">🛒</button>
+            <button class="nav-btn achievement-btn" id="achievementBtn" onclick="showAchievementPanel()">🏅</button>
+            <button class="nav-btn stats-btn" id="statsBtn" onclick="showStatsPanel()">📊</button>
             <button class="nav-btn user-btn" id="userBtn" onclick="toggleUserPanel()">👤</button>
             <button class="nav-btn" onclick="toggleSearch()">🔍</button>
             <button class="nav-btn" onclick="toggleFullscreen()">⛶</button>
@@ -107,6 +109,9 @@
     <script src="shop-system.js"></script>
     <script src="sports-rules.js"></script>
     <script src="game-lobby.js"></script>
+    <script src="achievement.js"></script>
+    <script src="game-stats.js"></script>
+    <script src="recommendation.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -1274,6 +1279,196 @@
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
         });
+
+        // ========== 成就系统 UI ==========
+        function showAchievementPanel() {
+            const existing = document.getElementById('achievementPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.Achievement) return;
+
+            const stats = window.Achievement.getStats();
+            const categories = window.Achievement.getAchievementsByCategory();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'achievementPanel';
+            panel.innerHTML = `
+                <div class="achievement-panel">
+                    <div class="achievement-header">
+                        <h3>🏅 成就中心</h3>
+                        <div class="achievement-progress">
+                            <div class="progress-text">${stats.unlocked}/${stats.total} 已解锁</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${stats.progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievement-content">
+                        ${Object.entries(categories).map(([category, achievements]) => `
+                            <div class="achievement-section">
+                                <h4>${category}</h4>
+                                <div class="achievement-list">
+                                    ${achievements.map(ach => `
+                                        <div class="achievement-item ${ach.unlocked ? 'unlocked' : 'locked'}">
+                                            <div class="achievement-icon">${ach.icon}</div>
+                                            <div class="achievement-info">
+                                                <div class="achievement-name">${ach.name}</div>
+                                                <div class="achievement-desc">${ach.desc}</div>
+                                                ${!ach.unlocked ? `<div class="achievement-reward">奖励: ${ach.rewardCoins}💰 + ${ach.rewardExp}经验</div>` : ''}
+                                            </div>
+                                            <div class="achievement-status">
+                                                ${ach.unlocked ? '✅' : '🔒'}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button onclick="document.getElementById('achievementPanel').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // ========== 统计系统 UI ==========
+        function showStatsPanel() {
+            const existing = document.getElementById('statsPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.GameStats) return;
+
+            const summary = window.GameStats.getSummary();
+            const mostPlayed = window.GameStats.getMostPlayedGames(5);
+            const highScores = window.GameStats.getHighScoreGames(5);
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'statsPanel';
+            panel.innerHTML = `
+                <div class="stats-panel">
+                    <h3>📊 游戏统计</h3>
+                    <div class="stats-summary">
+                        <div class="stat-box">
+                            <div class="stat-value">${summary.totalGamesPlayed}</div>
+                            <div class="stat-label">总游戏次数</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${summary.totalPlayTimeFormatted}</div>
+                            <div class="stat-label">总游戏时长</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">${summary.uniqueGamesPlayed}</div>
+                            <div class="stat-label">游玩游戏数</div>
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <h4>🎮 常玩游戏</h4>
+                        <div class="stats-list">
+                            ${mostPlayed.map((game, i) => `
+                                <div class="stats-item">
+                                    <span class="rank">${i + 1}</span>
+                                    <span class="name">${game.name}</span>
+                                    <span class="count">${game.count}次</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <h4>🏆 最高分</h4>
+                        <div class="stats-list">
+                            ${highScores.map((game, i) => `
+                                <div class="stats-item">
+                                    <span class="rank">${i + 1}</span>
+                                    <span class="name">${game.name}</span>
+                                    <span class="score">${game.score}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="stats-today">
+                        <h4>📅 今日数据</h4>
+                        <p>游戏次数: ${summary.today.gamesCount || 0} | 时长: ${window.GameStats.formatPlayTime(summary.today.playTime || 0)}</p>
+                    </div>
+                    <button onclick="document.getElementById('statsPanel').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // ========== 推荐系统 UI ==========
+        function showRecommendationPanel() {
+            const existing = document.getElementById('recommendationPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.Recommendation) return;
+
+            const recs = window.Recommendation.getAllRecommendations();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'recommendationPanel';
+            panel.innerHTML = `
+                <div class="recommendation-panel">
+                    <h3>🎯 为你推荐</h3>
+                    <div class="rec-section">
+                        <h4>🔥 热门游戏</h4>
+                        <div class="rec-games">
+                            ${recs.hot.map(game => `
+                                <div class="rec-game" onclick="showCategories(); setTimeout(() => showCategory(gameCategories.find(c => c.name === getGameCategory('${game.name}')) || gameCategories[0], 100)">
+                                    <span class="rec-icon">${game.icon}</span>
+                                    <span class="rec-name">${game.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="rec-section">
+                        <h4>💡 猜你喜欢</h4>
+                        <div class="rec-games">
+                            ${recs.recommended.map(game => `
+                                <div class="rec-game" onclick="showCategories(); setTimeout(() => showCategory(gameCategories.find(c => c.name === getGameCategory('${game.name}')) || gameCategories[0], 100)">
+                                    <span class="rec-icon">${game.icon}</span>
+                                    <span class="rec-name">${game.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="rec-section">
+                        <h4>🆕 最新上线</h4>
+                        <div class="rec-games">
+                            ${recs.new.map(game => `
+                                <div class="rec-game" onclick="showCategories(); setTimeout(() => showCategory(gameCategories.find(c => c.name === getGameCategory('${game.name}')) || gameCategories[0], 100)">
+                                    <span class="rec-icon">${game.icon}</span>
+                                    <span class="rec-name">${game.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('recommendationPanel').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        // 辅助函数：获取游戏所在分类
+        function getGameCategory(gameName) {
+            for (const [category, games] of Object.entries(categoryGames)) {
+                if (games.some(g => g.name === gameName)) {
+                    return category;
+                }
+            }
+            return '益智类';
+        }
     </script>
 </body>
 </html>
