@@ -24,6 +24,9 @@
             <h1 class="logo">🎮 掌机游戏厅</h1>
         </div>
         <div class="nav-right">
+            <button class="nav-btn checkin-btn" id="checkinBtn" onclick="showCheckinPanel()">📅</button>
+            <button class="nav-btn task-btn" id="taskBtn" onclick="showTaskPanel()">📋</button>
+            <button class="nav-btn shop-btn" id="shopBtn" onclick="showShopPanel()">🛒</button>
             <button class="nav-btn user-btn" id="userBtn" onclick="toggleUserPanel()">👤</button>
             <button class="nav-btn" onclick="toggleSearch()">🔍</button>
             <button class="nav-btn" onclick="toggleFullscreen()">⛶</button>
@@ -99,6 +102,9 @@
     <script src="user-account.js"></script>
     <script src="leaderboard.js"></script>
     <script src="giftcode.js"></script>
+    <script src="daily-checkin.js"></script>
+    <script src="task-system.js"></script>
+    <script src="shop-system.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -842,6 +848,292 @@
                 }
             });
         };
+
+        // ========== 签到系统 UI ==========
+        function showCheckinPanel() {
+            const existing = document.getElementById('checkinPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.DailyCheckin) return;
+
+            const isCheckedIn = window.DailyCheckin.isCheckedInToday();
+            const continuousDays = window.DailyCheckin.getContinuousDays();
+            const totalDays = window.DailyCheckin.getTotalDays();
+            const history = window.DailyCheckin.getCheckinHistory();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'checkinPanel';
+            panel.innerHTML = `
+                <div class="checkin-panel">
+                    <h3>📅 每日签到</h3>
+                    <div class="checkin-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">${continuousDays}</span>
+                            <span class="stat-label">连续天数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${totalDays}</span>
+                            <span class="stat-label">总签到天数</span>
+                        </div>
+                    </div>
+                    <div class="checkin-calendar">
+                        <h4>最近签到记录</h4>
+                        <div class="calendar-days">
+                            ${getLast7Days().map(day => {
+                                const hasCheckin = history.includes(day);
+                                const dayName = day.split('-')[2];
+                                return `<div class="calendar-day ${hasCheckin ? 'checked' : ''}">${dayName}</div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    ${isCheckedIn ?
+                        '<div class="checked-in-tip">✅ 今日已签到，明天再来吧！</div>' :
+                        `<button class="checkin-btn-main" onclick="doCheckin()">🎁 签到领取奖励</button>`
+                    }
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        function getLast7Days() {
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                days.push(date.toISOString().split('T')[0]);
+            }
+            return days;
+        }
+
+        function doCheckin() {
+            if (!window.DailyCheckin) return;
+
+            const result = window.DailyCheckin.checkin();
+            if (result.success) {
+                alert(result.message);
+                // 添加经验
+                if (window.UserAccount && window.UserAccount.addExp) {
+                    window.UserAccount.addExp(20);
+                }
+                // 更新任务
+                if (window.TaskSystem) {
+                    window.TaskSystem.updateContinuousLoginTask();
+                }
+                showCheckinPanel();  // 刷新面板
+                updateUserDisplay();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        // ========== 任务系统 UI ==========
+        function showTaskPanel() {
+            const existing = document.getElementById('taskPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.TaskSystem) return;
+
+            const dailyTasks = window.TaskSystem.getDailyTasks();
+            const achievementTasks = window.TaskSystem.getAchievementTasks();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'taskPanel';
+            panel.innerHTML = `
+                <div class="task-panel">
+                    <h3>📋 任务中心</h3>
+                    <div class="task-section">
+                        <h4>每日任务</h4>
+                        <div class="task-list">
+                            ${dailyTasks.map(task => `
+                                <div class="task-item ${task.completed ? 'completed' : ''}">
+                                    <div class="task-info">
+                                        <div class="task-name">${task.name}</div>
+                                        <div class="task-desc">${task.desc}</div>
+                                        <div class="task-progress">进度: ${task.progress}/${task.target}</div>
+                                        <div class="task-reward">奖励: ${task.rewardCoins}💰 + ${task.rewardExp}经验</div>
+                                    </div>
+                                    <button class="task-claim-btn ${task.completed && !task.claimed ? 'can-claim' : ''}"
+                                            onclick="claimTask('${task.id}')"
+                                            ${!task.completed || task.claimed ? 'disabled' : ''}>
+                                        ${task.claimed ? '已领取' : (task.completed ? '领取' : '进行中')}
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="task-section">
+                        <h4>成就任务</h4>
+                        <div class="task-list">
+                            ${achievementTasks.map(task => `
+                                <div class="task-item ${task.completed ? 'completed' : ''}">
+                                    <div class="task-info">
+                                        <div class="task-name">${task.name}</div>
+                                        <div class="task-desc">${task.desc}</div>
+                                        <div class="task-progress">进度: ${task.progress}/${task.target}</div>
+                                        <div class="task-reward">奖励: ${task.rewardCoins}💰 + ${task.rewardExp}经验</div>
+                                    </div>
+                                    <button class="task-claim-btn ${task.completed && !task.claimed ? 'can-claim' : ''}"
+                                            onclick="claimTask('${task.id}')"
+                                            ${!task.completed || task.claimed ? 'disabled' : ''}>
+                                        ${task.claimed ? '已领取' : (task.completed ? '领取' : '进行中')}
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        function claimTask(taskId) {
+            if (!window.TaskSystem) return;
+
+            const result = window.TaskSystem.claimReward(taskId);
+            if (result.success) {
+                alert(result.message);
+                showTaskPanel();  // 刷新任务面板
+                updateUserDisplay();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        // ========== 商城系统 UI ==========
+        function showShopPanel() {
+            const existing = document.getElementById('shopPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.ShopSystem) return;
+
+            const coins = window.UserAccount ? window.UserAccount.getCoins() : 0;
+            const items = window.ShopSystem.getAllItems();
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'shopPanel';
+            panel.innerHTML = `
+                <div class="shop-panel">
+                    <div class="shop-header">
+                        <h3>🛒 商城</h3>
+                        <div class="shop-coins">💰 ${coins}</div>
+                    </div>
+                    <div class="shop-section">
+                        <h4>头像包</h4>
+                        <div class="shop-items">
+                            ${items.filter(i => i.type === 'avatar_pack' || i.type === 'avatar').map(item => renderShopItem(item)).join('')}
+                        </div>
+                    </div>
+                    <div class="shop-section">
+                        <h4>称号</h4>
+                        <div class="shop-items">
+                            ${items.filter(i => i.type === 'title').map(item => renderShopItem(item)).join('')}
+                        </div>
+                    </div>
+                    <div class="shop-section">
+                        <h4>主题背景</h4>
+                        <div class="shop-items">
+                            ${items.filter(i => i.type === 'background').map(item => renderShopItem(item)).join('')}
+                        </div>
+                    </div>
+                    <button onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        function renderShopItem(item) {
+            const isOwned = window.ShopSystem.isOwned(item.id);
+            return `
+                <div class="shop-item ${isOwned ? 'owned' : ''}">
+                    <div class="shop-item-info">
+                        <div class="shop-item-name">${item.name}</div>
+                        <div class="shop-item-desc">${item.desc}</div>
+                    </div>
+                    <div class="shop-item-action">
+                        ${isOwned ?
+                            '<span class="owned-tag">已拥有</span>' :
+                            `<button onclick="buyItem('${item.id}')">${item.price}💰</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        function buyItem(itemId) {
+            if (!window.ShopSystem) return;
+
+            const result = window.ShopSystem.purchase(itemId);
+            if (result.success) {
+                alert(result.message);
+                // 更新头像列表
+                if (result.item.type === 'avatar_pack' || result.item.type === 'avatar') {
+                    window.UserAccount.updateAvatarList(result.item.items);
+                }
+                showShopPanel();  // 刷新商城
+                updateUserDisplay();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        // ========== 扩展用户面板显示等级 ==========
+        const originalToggleUserPanel = window.toggleUserPanel;
+        window.toggleUserPanel = function() {
+            originalToggleUserPanel();
+
+            // 添加等级显示
+            setTimeout(() => {
+                const userPanel = document.getElementById('userPanel');
+                if (userPanel && window.UserAccount) {
+                    const levelInfo = window.UserAccount.getLevelInfo();
+                    const user = window.UserAccount.getUser();
+
+                    // 添加等级和经验条
+                    const header = userPanel.querySelector('.user-panel-header');
+                    const levelHtml = `
+                        <div class="user-level-info">
+                            <div class="level-badge">Lv.${levelInfo.level}</div>
+                            <div class="exp-bar-container">
+                                <div class="exp-bar" style="width: ${levelInfo.progress}%"></div>
+                            </div>
+                            <div class="exp-text">${levelInfo.exp}/${levelInfo.expForNext} 经验</div>
+                        </div>
+                        <div class="user-title">${levelInfo.title}</div>
+                    `;
+
+                    // 插入等级信息
+                    const existingLevel = header.querySelector('.user-level-info');
+                    if (!existingLevel) {
+                        header.insertAdjacentHTML('beforeend', levelHtml);
+                    }
+                }
+            }, 100);
+        };
+
+        // 更新用户显示
+        function updateUserDisplay() {
+            const userBtn = document.getElementById('userBtn');
+            if (window.UserAccount) {
+                const user = window.UserAccount.getUser();
+                if (user) {
+                    userBtn.textContent = user.avatar || '👤';
+                }
+            }
+        }
 
         // 页面加载后初始化用户
         document.addEventListener('DOMContentLoaded', () => {
