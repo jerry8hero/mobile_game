@@ -106,6 +106,7 @@
     <script src="task-system.js"></script>
     <script src="shop-system.js"></script>
     <script src="sports-rules.js"></script>
+    <script src="game-lobby.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -115,7 +116,7 @@
     <script>
         // 游戏数据
         const gameCategories = [
-            { name: '网络游戏', icon: '🌐', count: 3, color: '#9b59b6', dir: '网络游戏' },
+            { name: '网络游戏', icon: '🌐', count: 5, color: '#9b59b6', dir: '网络游戏' },
             { name: '益智类', icon: '🧩', count: 14, color: '#ff6b6b', dir: '益智类' },
             { name: '街机类', icon: '🎮', count: 10, color: '#48dbfb', dir: '街机类' },
             { name: '编程启蒙类', icon: '🤖', count: 17, color: '#1dd1a1', dir: '编程启蒙类' },
@@ -143,9 +144,11 @@
         // 分类游戏映射（简化版）
         const categoryGames = {
             '网络游戏': [
-                { name: '贪吃蛇大作战', icon: '🐍', type: '多人对战', file: './益智类/记忆配对.html', isOnline: true },
-                { name: '飞行射击', icon: '✈️', type: '双人合作', file: './射击类/飞行射击.html', isOnline: true },
-                { name: '俄罗斯方块对战', icon: '🧱', type: '竞技对战', file: './街机类/俄罗斯方块.html', isOnline: true }
+                { name: '贪吃蛇大作战', icon: '🐍', type: '多人对战', file: './益智类/记忆配对.html', isOnline: true, gameType: 'snake' },
+                { name: '飞行射击', icon: '✈️', type: '双人合作', file: './射击类/飞行射击.html', isOnline: true, gameType: 'shooter' },
+                { name: '俄罗斯方块对战', icon: '🧱', type: '竞技对战', file: './街机类/俄罗斯方块.html', isOnline: true, gameType: 'tetris' },
+                { name: '五子棋对战', icon: '⭕', type: '棋类对战', file: './棋类/五子棋.html', isOnline: true, gameType: 'gomoku' },
+                { name: '赛车竞速', icon: '🏎️', type: '多人竞速', file: './运动类/极速赛车.html', isOnline: true, gameType: 'racing' }
             ],
             '益智类': [
                 { name: '记忆配对', icon: '🎴', type: '翻牌找相同', file: './益智类/记忆配对.html' },
@@ -812,12 +815,13 @@
             modal.className = 'game-detail-modal show';
             const hasLeaderboard = window.Leaderboard.getSupportedGames().includes(game.name);
             const hasRules = window.SportsRules && window.SportsRules.isSupported(game.name);
+            const isOnlineGame = game.isOnline;
             modal.innerHTML = `
                 <div class="game-detail-content">
                     <div class="game-detail-icon">${game.icon}</div>
                     <div class="game-detail-name">${game.name}</div>
                     <div class="game-detail-type">${game.type}</div>
-                    ${game.isOnline ? '<div class="online-tag">🌐 网络游戏</div>' : ''}
+                    ${isOnlineGame ? '<div class="online-tag">🌐 网络游戏</div>' : ''}
                     <div class="game-detail-desc">${getGameDescription(game)}</div>
                     <div class="game-detail-buttons">
                         <button class="game-detail-btn favorite" onclick="toggleFavoriteDetail('${game.file}', '${game.name}', '${game.icon}', '${game.type}', '${game.category || currentCategory?.name}')">
@@ -825,7 +829,10 @@
                         </button>
                         ${hasLeaderboard ? `<button class="game-detail-btn leaderboard" onclick="showLeaderboard('${game.name}'); this.closest('.game-detail-modal').remove();">🏆 排行榜</button>` : ''}
                         ${hasRules ? `<button class="game-detail-btn rules" onclick="showSportsRules('${game.name}'); this.closest('.game-detail-modal').remove();">📚 学习规则</button>` : ''}
-                        <button class="game-detail-btn play" onclick="playGame('${game.file}')">🎮 开始游戏</button>
+                        ${isOnlineGame ?
+                            `<button class="game-detail-btn lobby" onclick="showGameLobby({name:'${game.name}',icon:'${game.icon}',file:'${game.file}',isOnline:true,gameType:'${game.gameType || 'default'}'}); this.closest('.game-detail-modal').remove();">🏠 游戏大厅</button>` :
+                            `<button class="game-detail-btn play" onclick="playGame('${game.file}')">🎮 开始游戏</button>`
+                        }
                     </div>
                     <button onclick="this.closest('.game-detail-modal').remove()" style="margin-top:15px;padding:8px 20px;background:transparent;border:1px solid #666;color:#aaa;border-radius:6px;">关闭</button>
                 </div>
@@ -898,6 +905,83 @@
                 </div>
             `;
             document.body.appendChild(panel);
+        }
+
+        // ========== 游戏大厅 UI ==========
+        function showGameLobby(game) {
+            const existing = document.getElementById('gameLobbyPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!game.isOnline) {
+                // 非网络游戏直接开始
+                playGame(game.file);
+                return;
+            }
+
+            const user = window.UserAccount ? window.UserAccount.getUser() : null;
+            const playerName = user?.username || '玩家';
+
+            const config = window.GameLobby.getGameConfig(game.gameType);
+            const onlineCount = window.GameLobby.getOnlineCount(game.gameType);
+            const onlinePlayers = window.GameLobby.getOnlinePlayers(game.gameType, 5);
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'gameLobbyPanel';
+            panel.innerHTML = `
+                <div class="game-lobby-panel">
+                    <div class="lobby-header">
+                        <span class="lobby-icon">${game.icon}</span>
+                        <h3>${game.name} 大厅</h3>
+                        <div class="online-status">🌐 在线 ${onlineCount} 人</div>
+                    </div>
+                    <div class="lobby-section">
+                        <h4>选择游戏模式</h4>
+                        <div class="mode-buttons">
+                            ${config.mode.map((mode, idx) => `
+                                <button class="mode-btn" onclick="selectGameMode('${game.file}', '${mode}', '${game.gameType}')">
+                                    ${mode}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="lobby-section">
+                        <h4>在线玩家</h4>
+                        <div class="online-list">
+                            ${onlinePlayers.map(p => `
+                                <div class="online-player">👤 ${p}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="lobby-section">
+                        <h4>快速开始</h4>
+                        <button class="quick-play-btn" onclick="quickPlayGame('${game.file}', '${config.mode[0]}')">
+                            🚀 立即开始 (${config.mode[0]})
+                        </button>
+                    </div>
+                    <button class="close-btn-lobby" onclick="document.getElementById('gameLobbyPanel').remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        function selectGameMode(gameFile, mode, gameType) {
+            // 根据模式开始游戏
+            quickPlayGame(gameFile, mode);
+        }
+
+        function quickPlayGame(gameFile, mode) {
+            // 显示模式提示后开始游戏
+            if (mode.includes('对战') || mode.includes('匹配') || mode.includes('多人')) {
+                alert(`正在匹配${mode}...匹配成功！开始游戏！`);
+            } else {
+                alert(`已选择 ${mode}，开始游戏！`);
+            }
+            playGame(gameFile);
+            document.getElementById('gameLobbyPanel')?.remove();
         }
 
         // ========== 签到系统 UI ==========

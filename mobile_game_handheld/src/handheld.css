@@ -387,6 +387,215 @@ body {
     50% { opacity: 0.5; }
 }
 
+/* ========== 动画效果 ========== */
+
+/* 淡入动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 弹跳动画 */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* 旋转动画 */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 闪烁动画 */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* 放大缩小 */
+@keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* 滑动进入 */
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* 摇晃动画 */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* 脉冲放大 */
+@keyframes pulseScale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* 应用动画类 */
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.bounce {
+    animation: bounce 0.6s ease-in-out infinite;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+.blink {
+    animation: blink 1s ease-in-out infinite;
+}
+
+.scale-in {
+    animation: scaleIn 0.3s ease-out;
+}
+
+/* 弹窗动画 */
+.modal.show .game-detail-content,
+.modal.show .user-panel-header,
+.modal.show .checkin-panel,
+.modal.show .task-panel,
+.modal.show .shop-panel,
+.modal.show .sports-rules-panel,
+.modal.show .game-lobby-panel {
+    animation: scaleIn 0.3s ease-out;
+}
+
+/* 按钮悬停效果增强 */
+.nav-btn, .action-btn, .system-btn, .dpad-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-btn:active, .action-btn:active, .system-btn:active, .dpad-btn:active {
+    transform: scale(0.95);
+}
+
+/* 卡片悬停效果 */
+.category-card, .game-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(233, 69, 96, 0.3);
+}
+
+.game-card:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 经验条动画 */
+.exp-bar {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 签到按钮动画 */
+.checkin-btn-main:active {
+    animation: pulseScale 0.2s ease-in-out;
+}
+
+/* 任务可领取动画 */
+.task-claim-btn.can-claim {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 金币获得提示 */
+.coin-get {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #f1c40f, #f39c12);
+    color: #fff;
+    padding: 20px 40px;
+    border-radius: 15px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    z-index: 100000;
+    animation: fadeIn 0.3s ease-out, bounce 0.5s ease-out 0.3s;
+    pointer-events: none;
+}
+
+.coin-get::after {
+    content: '💰';
+    margin-left: 10px;
+}
+
+/* 升级提示 */
+.level-up {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #9b59b6, #8e44ad);
+    color: #fff;
+    padding: 30px 50px;
+    border-radius: 20px;
+    font-size: 2rem;
+    font-weight: bold;
+    z-index: 100000;
+    animation: scaleIn 0.5s ease-out, pulseScale 0.5s ease-out 0.5s 3;
+    text-align: center;
+    pointer-events: none;
+}
+
+.level-up::before {
+    content: '🎉';
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--accent-primary), #ff9a9e);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ff9a9e, var(--accent-primary));
+}
+
+/* 选中项动画 */
+.selected {
+    animation: pulseScale 0.3s ease-out;
+}
+
+/* 标签动画 */
+.online-tag, .level-badge {
+    animation: fadeIn 0.3s ease-out;
+}
+
 /* 横屏适配 */
 @media (orientation: landscape) {
     .category-grid {
@@ -1462,4 +1671,123 @@ body {
 
 .game-detail-btn.rules:hover {
     background: #d35400;
+}
+
+/* 游戏详情中的大厅按钮 */
+.game-detail-btn.lobby {
+    background: #3498db;
+    color: white;
+}
+
+.game-detail-btn.lobby:hover {
+    background: #2980b9;
+}
+
+/* ========== 游戏大厅样式 ========== */
+
+.game-lobby-panel {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.lobby-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #3498db;
+}
+
+.lobby-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.lobby-header h3 {
+    color: #3498db;
+    margin-bottom: 5px;
+}
+
+.online-status {
+    color: #27ae60;
+    font-size: 0.9rem;
+}
+
+.lobby-section {
+    margin-bottom: 20px;
+}
+
+.lobby-section h4 {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.mode-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mode-btn {
+    padding: 10px 20px;
+    background: var(--bg-dark);
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    background: #3498db;
+    color: white;
+}
+
+.online-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.online-player {
+    padding: 8px 15px;
+    background: var(--bg-dark);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.quick-play-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(45deg, #3498db, #2ecc71);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.quick-play-btn:hover {
+    transform: scale(1.02);
+}
+
+.close-btn-lobby {
+    width: 100%;
+    padding: 12px;
+    background: var(--dpad-color);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
 }
