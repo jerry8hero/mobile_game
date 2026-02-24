@@ -1340,3 +1340,126 @@ body {
 .checkin-btn, .task-btn, .shop-btn {
     font-size: 1.2rem !important;
 }
+
+/* ========== 运动规则教学样式 ========== */
+
+.sports-rules-panel {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.rules-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--accent-primary);
+}
+
+.rules-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.rules-header h3 {
+    color: var(--accent-primary);
+    font-size: 1.3rem;
+}
+
+.rules-content {
+    margin-bottom: 20px;
+}
+
+.rule-section {
+    background: var(--bg-dark);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-left: 4px solid #ee5a24;
+}
+
+.rule-section h4 {
+    color: #ee5a24;
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+
+.rule-section p {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.fun-facts {
+    background: linear-gradient(135deg, rgba(238, 90, 36, 0.2), rgba(155, 89, 182, 0.2));
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.fun-facts h4 {
+    color: #f1c40f;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.fun-facts ul {
+    list-style: none;
+    padding: 0;
+}
+
+.fun-facts li {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    line-height: 1.5;
+}
+
+.fun-facts li:last-child {
+    border-bottom: none;
+}
+
+.rules-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.rules-buttons button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.rules-buttons .play-btn {
+    background: var(--accent-primary);
+    color: white;
+    font-weight: bold;
+}
+
+.rules-buttons .play-btn:hover {
+    background: #c0392b;
+}
+
+.rules-buttons .close-btn-rules {
+    background: var(--dpad-color);
+    color: var(--text-primary);
+}
+
+/* 游戏详情中的学习规则按钮 */
+.game-detail-btn.rules {
+    background: #ee5a24;
+    color: white;
+}
+
+.game-detail-btn.rules:hover {
+    background: #d35400;
+}

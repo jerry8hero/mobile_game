@@ -105,6 +105,7 @@
     <script src="daily-checkin.js"></script>
     <script src="task-system.js"></script>
     <script src="shop-system.js"></script>
+    <script src="sports-rules.js"></script>
     <script src="game-controller.js"></script>
     <script src="switch-controls.js"></script>
     <script src="touch-fix.js"></script>
@@ -804,12 +805,13 @@
             document.body.appendChild(panel);
         }
 
-        // 修改游戏详情弹窗，添加排行榜按钮
+        // 修改游戏详情弹窗，添加排行榜和规则教学按钮
         const originalShowGameDetail = window.showGameDetail;
         window.showGameDetail = function(game) {
             const modal = document.createElement('div');
             modal.className = 'game-detail-modal show';
             const hasLeaderboard = window.Leaderboard.getSupportedGames().includes(game.name);
+            const hasRules = window.SportsRules && window.SportsRules.isSupported(game.name);
             modal.innerHTML = `
                 <div class="game-detail-content">
                     <div class="game-detail-icon">${game.icon}</div>
@@ -822,6 +824,7 @@
                             ${window.Favorites && window.Favorites.isFavorite(game.file) ? '❤️' : '🤍'}
                         </button>
                         ${hasLeaderboard ? `<button class="game-detail-btn leaderboard" onclick="showLeaderboard('${game.name}'); this.closest('.game-detail-modal').remove();">🏆 排行榜</button>` : ''}
+                        ${hasRules ? `<button class="game-detail-btn rules" onclick="showSportsRules('${game.name}'); this.closest('.game-detail-modal').remove();">📚 学习规则</button>` : ''}
                         <button class="game-detail-btn play" onclick="playGame('${game.file}')">🎮 开始游戏</button>
                     </div>
                     <button onclick="this.closest('.game-detail-modal').remove()" style="margin-top:15px;padding:8px 20px;background:transparent;border:1px solid #666;color:#aaa;border-radius:6px;">关闭</button>
@@ -848,6 +851,54 @@
                 }
             });
         };
+
+        // ========== 运动规则教学 UI ==========
+        function showSportsRules(sportName) {
+            const existing = document.getElementById('sportsRulesPanel');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            if (!window.SportsRules) return;
+
+            const rulesData = window.SportsRules.getRules(sportName);
+            if (!rulesData) {
+                alert('暂无可用规则');
+                return;
+            }
+
+            const panel = document.createElement('div');
+            panel.className = 'modal show';
+            panel.id = 'sportsRulesPanel';
+            panel.innerHTML = `
+                <div class="sports-rules-panel">
+                    <div class="rules-header">
+                        <span class="rules-icon">${rulesData.icon}</span>
+                        <h3>${rulesData.name} - 规则教学</h3>
+                    </div>
+                    <div class="rules-content">
+                        ${rulesData.rules.map((rule, index) => `
+                            <div class="rule-section">
+                                <h4>${index + 1}. ${rule.title}</h4>
+                                <p>${rule.content.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="fun-facts">
+                        <h4>🌟 有趣的小知识</h4>
+                        <ul>
+                            ${rulesData.funFacts.map(fact => `<li>${fact}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="rules-buttons">
+                        <button class="play-btn" onclick="playGame('${rulesData.gameFile}'); document.getElementById('sportsRulesPanel').remove();">🎮 开始游戏</button>
+                        <button class="close-btn-rules" onclick="this.closest('.modal').remove()">关闭</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
 
         // ========== 签到系统 UI ==========
         function showCheckinPanel() {
