@@ -28,6 +28,7 @@
             <button class="nav-btn task-btn" id="taskBtn" onclick="showTaskPanel()">📋</button>
             <button class="nav-btn shop-btn" id="shopBtn" onclick="showShopPanel()">🛒</button>
             <button class="nav-btn achievement-btn" id="achievementBtn" onclick="showAchievementPanel()">🏅</button>
+            <button class="nav-btn adventure-btn" id="adventureBtn" onclick="AdventureUI.showAdventurePanel()">⚔️</button>
             <button class="nav-btn stats-btn" id="statsBtn" onclick="showStatsPanel()">📊</button>
             <button class="nav-btn user-btn" id="userBtn" onclick="toggleUserPanel()">👤</button>
             <button class="nav-btn" onclick="toggleSearch()">🔍</button>
@@ -110,6 +111,9 @@
     <script src="sports-rules.js"></script>
     <script src="game-lobby.js"></script>
     <script src="achievement.js"></script>
+    <script src="adventure-data.js"></script>
+    <script src="adventure-system.js"></script>
+    <script src="adventure-ui.js"></script>
     <script src="game-stats.js"></script>
     <script src="recommendation.js"></script>
     <script src="game-controller.js"></script>
@@ -282,7 +286,74 @@
             renderCategories();
             setupGamepad();
             setupVirtualControls();
+            // 初始化冒险系统并检查进度
+            initAdventureSystem();
         }
+
+        // 冒险系统初始化
+        function initAdventureSystem() {
+            if (window.AdventureSystem) {
+                window.AdventureSystem.initAdventure();
+                // 检查是否有可用的分支选择
+                const availableChoice = window.AdventureSystem.getAvailableChoice();
+                if (availableChoice) {
+                    setTimeout(() => {
+                        window.AdventureUI.showChoicePanel(availableChoice.id);
+                    }, 1000);
+                }
+                // 检查是否已完成冒险
+                const stats = window.AdventureSystem.getAdventureStats();
+                if (stats.isFinished && stats.endingUnlocked) {
+                    const ending = window.AdventureSystem.getCurrentEnding();
+                    if (ending) {
+                        setTimeout(() => {
+                            window.AdventureUI.showEndingPanel(stats.endingUnlocked);
+                        }, 1000);
+                    }
+                }
+            }
+        }
+
+        // 监听页面显示事件（从游戏返回时触发）
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // 页面从缓存恢复
+                initAdventureSystem();
+            }
+        });
+
+        // 游戏返回时更新冒险进度（通过URL参数检测）
+        function checkAdventureProgress() {
+            const params = new URLSearchParams(window.location.search);
+            const gameName = params.get('adventure_game');
+            if (gameName && window.AdventureSystem) {
+                const result = window.AdventureSystem.updateTaskProgress(decodeURIComponent(gameName), 0);
+                if (result.chapterCompleted && result.chapterCompleted.hasChoice) {
+                    setTimeout(() => {
+                        window.AdventureUI.showChoicePanel(result.chapterCompleted.choiceId);
+                    }, 500);
+                } else if (result.chapterCompleted && result.chapterCompleted.completed) {
+                    const transition = window.AdventureSystem.getChapterTransition(
+                        window.AdventureSystem.getCurrentChapter() + '_complete'
+                    );
+                    if (transition) {
+                        window.AdventureUI.showChapterCompleteAnimation(
+                            window.AdventureSystem.getCurrentChapter(),
+                            transition
+                        );
+                    }
+                }
+            }
+            // 清除URL参数
+            if (params.has('adventure_game')) {
+                const url = new URL(window.location);
+                url.searchParams.delete('adventure_game');
+                window.history.replaceState({}, '', url);
+            }
+        }
+
+        // 页面加载时检查冒险进度
+        checkAdventureProgress();
 
         // 搜索功能
         function toggleSearch() {
@@ -459,7 +530,32 @@
         }
 
         function playGame(file) {
-            window.location.href = file;
+            // 检查是否是冒险任务目标游戏
+            let adventureGame = '';
+            if (window.AdventureSystem) {
+                const stats = window.AdventureSystem.getAdventureStats();
+                if (stats.currentChapter) {
+                    const tasks = window.AdventureSystem.getChapterTasks(stats.currentChapter);
+                    const currentTask = tasks.find(t => !t.isCompleted);
+                    if (currentTask) {
+                        // 检查游戏名称是否匹配
+                        const games = window.categoryGames || {};
+                        for (const [cat, gameList] of Object.entries(games)) {
+                            const game = gameList.find(g => g.file === file);
+                            if (game && game.name === currentTask.gameName) {
+                                adventureGame = encodeURIComponent(currentTask.gameName);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            // 跳转到游戏，带上冒险参数
+            if (adventureGame) {
+                window.location.href = file + '?adventure_game=' + adventureGame;
+            } else {
+                window.location.href = file;
+            }
         }
 
         function toggleFavoriteDetail(file, name, icon, type, category) {
@@ -821,12 +917,27 @@
             const hasLeaderboard = window.Leaderboard.getSupportedGames().includes(game.name);
             const hasRules = window.SportsRules && window.SportsRules.isSupported(game.name);
             const isOnlineGame = game.isOnline;
+            // 检查是否是当前冒险任务目标
+            let isAdventureTarget = false;
+            let adventureTaskName = '';
+            if (window.AdventureSystem && !isOnlineGame) {
+                const stats = window.AdventureSystem.getAdventureStats();
+                if (stats.currentChapter) {
+                    const tasks = window.AdventureSystem.getChapterTasks(stats.currentChapter);
+                    const currentTask = tasks.find(t => !t.isCompleted);
+                    if (currentTask && currentTask.gameName === game.name) {
+                        isAdventureTarget = true;
+                        adventureTaskName = currentTask.name;
+                    }
+                }
+            }
             modal.innerHTML = `
                 <div class="game-detail-content">
                     <div class="game-detail-icon">${game.icon}</div>
                     <div class="game-detail-name">${game.name}</div>
                     <div class="game-detail-type">${game.type}</div>
                     ${isOnlineGame ? '<div class="online-tag">🌐 网络游戏</div>' : ''}
+                    ${isAdventureTarget ? '<div class="adventure-target-tag">⚔️ 冒险任务：' + adventureTaskName + '</div>' : ''}
                     <div class="game-detail-desc">${getGameDescription(game)}</div>
                     <div class="game-detail-buttons">
                         <button class="game-detail-btn favorite" onclick="toggleFavoriteDetail('${game.file}', '${game.name}', '${game.icon}', '${game.type}', '${game.category || currentCategory?.name}')">
